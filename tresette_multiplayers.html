@@ -368,6 +368,17 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 .lobby-code{font-size:clamp(24px,6vw,40px);color:#5af;font-weight:900;letter-spacing:8px;margin:8px 0;cursor:pointer;-webkit-user-select:all;user-select:all}
 .lobby-code:active{opacity:0.7}
 .copy-msg{color:#4f4;font-size:11px;min-height:18px;text-align:center}
+.room-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;margin:4px 0;border-radius:8px;cursor:pointer;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+  transition:background .2s;
+}
+.room-item:hover,.room-item:active{background:rgba(255,170,68,0.15);border-color:#fa4}
+.room-item .ri-info{text-align:left}
+.room-item .ri-host{color:#fff;font-size:clamp(12px,2.5vw,14px);font-weight:bold}
+.room-item .ri-mode{color:#fa4;font-size:clamp(9px,2vw,11px)}
+.room-item .ri-join{color:#5af;font-size:clamp(11px,2.2vw,13px);font-weight:bold;white-space:nowrap}
 .lobby-players{text-align:left;margin-top:12px}
 .lobby-player{padding:4px 0;font-size:14px;color:#ccc;display:flex;align-items:center;gap:8px}
 .lobby-player .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
@@ -450,7 +461,12 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
     </div>
     <div class="lobby-actions">
       <button class="lobby-btn primary" onclick="hostGame()">Crea Partita Online</button>
-      <button class="lobby-btn" onclick="showJoinUI()">Unisciti a Partita</button>
+      <button class="lobby-btn" onclick="showJoinUI()">Unisciti (con codice)</button>
+    </div>
+    <div id="room-browser" style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.15);padding-top:10px">
+      <div style="color:#ccc;font-size:clamp(11px,2.2vw,13px);margin-bottom:6px">Partite disponibili:</div>
+      <div id="room-list" style="max-height:140px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
+      <div id="room-list-status" style="color:#888;font-size:11px;text-align:center;padding:8px 0">Cercando partite...</div>
     </div>
     <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.15);padding-top:12px">
       <button class="lobby-btn primary" style="width:100%" onclick="startSinglePlayer()">🃏 Gioca da Solo (vs CPU)</button>
@@ -1614,6 +1630,7 @@ function showLobbyFromOverlay() {
   showLobbySection('lobby-menu');
 }
 function backToModeSelect() {
+  stopLobbyBrowser();
   document.getElementById('lobby-overlay').classList.add('hidden');
   document.getElementById('overlay').classList.remove('hidden');
 }
@@ -1665,13 +1682,10 @@ function fallbackCopy(text, msg) {
   document.body.removeChild(ta);
 }
 
-// Build invite link with code parameter
+// Build invite link — just the game URL, no code (rooms are discoverable via lobby browser)
 var GAME_BASE_URL = 'https://htmlpreview.github.io/?https://github.com/ripom/ssp-test-ric/blob/main/tresette_multiplayers.html';
 function getInviteLink() {
-  var base = (location.protocol === 'https:' || location.protocol === 'http:')
-    ? location.origin + location.pathname
-    : GAME_BASE_URL;
-  return base + (base.indexOf('?') >= 0 ? '&' : '?') + 'code=' + mpRoom;
+  return GAME_BASE_URL;
 }
 function copyInviteLink() {
   var link = getInviteLink();
@@ -1686,11 +1700,33 @@ function copyInviteLink() {
   }
 }
 
-// Auto-join: check for ?code=XXXXXX or &code=XXXXXX in URL
+// Auto-join: check ALL possible ways the code could be in the URL
+// - hash: #CODE
+// - query param on our page: ?code=CODE
+// - query param on htmlpreview: &code=CODE
+// - also check parent/referrer URL
 (function checkUrlInvite(){
-  var match = location.search.match(/[?&]code=([A-Za-z0-9]{6})/);
-  if(match){
-    var code = match[1].toUpperCase();
+  var code = '';
+  // Method 1: hash
+  var hash = location.hash.replace('#','').trim();
+  if(hash && /^[A-Za-z0-9]{6}$/.test(hash)) code = hash;
+  // Method 2: our own query string
+  if(!code){
+    var m = location.search.match(/[?&]code=([A-Za-z0-9]{6})/);
+    if(m) code = m[1];
+  }
+  // Method 3: full URL (htmlpreview puts everything in one big query)
+  if(!code){
+    var m2 = location.href.match(/[&?]code=([A-Za-z0-9]{6})/);
+    if(m2) code = m2[1];
+  }
+  // Method 4: check document.referrer
+  if(!code && document.referrer){
+    var m3 = document.referrer.match(/[&#?]code=([A-Za-z0-9]{6})/);
+    if(m3) code = m3[1];
+  }
+  if(code){
+    code = code.toUpperCase();
     dbg('Auto-join from URL: code='+code);
     var checkReady = setInterval(function(){
       if(_probesDone >= NTFY_SERVERS.length || ntfyBase){
@@ -1707,6 +1743,7 @@ function copyInviteLink() {
 function quitGame() {
   game.phase = 'done';
   document.getElementById('quit-btn').style.display = 'none';
+  stopHostHeartbeat();
   if(mpMode){
     mpMode = false;
     if(mpEventSource){ mpEventSource.close(); mpEventSource=null; }
@@ -1879,10 +1916,112 @@ function serverFromCode(code) {
   return NTFY_SERVERS[0];
 }
 
-function showLobbySection(id) { ['lobby-menu','lobby-host','lobby-join','lobby-waiting'].forEach(s=>{document.getElementById(s).style.display=s===id?'block':'none';}); }
+function showLobbySection(id) {
+  ['lobby-menu','lobby-host','lobby-join','lobby-waiting'].forEach(s=>{document.getElementById(s).style.display=s===id?'block':'none';});
+  // Auto-start/stop room browser when lobby-menu is shown
+  if(id === 'lobby-menu') startLobbyBrowser(); else stopLobbyBrowser();
+}
 function cancelLobby() {
   if(mpEventSource) { mpEventSource.close(); mpEventSource=null; }
+  stopHostHeartbeat();
   showLobbySection('lobby-menu');
+}
+
+// ═══ Room Browser: discover available games ═══
+var _lobbyES = null;
+var _lobbyRooms = {}; // {code: {host, mode, time, srv}}
+var _lobbyCleanup = null;
+
+function startLobbyBrowser() {
+  stopLobbyBrowser();
+  if(!ntfyBase) return;
+  _lobbyRooms = {};
+  renderRoomList();
+  document.getElementById('room-list-status').textContent = 'Cercando partite...';
+  dbg('LOBBY browser start');
+  // Subscribe to lobby topic on ALL available servers
+  var lobbySources = [];
+  _serversOk.forEach(function(s){
+    try {
+      var es = new EventSource(s.url+'/tresette-lobby/sse?since=30s');
+      es.addEventListener('message', function(ev){
+        try {
+          var msg = JSON.parse(ev.data);
+          if(msg.message){
+            var data = JSON.parse(msg.message);
+            if(data.t === 'room-ad' && data.code && data.host){
+              _lobbyRooms[data.code] = {host:data.host, mode:data.mode||'perdere', time:Date.now(), srv:data.srv||''};
+              renderRoomList();
+            }
+          }
+        } catch(e){}
+      });
+      lobbySources.push(es);
+    } catch(e){}
+  });
+  _lobbyES = lobbySources;
+  // Cleanup stale rooms every 15s
+  _lobbyCleanup = setInterval(function(){
+    var now = Date.now();
+    var changed = false;
+    for(var k in _lobbyRooms){
+      if(now - _lobbyRooms[k].time > 20000){ delete _lobbyRooms[k]; changed = true; }
+    }
+    if(changed) renderRoomList();
+  }, 15000);
+}
+
+function stopLobbyBrowser() {
+  if(_lobbyES){
+    _lobbyES.forEach(function(es){ try{es.close();}catch(e){} });
+    _lobbyES = null;
+  }
+  if(_lobbyCleanup){ clearInterval(_lobbyCleanup); _lobbyCleanup = null; }
+}
+
+function renderRoomList() {
+  var list = document.getElementById('room-list');
+  var status = document.getElementById('room-list-status');
+  var codes = Object.keys(_lobbyRooms);
+  if(codes.length === 0){
+    list.innerHTML = '';
+    status.textContent = ntfyBase ? 'Nessuna partita trovata' : 'Connessione ai server...';
+    return;
+  }
+  status.textContent = '';
+  list.innerHTML = '';
+  codes.forEach(function(code){
+    var r = _lobbyRooms[code];
+    var div = document.createElement('div');
+    div.className = 'room-item';
+    div.innerHTML = '<div class="ri-info"><div class="ri-host">'+r.host+'</div><div class="ri-mode">'+(r.mode==='vincere'?'🔺 A Vincere':'🔻 A Perdere')+'</div></div><div class="ri-join">Unisciti ▸</div>';
+    div.onclick = function(){ joinFromBrowser(code); };
+    list.appendChild(div);
+  });
+}
+
+function joinFromBrowser(code) {
+  stopLobbyBrowser();
+  document.getElementById('join-code-input').value = code;
+  showLobbySection('lobby-join');
+}
+
+// ═══ Host Heartbeat: announce room on lobby topic ═══
+var _heartbeatTimer = null;
+function startHostHeartbeat() {
+  stopHostHeartbeat();
+  var myName = _getMyName() || 'Host';
+  function beat(){
+    if(!ntfyBase || !mpRoom) return;
+    var body = JSON.stringify({t:'room-ad', code:mpRoom, host:myName, mode:gameMode, srv:ntfyBase});
+    fetch(ntfyBase+'/tresette-lobby', {method:'POST', body:body}).catch(function(){});
+    dbg('HEARTBEAT sent room='+mpRoom);
+  }
+  beat(); // send immediately
+  _heartbeatTimer = setInterval(beat, 10000); // then every 10s
+}
+function stopHostHeartbeat() {
+  if(_heartbeatTimer){ clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
 }
 
 // Send a message — single POST per event (very low rate)
@@ -1940,6 +2079,7 @@ function hostGame() {
   showLobbySection('lobby-host');
   document.getElementById('host-status').textContent = 'In attesa di giocatori...';
   document.getElementById('start-mp-btn').style.display = 'none';
+  startHostHeartbeat();
   mpSend({t:'room', host:true});
   let joined = false;
   mpStartSSE(function(data){
@@ -1968,6 +2108,7 @@ function hostGame() {
 function startMultiplayerGame() {
   if(!isHost) return;
   mpMode = true;
+  stopHostHeartbeat();
   PLAYER_NAMES[0] = document.getElementById('my-name-input').value.trim() || 'Tu';
   PLAYER_NAMES[1] = _clientName;
   deduplicateNames();
