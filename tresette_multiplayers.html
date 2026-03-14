@@ -139,14 +139,6 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 }
 #reconnect-btn:active{opacity:0.7}
 
-/* ════════ Last Trick Popup ════════ */
-#last-trick{
-  position:fixed;bottom:clamp(68px, 18vw, 140px);right:clamp(4px, 1vw, 10px);z-index:15;
-  background:rgba(0,0,0,0.5);border-radius:6px;padding:clamp(3px, 1vw, 6px) clamp(4px, 1.5vw, 8px);
-  cursor:pointer;display:none;
-}
-#last-trick .lt-label{font-size:clamp(7px, 1.8vw, 9px);color:#aaa;text-align:center;margin-bottom:4px}
-
 /* ════════ Rules Button ════════ */
 #rules-btn{
   position:fixed;top:clamp(4px, 1vh, 10px);left:clamp(4px, 1vw, 10px);z-index:20;
@@ -423,8 +415,6 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 <div id="scardone-banner">SCARDONE!</div>
 <div id="status-msg"></div>
 <div id="disconnect-banner"><span id="disconnect-text"></span> <button id="reconnect-btn" onclick="forceReconnect()">Riconnetti</button></div>
-<div id="last-trick"><div class="lt-label">Ultima presa</div></div>
-
 <div id="score-panel">
   <h3 id="score-title">PUNTEGGIO</h3>
   <div id="score-rows"></div>
@@ -574,11 +564,12 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   <div class="preview-row" id="preview-row"></div>
 
   <div class="info-box" id="info-box">
-    <span id="info-objective"><b>Obiettivo:</b> Prendi MENO punti possibili!</span><br>
+    <span id="info-objective"><b>🎯 Obiettivo:</b> Prendi MENO punti possibili!</span><br>
     <span id="info-suits"></span><br>
-    <b>Gerarchia:</b> 3 › 2 › A › Re › Cav › Fan › 7 › 6 › 5 › 4<br>
-    <b>Come giocare:</b> Clicca su una carta per giocarla.<br>
-    Devi rispondere al seme se puoi!
+    <b>📊 Gerarchia:</b> 3 › 2 › A › Re › Cav › Fan › 7 › 6 › 5 › 4<br>
+    <b>💰 Punteggio:</b> Asso = 1 punto, 2/3 = ⅓ punto, Figure = ⅓ punto. Ultima presa = ⅓ punto.<br>
+    <b>🃏 Come giocare:</b> Clicca o tocca una carta per giocarla. Devi seguire il seme di mano se puoi!<br>
+    <b>👥 Multiplayer:</b> Gioca online con un amico! Crea o unisciti a una partita dalla lobby.<br>
   </div>
 
   <button id="play-btn">GIOCA!</button>
@@ -843,8 +834,8 @@ function selectMode(mode) {
   document.getElementById('mode-vincere').classList.toggle('selected', mode === 'vincere');
   document.getElementById('overlay-sub').textContent = mode === 'perdere' ? 'A PERDERE' : 'A VINCERE';
   document.getElementById('info-objective').innerHTML = mode === 'perdere'
-    ? '<b>Obiettivo:</b> Prendi MENO punti possibili!'
-    : '<b>Obiettivo:</b> Prendi PIÙ punti possibili!';
+    ? '<b>🎯 Obiettivo:</b> Prendi MENO punti possibili!'
+    : '<b>🎯 Obiettivo:</b> Prendi PIÙ punti possibili!';
 }
 
 // ─── Constants ────────────────────────────────────────────────
@@ -1204,6 +1195,13 @@ function renderPlayerHand() {
             el.style.opacity = '0.5';
             document.querySelectorAll('#player-hand .playable').forEach(function(c){ c.onclick=null; });
             mpSend({t:'play', cardId: card.id});
+            // Safety: if no response in 5s, re-render hand to restore clickability
+            setTimeout(function(){
+              if(game && game.currentPlayer === myIdx && game.phase === 'playing'){
+                dbg('CLIENT: play timeout, re-rendering hand');
+                renderPlayerHand();
+              }
+            }, 5000);
           } else {
             // Host or single-player: play directly
             playCard(myIdx, card);
@@ -1386,7 +1384,6 @@ function renderLabels() {
   for (let v = 0; v < 4; v++) {
     const actual = (v + rot) % 4;
     const label = document.getElementById('label-' + PLAYER_POS[v]);
-    // Set innerHTML first, then toggle class (so classList isn't wiped)
     label.innerHTML = PLAYER_NAMES[actual] + ' <span class="lb-pts">' + formatPunti(game.scores[actual]) + '</span>';
     label.classList.toggle('active-turn', game.currentPlayer === actual && game.phase === 'playing');
   }
@@ -1443,15 +1440,14 @@ async function playCard(playerIdx, card) {
   // Scardone: Asso played in "a perdere" mode
   if(card.rank === 1 && gameMode === 'perdere') {
     showScardone();
-    if(mpMode && isHost) _pendingEffects.push({s:'sc'});
   }
 
   // Play card sound
   sndCardPlay();
 
-  // Render — and broadcast so client sees the card in the trick
+  // Render — and sync state so client sees the card in the trick
   renderAll();
-  if(mpMode && isHost) bcastGS();
+  if(mpMode && isHost) syncState();
 
   // Check if trick is complete
   if (game.trick.length === 4) {
@@ -1474,8 +1470,8 @@ async function playCard(playerIdx, card) {
     // Trick win sound
     sndTrickWon();
 
-    // Save last trick
     game.trickCards = game.trick.map(t => t.card);
+    if(mpMode && isHost) syncState();
 
     await delay(1400);
 
@@ -1489,14 +1485,14 @@ async function playCard(playerIdx, card) {
     if (game.trickNum >= 10) {
       game.phase = 'done';
       renderAll();
-      if(mpMode && isHost) bcastGS();
+      if(mpMode && isHost) syncState();
       await delay(500);
       showGameOver();
       return;
     }
 
     renderAll();
-    if(mpMode && isHost) bcastGS();
+    if(mpMode && isHost) syncState();
 
     // If next player is CPU, trigger AI
     if (!isHumanSeat(game.currentPlayer)) {
@@ -1506,7 +1502,7 @@ async function playCard(playerIdx, card) {
     // Next player
     game.currentPlayer = (game.currentPlayer + 1) % 4;
     renderAll();
-    if(mpMode && isHost) bcastGS();
+    if(mpMode && isHost) syncState();
 
     // If CPU turn, trigger AI
     if (!isHumanSeat(game.currentPlayer)) {
@@ -1862,7 +1858,7 @@ function copyInviteLink() {
     code = code.toUpperCase();
     dbg('Auto-join from URL: code='+code);
     var checkReady = setInterval(function(){
-      if(_probesDone >= NTFY_SERVERS.length || ntfyBase){
+      if(_fbReady){
         clearInterval(checkReady);
         document.getElementById('overlay').classList.add('hidden');
         document.getElementById('lobby-overlay').classList.remove('hidden');
@@ -1880,9 +1876,13 @@ function quitGame() {
   stopHostHeartbeat();
   if(_mpPingTimer){ clearInterval(_mpPingTimer); _mpPingTimer=null; }
   if(mpMode){
-    mpSend({t:'quit'}); // notify the other player
+    mpSend({t:'quit'});
     mpMode = false;
-    if(mpEventSource){ mpEventSource.close(); mpEventSource=null; }
+    _fbCleanup();
+    if(_fbDb && mpRoom){
+      _fbDb.ref('lobby/'+mpRoom).remove();
+      _fbDb.ref('rooms/'+mpRoom+'/state').remove();
+    }
   }
   document.getElementById('overlay').classList.remove('hidden');
 }
@@ -1892,11 +1892,6 @@ function forceReconnect() {
   dbg('FORCE RECONNECT triggered');
   document.getElementById('disconnect-text').textContent = '🔄 Riconnessione...';
   document.getElementById('reconnect-btn').style.display = 'none';
-  // Close and reopen SSE
-  if(mpEventSource){ mpEventSource.close(); mpEventSource=null; }
-  if(_mpCurrentHandler){
-    mpStartSSE(_mpCurrentHandler);
-  }
   if(!isHost){
     if(game){
       game.animating = false;
@@ -1906,7 +1901,7 @@ function forceReconnect() {
     mpSend({t:'join', name:myName});
     if(game) renderAll();
   } else {
-    if(game && mpMode) bcastGS();
+    if(game && mpMode) bcastGSNow();
   }
   setTimeout(function(){ document.getElementById('disconnect-banner').style.display='none'; }, 2000);
 }
@@ -1975,22 +1970,42 @@ if (window.visualViewport) {
 }
 
 
-// ═══════════════════════════════════════════════════════════════
 
 // ==============================================================
-//  MULTIPLAYER via ntfy.sh (free HTTPS pub/sub, no WebSockets)
+//  MULTIPLAYER via Firebase Realtime Database
 // ==============================================================
 
-let mpMode = false, isHost = false, mySeat = -1, mpEventSource = null;
-// Multiple ntfy-compatible servers — ordered by reliability (ntfy.sh last, most rate-limited)
-var NTFY_SERVERS = [
-  'https://ntfy.adminforge.de',
-  'https://ntfy.sh',
-  'https://ntfy.envs.net'
-];
-var ntfyBase = ''; // will be set after probing
+let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
 const MY_ID = Math.random().toString(36).slice(2, 10);
+var _fbReady = false;
+var _fbDb = null;
+
+// ─── Firebase SDK (compat version) ───
+(function loadFirebase(){
+  var s1 = document.createElement('script');
+  s1.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js';
+  s1.onload = function(){
+    var s2 = document.createElement('script');
+    s2.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js';
+    s2.onload = function(){
+      firebase.initializeApp({
+        apiKey: "AIzaSyDftiPN3z_W1Q1J8sX3gjbChKbemlqpuUw",
+        authDomain: "tresette-game.firebaseapp.com",
+        databaseURL: "https://tresette-game-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "tresette-game",
+        storageBucket: "tresette-game.firebasestorage.app",
+        messagingSenderId: "94037476114",
+        appId: "1:94037476114:web:3d0310ac29e7a9590269cb"
+      });
+      _fbDb = firebase.database();
+      _fbReady = true;
+      dbg('Firebase ready!');
+    };
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s1);
+})();
 
 // ─── Debug logger ──────────────────────────────────────────
 var _dbgLines = [];
@@ -2005,137 +2020,212 @@ function dbg(msg) {
 }
 dbg('MY_ID='+MY_ID);
 
-// Probe servers — test actual POST+GET round-trip to confirm full functionality
-var _serversOk = [];
-var _probesDone = 0;
-(function(){
-  dbg('Probing '+NTFY_SERVERS.length+' servers...');
-  NTFY_SERVERS.forEach(function(srv, idx){
-    var probeTopic = srv+'/tresette-probe-'+MY_ID;
-    // Test: POST a message, then immediately GET it back
-    var timeout = setTimeout(function(){
-      _probesDone++;
-      dbg('Server #'+idx+' '+srv+' => TIMEOUT');
-      _checkProbesDone();
-    }, 6000);
-    fetch(probeTopic, {method:'POST', body:'ping'})
-      .then(function(r){
-        if(!r.ok) throw new Error('POST status '+r.status);
-        // Now verify we can read it back
-        return fetch(probeTopic+'/json?poll=1&since=5s');
-      })
-      .then(function(r){
-        if(!r.ok) throw new Error('GET status '+r.status);
-        return r.text();
-      })
-      .then(function(text){
-        clearTimeout(timeout);
-        _probesDone++;
-        if(text && text.indexOf('ping') >= 0){
-          _serversOk.push({idx:idx, url:srv});
-          dbg('Server #'+idx+' '+srv+' => OK (round-trip verified)');
-        } else {
-          dbg('Server #'+idx+' '+srv+' => POST ok but GET empty');
-          _serversOk.push({idx:idx, url:srv}); // still usable
-        }
-        _checkProbesDone();
-      })
-      .catch(function(e){
-        clearTimeout(timeout);
-        _probesDone++;
-        dbg('Server #'+idx+' '+srv+' => ERR: '+e);
-        _checkProbesDone();
-      });
-  });
-})();
-function _checkProbesDone(){
-  if(_probesDone < NTFY_SERVERS.length) return;
-  if(_serversOk.length > 0){
-    _serversOk.sort(function(a,b){return a.idx-b.idx;});
-    ntfyBase = _serversOk[0].url;
-    dbg('Selected server: '+ntfyBase+' ('+_serversOk.length+' available)');
-  } else {
-    dbg('ALL SERVERS UNREACHABLE! Check network/firewall.');
-  }
-}
-
-// Server index mapping: first char of room code = server index
-var SRV_CHARS = '0123456789ABCDEFGHIJKLMNOP';
+// ─── Room code ───
 function genCode() {
-  var srvIdx = ntfyBase ? NTFY_SERVERS.indexOf(ntfyBase) : 0;
-  if(srvIdx < 0) srvIdx = 0;
-  var prefix = SRV_CHARS[srvIdx];
   var c='ABCDEFGHJKLMNPQRSTUVWXYZ'; var s='';
-  for(var i=0;i<5;i++) s+=c[Math.floor(Math.random()*c.length)];
-  return prefix + s;
-}
-function serverFromCode(code) {
-  var idx = SRV_CHARS.indexOf(code[0]);
-  if(idx >= 0 && idx < NTFY_SERVERS.length) return NTFY_SERVERS[idx];
-  return NTFY_SERVERS[0];
+  for(var i=0;i<6;i++) s+=c[Math.floor(Math.random()*c.length)];
+  return s;
 }
 
 function showLobbySection(id) {
-  ['lobby-menu','lobby-host','lobby-join','lobby-waiting'].forEach(s=>{document.getElementById(s).style.display=s===id?'block':'none';});
-  // Auto-start/stop room browser when lobby-menu is shown
+  ['lobby-menu','lobby-host','lobby-join','lobby-waiting'].forEach(function(s){document.getElementById(s).style.display=s===id?'block':'none';});
   if(id === 'lobby-menu') startLobbyBrowser(); else stopLobbyBrowser();
 }
 function cancelLobby() {
-  if(mpEventSource) { mpEventSource.close(); mpEventSource=null; }
+  _fbCleanup();
   stopHostHeartbeat();
   showLobbySection('lobby-menu');
 }
 
-// ═══ Room Browser: discover available games ═══
-var _lobbyES = null;
-var _lobbyRooms = {}; // {code: {host, mode, time, srv}}
-var _lobbyCleanup = null;
+// ─── Firebase helpers ───
+var _fbListeners = [];
+var _msgCount = 0;
+function _fbCleanup(){
+  _fbListeners.forEach(function(r){ try{r.off();}catch(e){} });
+  _fbListeners = [];
+  _stateRef = null;
+}
+// Delete old messages to keep Firebase DB lean (host only)
+function _cleanOldMessages(){
+  if(!_fbDb || !mpRoom || !isHost) return;
+  var ref = _fbDb.ref('rooms/'+mpRoom+'/messages');
+  ref.orderByChild('_ts').limitToFirst(50).once('value', function(snap){
+    var count = snap.numChildren();
+    if(count > 30){
+      var toDelete = count - 10; // keep last 10
+      var i = 0;
+      snap.forEach(function(child){
+        if(i < toDelete){ child.ref.remove(); }
+        i++;
+      });
+      dbg('Cleaned '+toDelete+' old messages');
+    }
+  });
+}
+
+function mpSend(data) {
+  if(!_fbDb || !mpRoom) return;
+  data._from = MY_ID;
+  data._ts = firebase.database.ServerValue.TIMESTAMP;
+  dbg('SEND t='+data.t);
+  // Clean up old messages periodically (keep DB lean)
+  _msgCount++;
+  if(_msgCount % 20 === 0 && isHost){
+    _cleanOldMessages();
+  }
+  _fbDb.ref('rooms/'+mpRoom+'/messages').push(data)
+    .catch(function(e){ dbg('SEND ERR: '+e); });
+}
+
+function mpListen(handler) {
+  if(!_fbDb || !mpRoom) return;
+  var startTime = Date.now();
+  var ref = _fbDb.ref('rooms/'+mpRoom+'/messages');
+  ref.limitToLast(1).on('child_added', function(snap){
+    var data = snap.val();
+    if(!data || data._from === MY_ID) return;
+    if(data._ts && data._ts < startTime) return;
+    dbg('RECV t='+data.t);
+    handler(data);
+  });
+  _fbListeners.push(ref);
+  dbg('Listening on rooms/'+mpRoom);
+}
+
+// ─── State sync: host writes full state to DB, client listens ───
+var _stateRef = null;
+var _stateSeq = 0;
+
+function syncState() {
+  if(!mpMode || !isHost || !_fbDb || !mpRoom) return;
+  _stateSeq++;
+  var state = {
+    h: game.hands,
+    tr: game.trick.map(function(t){ return {p:t.playerIdx, c:t.card}; }),
+    tn: game.trickNum,
+    lp: game.leadPlayer,
+    cp: game.currentPlayer,
+    ls: game.leadSuit,
+    sc: game.scores,
+    tc: game.trickCards,
+    ph: game.phase,
+    an: game.animating || false,
+    gm: gameMode,
+    names: PLAYER_NAMES.slice(),
+    seq: _stateSeq,
+    _ts: firebase.database.ServerValue.TIMESTAMP
+  };
+  _fbDb.ref('rooms/'+mpRoom+'/state').set(state)
+    .catch(function(e){ dbg('STATE ERR: '+e); });
+}
+
+function _listenState() {
+  if(!_fbDb || !mpRoom || _stateRef) return;
+  _stateRef = _fbDb.ref('rooms/'+mpRoom+'/state');
+  var _prevTrickLen = -1;
+  var _prevTrickNum = -1;
+  var _prevPhase = '';
+  var _prevSeq = 0;
+  var _firstSnap = true;
+
+  _stateRef.on('value', function(snap){
+    var data = snap.val();
+    if(!data || !data.h) return;
+    var seq = data.seq || 0;
+    if(seq <= _prevSeq && !_firstSnap) return;
+    _prevSeq = seq;
+    dbg('STATE seq='+seq+' cp='+data.cp+' tr='+(data.tr?data.tr.length:0)+' tn='+data.tn);
+
+    if(!game) game = {hands:[[],[],[],[]],trick:[],trickNum:0,leadPlayer:0,currentPlayer:0,leadSuit:null,scores:[0,0,0,0],trickCards:[],phase:'playing',animating:false};
+    if(!mpMode){
+      mpMode = true; gameMode = data.gm||gameMode||'perdere';
+      if(data.names) for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
+      if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 15000);
+      initAudio();
+    }
+    document.getElementById('lobby-overlay').classList.add('hidden');
+    document.getElementById('overlay').classList.add('hidden');
+    document.getElementById('game-over').classList.remove('show');
+    document.getElementById('quit-btn').style.display = '';
+    isHost = false; mySeat = 1;
+    if(data.names) for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
+    if(data.gm) gameMode = data.gm;
+
+    // Detect changes for sound effects (skip on first snapshot)
+    var newTrickLen = data.tr ? data.tr.length : 0;
+    var newTrickNum = data.tn || 0;
+    if(!_firstSnap){
+      if(newTrickLen > _prevTrickLen && _prevTrickLen >= 0){
+        sndCardPlay();
+        // Check if newly played card is Asso (scardone) in perdere mode
+        if(data.gm === 'perdere' && data.tr.length > 0){
+          var lastCard = data.tr[data.tr.length - 1].c;
+          if(lastCard.rank === 1) showScardone();
+        }
+      }
+      if(newTrickNum > _prevTrickNum && _prevTrickNum >= 0) sndTrickWon();
+      if(data.ph === 'done' && _prevPhase !== 'done'){
+        var myScore = data.sc[1];
+        var maxScore = Math.max.apply(null, data.sc);
+        if(myScore >= maxScore) sndWin(); else sndLose();
+      }
+    }
+    _prevTrickLen = newTrickLen;
+    _prevTrickNum = newTrickNum;
+    _prevPhase = data.ph || '';
+    _firstSnap = false;
+
+    // Apply state
+    game.hands = data.h.map(function(h){ return h.map(function(c){ return {suit:c.suit,rank:c.rank,id:c.id}; }); });
+    game.trick = (data.tr||[]).map(function(t){ return {playerIdx:t.p, card:{suit:t.c.suit,rank:t.c.rank,id:t.c.id}}; });
+    game.trickNum = data.tn;
+    game.leadPlayer = data.lp;
+    game.currentPlayer = data.cp;
+    game.leadSuit = data.ls;
+    game.scores = data.sc.slice();
+    game.trickCards = data.tc ? data.tc.map(function(c){ return {suit:c.suit,rank:c.rank,id:c.id}; }) : [];
+    game.phase = data.ph || 'playing';
+    game.animating = false;
+
+    renderAll();
+    if(game.phase === 'done') showGameOver();
+  });
+  _fbListeners.push(_stateRef);
+  dbg('Listening on state for room '+mpRoom);
+}
+
+// ─── Room Browser ───
+var _lobbyRooms = {};
+var _lobbyRef = null;
 
 function startLobbyBrowser() {
   stopLobbyBrowser();
-  if(!ntfyBase) return;
+  if(!_fbDb) {
+    document.getElementById('room-list-status').textContent = 'Connessione...';
+    setTimeout(function(){ if(_fbReady) startLobbyBrowser(); }, 1000);
+    return;
+  }
   _lobbyRooms = {};
   renderRoomList();
   document.getElementById('room-list-status').textContent = 'Cercando partite...';
   dbg('LOBBY browser start');
-  // Subscribe to lobby topic on ALL available servers
-  var lobbySources = [];
-  _serversOk.forEach(function(s){
-    try {
-      var es = new EventSource(s.url+'/tresette-lobby/sse?since=30s');
-      es.addEventListener('message', function(ev){
-        try {
-          var msg = JSON.parse(ev.data);
-          if(msg.message){
-            var data = JSON.parse(msg.message);
-            if(data.t === 'room-ad' && data.code && data.host){
-              _lobbyRooms[data.code] = {host:data.host, mode:data.mode||'perdere', time:Date.now(), srv:data.srv||''};
-              renderRoomList();
-            }
-          }
-        } catch(e){}
-      });
-      lobbySources.push(es);
-    } catch(e){}
-  });
-  _lobbyES = lobbySources;
-  // Cleanup stale rooms every 15s
-  _lobbyCleanup = setInterval(function(){
+  _lobbyRef = _fbDb.ref('lobby');
+  _lobbyRef.on('value', function(snap){
+    var rooms = snap.val() || {};
+    _lobbyRooms = {};
     var now = Date.now();
-    var changed = false;
-    for(var k in _lobbyRooms){
-      if(now - _lobbyRooms[k].time > 45000){ delete _lobbyRooms[k]; changed = true; }
+    for(var code in rooms){
+      var r = rooms[code];
+      if(r && r.time && (now - r.time) < 90000){
+        _lobbyRooms[code] = r;
+      }
     }
-    if(changed) renderRoomList();
-  }, 15000);
+    renderRoomList();
+  });
+  _fbListeners.push(_lobbyRef);
 }
-
 function stopLobbyBrowser() {
-  if(_lobbyES){
-    _lobbyES.forEach(function(es){ try{es.close();}catch(e){} });
-    _lobbyES = null;
-  }
-  if(_lobbyCleanup){ clearInterval(_lobbyCleanup); _lobbyCleanup = null; }
+  if(_lobbyRef){ try{_lobbyRef.off();}catch(e){} _lobbyRef=null; }
 }
 
 function renderRoomList() {
@@ -2144,7 +2234,7 @@ function renderRoomList() {
   var codes = Object.keys(_lobbyRooms);
   if(codes.length === 0){
     list.innerHTML = '';
-    status.textContent = ntfyBase ? 'Nessuna partita trovata' : 'Connessione ai server...';
+    status.textContent = _fbReady ? 'Nessuna partita trovata' : 'Connessione...';
     return;
   }
   status.textContent = '';
@@ -2153,20 +2243,14 @@ function renderRoomList() {
     var r = _lobbyRooms[code];
     var div = document.createElement('div');
     div.className = 'room-item';
-    div.innerHTML = '<div class="ri-info"><div class="ri-host">'+r.host+'</div><div class="ri-mode">'+(r.mode==='vincere'?'🔺 A Vincere':'🔻 A Perdere')+'</div></div><div class="ri-join">Unisciti ▸</div>';
+    div.innerHTML = '<div class="ri-info"><div class="ri-host">'+(r.host||'?')+'</div><div class="ri-mode">'+(r.mode==='vincere'?'🔺 A Vincere':'🔻 A Perdere')+'</div></div><div class="ri-join">Unisciti ▸</div>';
     div.onclick = function(){ joinFromBrowser(code); };
     list.appendChild(div);
   });
 }
-
 function joinFromBrowser(code) {
   stopLobbyBrowser();
   document.getElementById('join-code-input').value = code;
-  // Use server from room-ad if available
-  var room = _lobbyRooms[code];
-  if(room && room.srv){
-    window._roomSrvOverride = room.srv;
-  }
   if(!_getMyName()){
     showLobbySection('lobby-menu');
     document.getElementById('my-name-input').style.border='2px solid #f44';
@@ -2176,170 +2260,117 @@ function joinFromBrowser(code) {
   joinGame();
 }
 
-// ═══ Host Heartbeat: announce room on lobby topic ═══
+// ─── Heartbeat ───
 var _heartbeatTimer = null;
 function startHostHeartbeat() {
   stopHostHeartbeat();
+  if(!_fbDb || !mpRoom) return;
   var myName = _getMyName() || 'Host';
   function beat(){
-    if(!ntfyBase || !mpRoom) return;
-    var body = JSON.stringify({t:'room-ad', code:mpRoom, host:myName, mode:gameMode, srv:ntfyBase});
-    fetch(ntfyBase+'/tresette-lobby', {method:'POST', body:body}).catch(function(){});
-    dbg('HEARTBEAT sent room='+mpRoom);
+    if(!_fbDb || !mpRoom) return;
+    _fbDb.ref('lobby/'+mpRoom).set({host:myName, mode:gameMode, time:firebase.database.ServerValue.TIMESTAMP});
+    dbg('HEARTBEAT');
   }
-  beat(); // send immediately
-  _heartbeatTimer = setInterval(beat, 30000); // every 30s
+  beat();
+  _heartbeatTimer = setInterval(beat, 30000);
 }
 function stopHostHeartbeat() {
-  if(_heartbeatTimer){ clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
+  if(_heartbeatTimer){ clearInterval(_heartbeatTimer); _heartbeatTimer=null; }
 }
 
-// Send a message — single POST per event (very low rate)
-function mpSend(data, _retries) {
-  data._from = MY_ID;
-  var body = JSON.stringify(data);
-  var retries = _retries || 0;
-  if(retries === 0) dbg('SEND t='+data.t);
-  fetch(ntfyBase + '/tresette-' + mpRoom, { method:'POST', body: body })
-    .then(function(r){
-      if(r.status === 429 && retries < 2){
-        var delay = 1000 + retries * 1000;
-        dbg('SEND 429, retry #'+(retries+1)+' in '+delay+'ms');
-        setTimeout(function(){ mpSend(data, retries+1); }, delay);
-      } else if(r.status === 429){
-        dbg('SEND 429 FAILED after retries');
-      } else {
-        dbg('SEND ok='+r.status);
-      }
-    })
-    .catch(function(e){ dbg('SEND ERR '+e); });
+// ─── Invite / Copy ───
+var GAME_BASE_URL = 'https://htmlpreview.github.io/?https://github.com/ripom/ssp-test-ric/blob/main/tresette_multiplayers.html';
+function getInviteLink() { return GAME_BASE_URL; }
+function copyRoomCode() {
+  var code = mpRoom; if(!code) return;
+  var msg = document.getElementById('copy-msg');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code).then(function(){ msg.textContent='Copiato!'; setTimeout(function(){msg.textContent='';},2000); }).catch(function(){ prompt('Copia:',code); });
+  } else { prompt('Copia:',code); }
 }
-
-// Global reference to current message handler for reconnection
-var _mpCurrentHandler = null;
-
-// Subscribe via SSE (Server-Sent Events) — ONE persistent connection.
-function mpStartSSE(handler) {
-  _mpCurrentHandler = handler;
-  if(mpEventSource) { mpEventSource.close(); mpEventSource=null; }
-  var url = ntfyBase+'/tresette-'+mpRoom+'/sse?since=30s';
-  dbg('SSE open '+url.replace(ntfyBase,''));
-  var es = new EventSource(url);
-  mpEventSource = es;
-  es.onopen = function(){ dbg('SSE connected!'); };
-  es.onerror = function(){ dbg('SSE error/reconnecting...'); };
-  es.addEventListener('message', function(ev){
-    try {
-      var msg = JSON.parse(ev.data);
-      if(msg.message){
-        try {
-          var data = JSON.parse(msg.message);
-          if(data._from === MY_ID) return;
-          dbg('SSE RECV t='+data.t+' from='+data._from);
-          handler(data);
-        } catch(e){ dbg('SSE parse msg err: '+e); }
-      }
-    } catch(e){ dbg('SSE parse err: '+e); }
-  });
+function copyInviteLink() {
+  var link = getInviteLink(); var msg = document.getElementById('copy-msg');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(function(){ msg.textContent='Link copiato!'; setTimeout(function(){msg.textContent='';},2000); }).catch(function(){ prompt('Copia:',link); });
+  } else { prompt('Copia:',link); }
 }
 
 function _getMyName() {
   return (document.getElementById('my-name-input').value||'').trim();
 }
-// ===== Ping timer for disconnect detection =====
+
 var _mpPingTimer = null;
+
 // ===== HOST =====
 var _clientName = 'Amico';
 function hostGame() {
   if(!_getMyName()){ document.getElementById('my-name-input').style.border='2px solid #f44'; document.getElementById('my-name-input').focus(); return; }
   document.getElementById('my-name-input').style.border='';
-  if(!ntfyBase){ alert('Nessun server raggiungibile! Controlla la connessione internet.'); return; }
+  if(!_fbReady){ alert('Firebase non pronto. Riprova.'); return; }
   var myName = _getMyName();
   PLAYER_NAMES[0] = myName;
   mpRoom = genCode(); isHost = true; mySeat = 0;
-  dbg('HOST created room='+mpRoom+' name='+myName+' server='+ntfyBase);
+  dbg('HOST room='+mpRoom);
   document.getElementById('room-code').textContent = mpRoom;
   showLobbySection('lobby-host');
   document.getElementById('host-status').textContent = 'In attesa di giocatori...';
   document.getElementById('start-mp-btn').style.display = 'none';
   startHostHeartbeat();
-  mpSend({t:'room', host:true});
-  let joined = false;
+
+  var joined = false;
   var _clientLastPing = Date.now();
-  var _clientWatchdog = null;
   var _clientDisconnected = false;
-  function hostMsgHandler(data){
-    dbg('HOST handler t='+data.t+' joined='+joined+' mpMode='+mpMode);
-    // ANY message from client = proof of life
-    if(data._from !== MY_ID){
-      _clientLastPing = Date.now();
-      if(_clientDisconnected){
-        _clientDisconnected = false;
-        stopHostHeartbeat(); // stop re-advertising, client is back
-        document.getElementById('disconnect-text').textContent = '\u2705 ' + (_clientName||'Giocatore') + ' riconnesso!';
-        document.getElementById('reconnect-btn').style.display = 'none';
-        setTimeout(function(){ document.getElementById('disconnect-banner').style.display = 'none'; }, 1500);
-      }
+
+  function hostHandler(data){
+    _clientLastPing = Date.now();
+    if(_clientDisconnected){
+      _clientDisconnected = false;
+      document.getElementById('disconnect-text').textContent = '✅ '+(_clientName||'Giocatore')+' riconnesso!';
+      document.getElementById('reconnect-btn').style.display = 'none';
+      setTimeout(function(){ document.getElementById('disconnect-banner').style.display='none'; }, 1500);
     }
-    // Client ping
-    if(data.t==='ping') { return; }
-    if(data.t==='join' && !joined) {
+    if(data.t==='ping') return;
+    if(data.t==='join' && !joined){
       joined = true;
       _clientName = data.name || 'Amico';
-      _clientLastPing = Date.now();
-      dbg('HOST: player joined! name='+_clientName);
-      document.getElementById('host-status').textContent = _clientName + ' si e unito!';
+      dbg('HOST: joined! name='+_clientName);
+      document.getElementById('host-status').textContent = _clientName+' si e unito!';
       document.getElementById('start-mp-btn').style.display = 'block';
     }
-    // Client rejoins during an active game — resend full state immediately
-    if(data.t==='join' && joined && mpMode && game) {
-      dbg('HOST: client REJOINED! Resending state.');
-      _clientLastPing = Date.now();
-      showStatus(_clientName + ' si è riconnesso!', 2000);
+    if(data.t==='join' && joined && mpMode && game){
+      dbg('HOST: client REJOINED');
+      showStatus(_clientName+' riconnesso!', 2000);
       bcastGSNow();
     }
-    if(data.t==='play' && mpMode && game) {
-      _clientLastPing = Date.now();
-      dbg('HOST play recv cardId='+data.cardId+' currentPlayer='+game.currentPlayer+' phase='+game.phase+' animating='+game.animating);
-      if(game.currentPlayer !== 1) { dbg('HOST play IGNORED: not seat 1 turn'); return; }
+    if(data.t==='play' && mpMode && game){
+      dbg('HOST play cardId='+data.cardId+' cp='+game.currentPlayer);
+      if(game.currentPlayer !== 1) return;
       var card = game.hands[1].find(function(c){return c.id===data.cardId;});
-      if(!card) { dbg('HOST play IGNORED: card not in hand. hand='+JSON.stringify(game.hands[1].map(function(c){return c.id;}))); return; }
-      if(!isCardPlayable(1,card)) { dbg('HOST play IGNORED: not playable. leadSuit='+game.leadSuit); return; }
-      dbg('HOST executing playCard seat=1 card='+card.id);
-      _origPlayCard(1, card).then(function(){
-        dbg('HOST playCard done. cp='+game.currentPlayer);
-      }).catch(function(e){ dbg('HOST playCard ERROR: '+e); });
+      if(!card || !isCardPlayable(1,card)) return;
+      _origPlayCard(1, card).catch(function(e){ dbg('playCard ERR: '+e); });
     }
   }
-  mpStartSSE(hostMsgHandler);
-  // Watchdog: detect client disconnect
-  _clientWatchdog = setInterval(function(){
+  mpListen(hostHandler);
+
+  // Watchdog
+  setInterval(function(){
     if(!mpMode || !game || game.phase==='done') return;
     var elapsed = Date.now() - _clientLastPing;
-    // Show disconnect banner after 60s of silence
-    if(elapsed > 60000 && !_clientDisconnected){
+    if(elapsed > 30000 && !_clientDisconnected){
       _clientDisconnected = true;
-      dbg('HOST: client DISCONNECTED ('+Math.round(elapsed/1000)+'s)');
-      document.getElementById('disconnect-text').textContent = '⚠️ ' + _clientName + ' disconnesso...';
+      dbg('HOST: client DISCONNECTED');
+      document.getElementById('disconnect-text').textContent = '⚠️ '+_clientName+' disconnesso...';
       document.getElementById('reconnect-btn').style.display = 'inline-block';
       document.getElementById('disconnect-banner').style.display = 'block';
-      // Re-advertise room so client can find it in the lobby browser
       startHostHeartbeat();
     }
-    // Ensure HOST SSE is alive
-    if(mpEventSource && mpEventSource.readyState === 2){
-      dbg('HOST: SSE closed, reopening');
-      mpStartSSE(hostMsgHandler);
-    }
-  }, 15000);
+  }, 5000);
 }
 
 function startMultiplayerGame() {
   if(!isHost) return;
   mpMode = true;
-  // Heartbeat keeps running so disconnected client can find room
-  // Host ping every 30s
-  _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 30000);
+  _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 15000);
   PLAYER_NAMES[0] = document.getElementById('my-name-input').value.trim() || 'Tu';
   PLAYER_NAMES[1] = _clientName;
   deduplicateNames();
@@ -2352,10 +2383,11 @@ function startMultiplayerGame() {
   document.getElementById('game-over').classList.remove('show');
   document.getElementById('quit-btn').style.display = '';
   initAudio(); initGame(); renderAll();
-  dbg('HOST startGame cp='+game.currentPlayer+' lp='+game.leadPlayer);
+  dbg('HOST startGame cp='+game.currentPlayer);
   mpSend({t:'start',gm:gameMode,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer});
+  syncState();
   sndStart(); showStatus('Partita iniziata!',1500);
-  if(game.currentPlayer!==0 && game.currentPlayer!==1) { dbg('HOST first turn is CPU seat='+game.currentPlayer); setTimeout(function(){cpuTurn();},800); }
+  if(game.currentPlayer!==0 && game.currentPlayer!==1) setTimeout(function(){cpuTurn();},800);
 }
 
 // ===== CLIENT =====
@@ -2365,181 +2397,98 @@ function joinGame() {
   var joinName = _getMyName();
   if(!joinName){ document.getElementById('my-name-input').style.border='2px solid #f44'; document.getElementById('my-name-input').focus(); return; }
   document.getElementById('my-name-input').style.border='';
-  const code = document.getElementById('join-code-input').value.trim();
-  if(code.length!==6){ document.getElementById('join-error').textContent='Codice a 6 caratteri'; return; }
+  var code = document.getElementById('join-code-input').value.trim();
+  if(code.length!==6){ document.getElementById('join-error').textContent='Codice a 6 lettere'; return; }
+  if(!_fbReady){ document.getElementById('join-error').textContent='Firebase non pronto.'; return; }
   var myName = joinName;
   isHost = false; mySeat = 1; mpRoom = code.toUpperCase();
-  // Use server from room browser if available, otherwise decode from room code
-  if(window._roomSrvOverride){
-    ntfyBase = window._roomSrvOverride;
-    window._roomSrvOverride = null;
-    dbg('CLIENT using server from room-ad: '+ntfyBase);
-  } else {
-    ntfyBase = serverFromCode(mpRoom);
-    dbg('CLIENT joining room='+mpRoom+' server='+ntfyBase);
-  }
-  // Check reachability — fallback to any available server
-  var srvReachable = _serversOk.some(function(s){ return s.url === ntfyBase; });
-  if(!srvReachable){
-    if(_serversOk.length > 0){
-      ntfyBase = _serversOk[0].url;
-      dbg('Fallback to '+ntfyBase);
-    } else {
-      document.getElementById('join-error').textContent='Nessun server raggiungibile.';
-      return;
-    }
-  }
+  dbg('CLIENT joining room='+mpRoom);
   document.getElementById('join-status').textContent='Connessione...';
   document.getElementById('join-error').textContent='';
   mpSend({t:'join', name:myName});
-  var joinRetry = setInterval(function(){ if(mpMode){clearInterval(joinRetry);return;} dbg('CLIENT retry join'); mpSend({t:'join', name:myName}); }, 8000);
+  var joinRetry = setInterval(function(){ if(mpMode){clearInterval(joinRetry);return;} mpSend({t:'join', name:myName}); }, 8000);
+
   var _hostLastPing = Date.now();
   var _hostDisconnected = false;
+
+  _listenState();
+
   function clientHandler(data){
-    dbg('CLIENT handler t='+data.t+' mpMode='+mpMode);
-    // ANY message from host = proof of life + clear disconnect
     _hostLastPing = Date.now();
     if(_hostDisconnected){
       _hostDisconnected = false;
-      document.getElementById('disconnect-text').textContent = '\u2705 Riconnesso!';
+      document.getElementById('disconnect-text').textContent = '✅ Riconnesso!';
       document.getElementById('reconnect-btn').style.display = 'none';
-      setTimeout(function(){ document.getElementById('disconnect-banner').style.display = 'none'; }, 1500);
+      setTimeout(function(){ document.getElementById('disconnect-banner').style.display='none'; }, 1500);
     }
-    // Host ping
-    if(data.t==='ping') { return; }
-    // Host quit — notify and return to menu
-    if(data.t==='quit') {
-      dbg('CLIENT: host quit the game!');
-      showStatus('L\'host ha abbandonato la partita!', 3000);
+    if(data.t==='ping') return;
+    if(data.t==='quit'){
+      showStatus('L\'host ha abbandonato!', 3000);
       if(_mpPingTimer){ clearInterval(_mpPingTimer); _mpPingTimer=null; }
-      setTimeout(function(){
-        mpMode = false;
-        if(mpEventSource){ mpEventSource.close(); mpEventSource=null; }
-        document.getElementById('quit-btn').style.display = 'none';
-        document.getElementById('overlay').classList.remove('hidden');
-      }, 3000);
+      setTimeout(function(){ mpMode=false; _fbCleanup(); document.getElementById('quit-btn').style.display='none'; document.getElementById('overlay').classList.remove('hidden'); }, 3000);
       return;
     }
-    if(data.t==='start') {
-      dbg('CLIENT got start! cp='+data.cp+' lp='+data.lp);
+    if(data.t==='start'){
+      dbg('CLIENT start! cp='+data.cp);
       mpMode = true; gameMode = data.gm||'perdere';
-      _hostLastPing = Date.now();
-      for(let i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
+      for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
       game = {hands:data.hands.map(function(h){return h.map(function(c){return {suit:c.suit,rank:c.rank,id:c.id};});}),trick:[],trickNum:0,leadPlayer:data.lp||0,currentPlayer:data.cp||0,leadSuit:null,scores:[0,0,0,0],trickCards:[],phase:'playing',animating:false};
       document.getElementById('lobby-overlay').classList.add('hidden');
       document.getElementById('overlay').classList.add('hidden');
       document.getElementById('game-over').classList.remove('show');
       document.getElementById('quit-btn').style.display = '';
-      // Start client ping
-      _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 30000);
+      if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 15000);
       initAudio(); renderAll(); sndStart(); showStatus('Partita iniziata!',1500);
     }
-    if(data.t==='gs') {
-      // If game object doesn't exist yet (rejoin), create it
-      if(!game) {
-        game = {hands:[[],[],[],[]],trick:[],trickNum:0,leadPlayer:0,currentPlayer:0,leadSuit:null,scores:[0,0,0,0],trickCards:[],phase:'playing',animating:false};
-      }
-      // Ensure we're in multiplayer mode and overlays are hidden (handles rejoin)
-      if(!mpMode) {
-        mpMode = true;
-        gameMode = data.gm || gameMode || 'perdere';
-        if(data.names) for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
-        // Start client ping if not already running
-        if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 30000);
-        initAudio();
-      }
-      document.getElementById('lobby-overlay').classList.add('hidden');
-      document.getElementById('overlay').classList.add('hidden');
-      document.getElementById('game-over').classList.remove('show');
-      document.getElementById('quit-btn').style.display = '';
-      dbg('CLIENT gs: cp='+data.cp+' trick='+data.tr.length+' trickNum='+data.tn+' phase='+data.ph+' isHost='+isHost+' mySeat='+mySeat);
-      // Ensure client identity is correct on rejoin
-      isHost = false; mySeat = 1;
-      if(data.names) for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
-      if(data.gm) gameMode = data.gm;
-      game.hands=data.h.map(function(h){return h.map(function(c){return {suit:c.suit,rank:c.rank,id:c.id};});});
-      game.trick=data.tr.map(function(t){return {playerIdx:t.p,card:{suit:t.c.suit,rank:t.c.rank,id:t.c.id}};});
-      game.trickNum=data.tn; game.leadPlayer=data.lp; game.currentPlayer=data.cp;
-      game.leadSuit=data.ls; game.scores=data.sc.slice();
-      game.trickCards=data.tc?data.tc.map(function(c){return {suit:c.suit,rank:c.rank,id:c.id};}):[];
-      game.phase=data.ph||'playing';
-      game.animating=false;
-      renderAll();
-      // If game ended, show game over
-      if(game.phase === 'done'){ showGameOver(); }
-    }
-    // Play bundled effects from host
-    if(data.fx){
-      data.fx.forEach(function(f){
-        if(f.s==='cp')sndCardPlay();if(f.s==='tw')sndTrickWon();
-        if(f.s==='w')sndWin();if(f.s==='l')sndLose();if(f.s==='sc')showScardone();
-        if(f.st)showStatus(f.st, f.d||1500);
-      });
-    }
-    if(data.t==='snd'){if(data.s==='cp')sndCardPlay();if(data.s==='tw')sndTrickWon();if(data.s==='w')sndWin();if(data.s==='l')sndLose();if(data.s==='sc')showScardone();}
-    if(data.t==='st') showStatus(data.x, data.d||1500);
-    if(data.t==='go'){game.phase='done';game.scores=data.sc.slice();renderAll();showGameOver();}
   }
-  mpStartSSE(clientHandler);
-  // Client-side host watchdog — only runs during active game
+  mpListen(clientHandler);
+
+  // Watchdog
   setInterval(function(){
     if(!mpMode || !game || game.phase==='done') return;
-    var elapsed = Date.now() - _hostLastPing;
-    if(elapsed > 60000 && !_hostDisconnected){
+    if(Date.now() - _hostLastPing > 30000 && !_hostDisconnected){
       _hostDisconnected = true;
-      dbg('CLIENT: host DISCONNECTED ('+Math.round(elapsed/1000)+'s)');
       document.getElementById('disconnect-text').textContent = '⚠️ Host disconnesso...';
       document.getElementById('reconnect-btn').style.display = 'inline-block';
       document.getElementById('disconnect-banner').style.display = 'block';
-      // Try one rejoin
       mpSend({t:'join', name:myName});
     }
-    // Check SSE health
-    if(mpEventSource && mpEventSource.readyState === 2){
-      mpStartSSE(clientHandler);
-    }
-  }, 15000);
+  }, 5000);
+
   showLobbySection('lobby-waiting');
   document.getElementById('wait-status').textContent='Connesso! In attesa dell\'host...';
 }
 
-// Save reference to the ORIGINAL playCard before any patching
+// ─── Auto-join from URL ───
+(function(){
+  var code='';
+  var h=location.hash.replace('#','').trim();
+  if(h && /^[A-Za-z]{6}$/.test(h)) code=h;
+  if(!code){var m=location.href.match(/[&?]code=([A-Za-z]{6})/);if(m)code=m[1];}
+  if(code){
+    code=code.toUpperCase();
+    var iv=setInterval(function(){
+      if(_fbReady){clearInterval(iv);document.getElementById('overlay').classList.add('hidden');document.getElementById('lobby-overlay').classList.remove('hidden');showLobbySection('lobby-join');document.getElementById('join-code-input').value=code;}
+    },200);
+  }
+})();
+
+// ─── Patched functions ───
 var _origPlayCard = playCard;
-
 function isHumanSeat(s){if(!mpMode)return s===0; return s===0||s===1;}
-
-// == Sync patches — BUNDLED + DEBOUNCED ==
-var _pendingEffects = [];
-var _bcastDebounce = null;
 
 function bcastGS(){
   if(!mpMode||!isHost) return;
-  // Debounce: wait 300ms so rapid CPU plays batch into one message
-  clearTimeout(_bcastDebounce);
-  _bcastDebounce = setTimeout(_bcastGSNow, 300);
+  syncState();
 }
-// Force immediate send (for critical moments like rejoin)
-function bcastGSNow(){
-  clearTimeout(_bcastDebounce);
-  _bcastGSNow();
-}
+function bcastGSNow(){ syncState(); }
 function _bcastGSNow(){
   if(!mpMode||!isHost) return;
-  dbg('bcastGS cp='+game.currentPlayer+' trick='+game.trick.length+' fx='+_pendingEffects.length);
-  var msg = {t:'gs',h:game.hands,tr:game.trick.map(function(t){return {p:t.playerIdx,c:t.card};}),tn:game.trickNum,lp:game.leadPlayer,cp:game.currentPlayer,ls:game.leadSuit,sc:game.scores,tc:game.trickCards,ph:game.phase,an:false,gm:gameMode,names:PLAYER_NAMES.slice()};
-  if(_pendingEffects.length > 0){
-    msg.fx = _pendingEffects.slice();
-    _pendingEffects = [];
-  }
-  mpSend(msg);
+  syncState();
 }
 
-// Queue effects instead of separate POSTs
-var _oSCP=sndCardPlay; sndCardPlay=function(){_oSCP();if(mpMode&&isHost)_pendingEffects.push({s:'cp'});};
-var _oSTW=sndTrickWon; sndTrickWon=function(){_oSTW();if(mpMode&&isHost)_pendingEffects.push({s:'tw'});};
-var _oSS=showStatus; showStatus=function(x,d){_oSS(x,d);if(mpMode&&isHost)_pendingEffects.push({st:x,d:d});};
 
-// CPU Turn: only host runs CPU, skip human seats
+
 cpuTurn=async function(){
   if(!mpMode){
     if(isHumanSeat(game.currentPlayer)||game.phase!=='playing') return;
@@ -2549,39 +2498,39 @@ cpuTurn=async function(){
     return;
   }
   if(!isHost) return;
-  if(game.phase!=='playing') { dbg('cpuTurn skip: phase='+game.phase); return; }
-  if(isHumanSeat(game.currentPlayer)) { dbg('cpuTurn skip: human seat='+game.currentPlayer); return; }
+  if(game.phase!=='playing'||isHumanSeat(game.currentPlayer)) return;
   dbg('cpuTurn seat='+game.currentPlayer);
-  game.animating=true;
-  await delay(400+Math.random()*300);
-  game.animating=false;
+  game.animating=true; await delay(400+Math.random()*300); game.animating=false;
   var p=getPlayableCards(game.currentPlayer);
-  if(!p.length) { dbg('cpuTurn: no playable cards!'); return; }
+  if(!p.length) return;
   await _origPlayCard(game.currentPlayer, cpuSelectCard(game.currentPlayer,p));
-  dbg('cpuTurn done, cp now='+game.currentPlayer);
 };
-// renderPlayerHand already handles MP client clicks directly, no extra patch needed
-var _oSGO=showGameOver; showGameOver=function(){_oSGO();if(mpMode&&isHost){_pendingEffects=[];mpSend({t:'go',sc:game.scores});}};
+
+var _oSGO=showGameOver; showGameOver=function(){_oSGO();};
+
+function forceReconnect() {
+  document.getElementById('disconnect-text').textContent = '🔄 Riconnessione...';
+  document.getElementById('reconnect-btn').style.display = 'none';
+  if(!isHost && game){ game.animating=false; if(game.phase!=='done')game.phase='playing'; mpSend({t:'join',name:_getMyName()||'Amico'}); renderAll(); }
+  else if(isHost && game && mpMode) bcastGSNow();
+  setTimeout(function(){ document.getElementById('disconnect-banner').style.display='none'; }, 2000);
+}
 
 document.getElementById('retry-btn').onclick=function(){
   document.getElementById('game-over').classList.remove('show');
   if(mpMode && isHost){
-    // Host: start new game in same room, keep same connection
     initGame(); deduplicateNames(); renderAll();
-    dbg('HOST restart game cp='+game.currentPlayer);
     mpSend({t:'start',gm:gameMode,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer});
+    syncState();
     sndStart(); showStatus('Nuova partita!',1500);
     if(game.currentPlayer!==0 && game.currentPlayer!==1) setTimeout(function(){cpuTurn();},800);
   } else if(mpMode && !isHost){
-    // Client: show waiting message, host will send 'start'
-    showStatus('In attesa che l\'host avvii una nuova partita...',2000);
+    showStatus('In attesa nuova partita...',2000);
   } else {
-    // Single player: back to mode select
     document.getElementById('quit-btn').style.display='none';
     document.getElementById('overlay').classList.remove('hidden');
   }
 };
-
 
 </script>
 
