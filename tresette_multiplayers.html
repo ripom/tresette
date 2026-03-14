@@ -353,6 +353,9 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   border:2px solid rgba(255,255,255,0.2);border-radius:8px;cursor:pointer;
   color:#fff;background:rgba(255,255,255,0.08);transition:all .2s;min-height:48px;
 }
+.seat-row{font-size:clamp(11px,2.2vw,13px);padding:6px 10px;background:rgba(255,255,255,0.05);border-radius:6px;border:1px solid rgba(255,255,255,0.1)}
+.seat-icon{margin-right:4px}
+.seat-name{font-weight:bold}
 .lobby-btn:hover{background:rgba(255,255,255,0.15);border-color:#fa4}
 .lobby-btn:active{transform:scale(0.97)}
 .lobby-btn.primary{background:linear-gradient(135deg,#2a7a2a,#3a9a3a);border-color:#3a9a3a;cursor:pointer}
@@ -498,56 +501,72 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 <div id="lobby-overlay" class="hidden">
   <div class="lobby-title">TRESETTE</div>
   <div class="lobby-sub" id="lobby-mode-sub">A PERDERE</div>
-  <div id="lobby-menu" class="lobby-section">
-    <h3>Come vuoi giocare?</h3>
-    <div style="margin-bottom:12px">
-      <div style="margin-bottom:6px;color:#ccc;font-size:clamp(11px,2.2vw,13px)">Il tuo nome:</div>
-      <input type="text" class="lobby-input" id="my-name-input" maxlength="12" placeholder="Il tuo nome" value="">
-    </div>
-    <div class="lobby-actions">
-      <button class="lobby-btn primary" onclick="hostGame()">Crea Partita Online</button>
-      <button class="lobby-btn" onclick="showJoinUI()">Unisciti (con codice)</button>
-    </div>
-    <div id="room-browser" style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.15);padding-top:10px">
-      <div style="color:#ccc;font-size:clamp(11px,2.2vw,13px);margin-bottom:6px">Partite disponibili:</div>
-      <div id="room-list" style="max-height:140px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
-      <div id="room-list-status" style="color:#888;font-size:11px;text-align:center;padding:8px 0">Cercando partite...</div>
-    </div>
-    <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.15);padding-top:12px">
-      <button class="lobby-btn primary" style="width:100%" onclick="startSinglePlayer()">🃏 Gioca da Solo (vs CPU)</button>
-    </div>
-    <div style="margin-top:12px;text-align:center">
-      <button class="lobby-btn" style="opacity:0.7" onclick="backToModeSelect()">Indietro</button>
-    </div>
-  </div>
+
+  <!-- CREATE ROOM SECTION -->
   <div id="lobby-host" class="lobby-section" style="display:none">
-    <h3>La Tua Stanza</h3>
-    <div>Invia questo codice al tuo amico:</div>
-    <div class="lobby-code" id="room-code" onclick="copyRoomCode()">...</div>
-    <div style="margin-bottom:6px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-      <button class="lobby-btn" style="font-size:clamp(11px,2.2vw,13px);padding:8px 20px;min-height:38px" onclick="copyRoomCode()">📋 Copia Codice</button>
-      <button class="lobby-btn" style="font-size:clamp(11px,2.2vw,13px);padding:8px 20px;min-height:38px" onclick="copyInviteLink()">🔗 Copia Link Invito</button>
+    <h3>🏠 Crea Stanza</h3>
+    <div style="margin-bottom:10px">
+      <div style="color:#ccc;font-size:clamp(11px,2.2vw,13px);margin-bottom:4px">Nome della stanza:</div>
+      <input type="text" class="lobby-input" id="room-name-input" maxlength="20" placeholder="es. Partita di Ric" value="">
     </div>
-    <div class="copy-msg" id="copy-msg"></div>
-    <div class="lobby-status" id="host-status">Creazione stanza...</div>
-    <button class="lobby-btn primary" id="start-mp-btn" style="display:none" onclick="startMultiplayerGame()">Inizia Partita</button>
+    <div style="margin-bottom:12px">
+      <div style="color:#ccc;font-size:clamp(11px,2.2vw,13px);margin-bottom:4px">Il tuo nome:</div>
+      <input type="text" class="lobby-input" id="host-name-input" maxlength="12" placeholder="Il tuo nome" value="">
+    </div>
+    <button class="lobby-btn primary" id="create-room-btn" onclick="hostGame()">Crea Stanza</button>
+
+    <!-- Waiting area with seats -->
+    <div id="host-seats-area" style="display:none;margin-top:14px;border-top:1px solid rgba(255,255,255,0.15);padding-top:10px">
+      <div style="color:#fa4;font-size:clamp(12px,2.5vw,14px);margin-bottom:8px;text-align:center">
+        Codice stanza: <span id="room-code" style="font-weight:bold;cursor:pointer;text-decoration:underline" onclick="copyRoomCode()">...</span>
+        <button class="lobby-btn" style="font-size:10px;padding:4px 10px;min-height:28px;margin-left:6px" onclick="copyInviteLink()">🔗 Link</button>
+      </div>
+      <div class="copy-msg" id="copy-msg"></div>
+      <div style="font-size:clamp(11px,2.2vw,13px);color:#ccc;margin-bottom:6px">Posti al tavolo:</div>
+      <div id="seat-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+        <div class="seat-row" id="seat-0"><span class="seat-icon">👤</span> <span class="seat-label">Posto 1 (Tu)</span> — <span class="seat-name" id="seat-name-0" style="color:#4f4">...</span></div>
+        <div class="seat-row" id="seat-1"><span class="seat-icon">⏳</span> <span class="seat-label">Posto 2</span> — <span class="seat-name" id="seat-name-1" style="color:#888">In attesa...</span></div>
+        <div class="seat-row" id="seat-2"><span class="seat-icon">⏳</span> <span class="seat-label">Posto 3</span> — <span class="seat-name" id="seat-name-2" style="color:#888">In attesa...</span></div>
+        <div class="seat-row" id="seat-3"><span class="seat-icon">⏳</span> <span class="seat-label">Posto 4</span> — <span class="seat-name" id="seat-name-3" style="color:#888">In attesa...</span></div>
+      </div>
+      <div class="lobby-status" id="host-status">In attesa di giocatori...</div>
+      <button class="lobby-btn primary" id="start-mp-btn" style="display:none" onclick="startMultiplayerGame()">▶ Inizia Partita</button>
+    </div>
     <button class="lobby-btn" style="margin-top:8px" onclick="cancelLobby()">Indietro</button>
   </div>
+
+  <!-- JOIN ROOM SECTION -->
   <div id="lobby-join" class="lobby-section" style="display:none">
-    <h3>Unisciti a una Partita</h3>
-    <div style="margin-bottom:8px;margin-top:10px">Inserisci il codice:</div>
-    <input type="text" class="lobby-input" id="join-code-input" maxlength="6" placeholder="CODICE" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
-    <div class="lobby-actions" style="margin-top:12px">
-      <button class="lobby-btn primary" onclick="joinGame()">Unisciti</button>
-      <button class="lobby-btn" onclick="cancelLobby()">Indietro</button>
+    <h3>🚪 Unisciti a una Stanza</h3>
+    <div style="margin-bottom:10px">
+      <div style="color:#ccc;font-size:clamp(11px,2.2vw,13px);margin-bottom:4px">Il tuo nome:</div>
+      <input type="text" class="lobby-input" id="join-name-input" maxlength="12" placeholder="Il tuo nome" value="">
+    </div>
+    <div id="room-browser" style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.15);padding-top:10px">
+      <div style="color:#ccc;font-size:clamp(11px,2.2vw,13px);margin-bottom:6px">Stanze disponibili:</div>
+      <div id="room-list" style="max-height:180px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
+      <div id="room-list-status" style="color:#888;font-size:11px;text-align:center;padding:8px 0">Cercando stanze...</div>
+    </div>
+    <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.15);padding-top:10px">
+      <div style="color:#ccc;font-size:clamp(11px,2.2vw,13px);margin-bottom:4px">Oppure inserisci il codice:</div>
+      <input type="text" class="lobby-input" id="join-code-input" maxlength="6" placeholder="CODICE" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+      <div class="lobby-actions" style="margin-top:8px">
+        <button class="lobby-btn primary" onclick="joinGame()">Unisciti</button>
+      </div>
     </div>
     <div class="lobby-status" id="join-status"></div>
     <div class="lobby-error" id="join-error"></div>
+    <button class="lobby-btn" style="margin-top:8px" onclick="cancelLobby()">Indietro</button>
   </div>
+
+  <!-- WAITING SECTION (for client after joining) -->
   <div id="lobby-waiting" class="lobby-section" style="display:none">
     <h3>Connesso!</h3>
     <div class="lobby-status" id="wait-status">In attesa dell'host...</div>
   </div>
+
+  <!-- Hidden legacy menu section (kept for showLobbySection compatibility) -->
+  <div id="lobby-menu" class="lobby-section" style="display:none"></div>
 </div>
 
 <!-- ═══════ Start Screen ═══════ -->
@@ -572,7 +591,16 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
     <b>👥 Multiplayer:</b> Gioca online con un amico! Crea o unisciti a una partita dalla lobby.<br>
   </div>
 
-  <button id="play-btn">GIOCA!</button>
+  <div style="margin-bottom:10px">
+    <div style="margin-bottom:6px;color:#ccc;font-size:clamp(11px,2.2vw,13px)">Il tuo nome:</div>
+    <input type="text" class="lobby-input" id="my-name-input" maxlength="12" placeholder="Il tuo nome" value="" style="width:min(220px,60vw);text-align:center">
+  </div>
+
+  <div class="lobby-actions" style="flex-direction:column;gap:10px;align-items:center">
+    <button class="lobby-btn primary" style="width:min(280px,80vw)" onclick="startSinglePlayerFromOverlay()">🃏 Gioca da Solo (vs CPU)</button>
+    <button class="lobby-btn primary" style="width:min(280px,80vw);background:rgba(20,80,40,0.9)" onclick="showCreateRoom()">🏠 Crea Stanza</button>
+    <button class="lobby-btn" style="width:min(280px,80vw)" onclick="showJoinRoom()">🚪 Unisciti a Stanza</button>
+  </div>
 </div>
 
 <div id="game-over">
@@ -1126,7 +1154,7 @@ function renderAll() {
   document.getElementById('trick-count').textContent = `Mano ${game.trickNum} / 10`;
   // Turn indicator
   if(game.phase==='playing'){
-    var myIdx = (mpMode && !isHost) ? 1 : 0;
+    var myIdx = (mpMode && !isHost) ? mySeat : 0;
     var cp = game.currentPlayer;
     var turnText = (cp === myIdx) ? 'Tocca a TE!' : 'Turno di '+PLAYER_NAMES[cp];
     document.getElementById('turn-indicator').textContent = turnText;
@@ -1160,7 +1188,7 @@ function renderPlayerHand() {
   const container = document.getElementById('player-hand');
   container.innerHTML = '';
   // In multiplayer, show MY seat's hand (host=0, client=1)
-  const myIdx = (mpMode && !isHost) ? 1 : 0;
+  const myIdx = (mpMode && !isHost) ? mySeat : 0;
   const hand = game.hands[myIdx];
   const total = hand.length;
   const { cw, ch } = getCardSize();
@@ -1226,7 +1254,7 @@ function renderOpponentHands() {
   // Seat mapping: in MP client mode, remap who goes where visually
   // Host (or single-player): south=0 east=1 north=2 west=3
   // Client: south=1 east=2 north=3 west=0  (rotate by 1)
-  const rot = (mpMode && !isHost) ? 1 : 0;
+  const rot = (mpMode && !isHost) ? mySeat : 0;
   const seatAt = function(pos) { return (pos + rot) % 4; };
   // Opponents are east(1), north(2), west(3) in visual positions
   const eastSeat = seatAt(1);
@@ -1292,7 +1320,7 @@ function renderTrick() {
   const tw = Math.round(cw * trickScale);
   const th = Math.round(ch * trickScale);
   // Remap visual positions for client
-  const rot = (mpMode && !isHost) ? 1 : 0;
+  const rot = (mpMode && !isHost) ? mySeat : 0;
   game.trick.forEach(({ playerIdx, card }) => {
     const el = createCardElement(card, true);
     const visualIdx = (playerIdx - rot + 4) % 4;
@@ -1309,8 +1337,8 @@ function renderScores() {
   container.innerHTML = '';
   // Show game mode in score panel title
   document.getElementById('score-title').textContent = gameMode === 'perdere' ? '🔻 A PERDERE' : '🔺 A VINCERE';
-  const myIdx = (mpMode && !isHost) ? 1 : 0;
-  const rot = (mpMode && !isHost) ? 1 : 0;
+  const myIdx = (mpMode && !isHost) ? mySeat : 0;
+  const rot = (mpMode && !isHost) ? mySeat : 0;
   // Show scores in visual order (my seat first)
   for (let v = 0; v < 4; v++) {
     const actual = (v + rot) % 4;
@@ -1370,7 +1398,7 @@ function stopTurnTimer() {
 }
 
 function updateTurnCountdown(playerIdx, sec) {
-  var rot = (mpMode && !isHost) ? 1 : 0;
+  var rot = (mpMode && !isHost) ? mySeat : 0;
   var visualIdx = (playerIdx - rot + 4) % 4;
   var label = document.getElementById('label-' + PLAYER_POS[visualIdx]);
   if(!label) return;
@@ -1380,7 +1408,7 @@ function updateTurnCountdown(playerIdx, sec) {
 }
 
 function renderLabels() {
-  const rot = (mpMode && !isHost) ? 1 : 0;
+  const rot = (mpMode && !isHost) ? mySeat : 0;
   for (let v = 0; v < 4; v++) {
     const actual = (v + rot) % 4;
     const label = document.getElementById('label-' + PLAYER_POS[v]);
@@ -1751,21 +1779,46 @@ function showGameOver() {
   ).join(' · ')}`;
 })();
 
-// "GIOCA!" now shows the lobby to choose single/multi player
-function showLobbyFromOverlay() {
+// "GIOCA!" buttons are now directly on the overlay
+function startSinglePlayerFromOverlay() {
+  if(!_getMyName()){ document.getElementById('my-name-input').style.border='2px solid #f44'; document.getElementById('my-name-input').focus(); return; }
+  document.getElementById('my-name-input').style.border='';
+  var myName = _getMyName();
+  PLAYER_NAMES[0] = myName;
+  mpMode = false; isHost = false;
+  document.getElementById('overlay').classList.add('hidden');
+  startGame();
+}
+function showCreateRoom() {
+  if(!_getMyName()){ document.getElementById('my-name-input').style.border='2px solid #f44'; document.getElementById('my-name-input').focus(); return; }
+  document.getElementById('my-name-input').style.border='';
+  document.getElementById('host-name-input').value = _getMyName();
   document.getElementById('overlay').classList.add('hidden');
   document.getElementById('lobby-overlay').classList.remove('hidden');
   document.getElementById('lobby-mode-sub').textContent = gameMode === 'perdere' ? 'A PERDERE' : 'A VINCERE';
-  showLobbySection('lobby-menu');
+  document.getElementById('host-seats-area').style.display = 'none';
+  document.getElementById('create-room-btn').style.display = '';
+  showLobbySection('lobby-host');
 }
-function backToModeSelect() {
+function showJoinRoom() {
+  if(!_getMyName()){ document.getElementById('my-name-input').style.border='2px solid #f44'; document.getElementById('my-name-input').focus(); return; }
+  document.getElementById('my-name-input').style.border='';
+  document.getElementById('join-name-input').value = _getMyName();
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('lobby-overlay').classList.remove('hidden');
+  document.getElementById('lobby-mode-sub').textContent = gameMode === 'perdere' ? 'A PERDERE' : 'A VINCERE';
+  showLobbySection('lobby-join');
+  startLobbyBrowser();
+}
+function backToOverlay() {
   stopLobbyBrowser();
+  _fbCleanup();
+  stopHostHeartbeat();
   document.getElementById('lobby-overlay').classList.add('hidden');
   document.getElementById('overlay').classList.remove('hidden');
 }
 
-document.getElementById('play-btn').onclick = showLobbyFromOverlay;
-document.getElementById('play-btn').addEventListener('touchend', (e) => { e.preventDefault(); showLobbyFromOverlay(); }, { passive: false });
+// No play-btn anymore — buttons are directly on overlay
 document.getElementById('retry-btn').onclick = () => {
   document.getElementById('game-over').classList.remove('show');
   document.getElementById('quit-btn').style.display='none';
@@ -1882,6 +1935,7 @@ function quitGame() {
     if(_fbDb && mpRoom){
       _fbDb.ref('lobby/'+mpRoom).remove();
       _fbDb.ref('rooms/'+mpRoom+'/state').remove();
+      _fbDb.ref('rooms/'+mpRoom+'/seats').remove();
     }
   }
   document.getElementById('overlay').classList.remove('hidden');
@@ -1918,13 +1972,7 @@ window.addEventListener('orientationchange', () => {
 });
 
 function startSinglePlayer() {
-  if(!_getMyName()){ document.getElementById('my-name-input').style.border='2px solid #f44'; document.getElementById('my-name-input').focus(); return; }
-  document.getElementById('my-name-input').style.border='';
-  var myName = _getMyName();
-  PLAYER_NAMES[0] = myName;
-  mpMode = false; isHost = false;
-  document.getElementById('lobby-overlay').classList.add('hidden');
-  startGame();
+  startSinglePlayerFromOverlay();
 }
 
 function startGame() {
@@ -2034,7 +2082,8 @@ function showLobbySection(id) {
 function cancelLobby() {
   _fbCleanup();
   stopHostHeartbeat();
-  showLobbySection('lobby-menu');
+  document.getElementById('lobby-overlay').classList.add('hidden');
+  document.getElementById('overlay').classList.remove('hidden');
 }
 
 // ─── Firebase helpers ───
@@ -2147,7 +2196,8 @@ function _listenState() {
     document.getElementById('overlay').classList.add('hidden');
     document.getElementById('game-over').classList.remove('show');
     document.getElementById('quit-btn').style.display = '';
-    isHost = false; mySeat = 1;
+    isHost = false;
+    // mySeat is set by the dedicated seats listener — do NOT overwrite it here
     if(data.names) for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
     if(data.gm) gameMode = data.gm;
 
@@ -2165,7 +2215,7 @@ function _listenState() {
       }
       if(newTrickNum > _prevTrickNum && _prevTrickNum >= 0) sndTrickWon();
       if(data.ph === 'done' && _prevPhase !== 'done'){
-        var myScore = data.sc[1];
+        var myScore = data.sc[mySeat >= 0 ? mySeat : 1];
         var maxScore = Math.max.apply(null, data.sc);
         if(myScore >= maxScore) sndWin(); else sndLose();
       }
@@ -2234,16 +2284,17 @@ function renderRoomList() {
   var codes = Object.keys(_lobbyRooms);
   if(codes.length === 0){
     list.innerHTML = '';
-    status.textContent = _fbReady ? 'Nessuna partita trovata' : 'Connessione...';
+    status.textContent = _fbReady ? 'Nessuna stanza trovata' : 'Connessione...';
     return;
   }
   status.textContent = '';
   list.innerHTML = '';
   codes.forEach(function(code){
     var r = _lobbyRooms[code];
+    var label = r.label || ('Partita di '+(r.host||'?'));
     var div = document.createElement('div');
     div.className = 'room-item';
-    div.innerHTML = '<div class="ri-info"><div class="ri-host">'+(r.host||'?')+'</div><div class="ri-mode">'+(r.mode==='vincere'?'🔺 A Vincere':'🔻 A Perdere')+'</div></div><div class="ri-join">Unisciti ▸</div>';
+    div.innerHTML = '<div class="ri-info"><div class="ri-host">'+label+'</div><div class="ri-mode">'+(r.mode==='vincere'?'🔺 A Vincere':'🔻 A Perdere')+' — Host: '+(r.host||'?')+'</div></div><div class="ri-join">Unisciti ▸</div>';
     div.onclick = function(){ joinFromBrowser(code); };
     list.appendChild(div);
   });
@@ -2251,10 +2302,10 @@ function renderRoomList() {
 function joinFromBrowser(code) {
   stopLobbyBrowser();
   document.getElementById('join-code-input').value = code;
-  if(!_getMyName()){
-    showLobbySection('lobby-menu');
-    document.getElementById('my-name-input').style.border='2px solid #f44';
-    document.getElementById('my-name-input').focus();
+  var joinName = (document.getElementById('join-name-input').value||'').trim();
+  if(!joinName){
+    document.getElementById('join-name-input').style.border='2px solid #f44';
+    document.getElementById('join-name-input').focus();
     return;
   }
   joinGame();
@@ -2262,13 +2313,14 @@ function joinFromBrowser(code) {
 
 // ─── Heartbeat ───
 var _heartbeatTimer = null;
+var _roomLabel = '';
 function startHostHeartbeat() {
   stopHostHeartbeat();
   if(!_fbDb || !mpRoom) return;
   var myName = _getMyName() || 'Host';
   function beat(){
     if(!_fbDb || !mpRoom) return;
-    _fbDb.ref('lobby/'+mpRoom).set({host:myName, mode:gameMode, time:firebase.database.ServerValue.TIMESTAMP});
+    _fbDb.ref('lobby/'+mpRoom).set({host:myName, mode:gameMode, label:_roomLabel||('Partita di '+myName), time:firebase.database.ServerValue.TIMESTAMP});
     dbg('HEARTBEAT');
   }
   beat();
@@ -2296,28 +2348,74 @@ function copyInviteLink() {
 }
 
 function _getMyName() {
-  return (document.getElementById('my-name-input').value||'').trim();
+  var v = (document.getElementById('my-name-input').value||'').trim();
+  if(!v) v = (document.getElementById('host-name-input')&&document.getElementById('host-name-input').value||'').trim();
+  if(!v) v = (document.getElementById('join-name-input')&&document.getElementById('join-name-input').value||'').trim();
+  return v;
 }
 
 var _mpPingTimer = null;
 
 // ===== HOST =====
 var _clientName = 'Amico';
+var _humanSeats = {}; // {seatIdx: {name, id, lastPing}}
+var _humanSeatSet = new Set([0]); // set of seat indices occupied by humans
+
+function _updateSeatUI(){
+  for(var i=0;i<4;i++){
+    var nameEl = document.getElementById('seat-name-'+i);
+    var rowEl = document.getElementById('seat-'+i);
+    var iconEl = rowEl.querySelector('.seat-icon');
+    if(i===0){
+      nameEl.textContent = PLAYER_NAMES[0];
+      nameEl.style.color = '#4f4';
+      iconEl.textContent = '👤';
+    } else if(_humanSeats[i]){
+      nameEl.textContent = _humanSeats[i].name;
+      nameEl.style.color = '#4f4';
+      iconEl.textContent = '👤';
+    } else {
+      nameEl.textContent = 'In attesa...';
+      nameEl.style.color = '#888';
+      iconEl.textContent = '⏳';
+    }
+  }
+  var count = Object.keys(_humanSeats).length;
+  var statusEl = document.getElementById('host-status');
+  if(count === 0) statusEl.textContent = 'In attesa di giocatori...';
+  else if(count < 3) statusEl.textContent = count+' giocatore/i uniti. Puoi iniziare o attendere altri.';
+  else statusEl.textContent = 'Tavolo pieno! 4 giocatori pronti.';
+  // Show start button as soon as at least 1 player joins
+  document.getElementById('start-mp-btn').style.display = count > 0 ? 'block' : 'none';
+  // Auto-start when all 4 seats filled
+  if(count === 3 && !mpMode){
+    statusEl.textContent = 'Tavolo pieno! Partita in partenza...';
+    setTimeout(function(){ if(!mpMode) startMultiplayerGame(); }, 1500);
+  }
+}
+
 function hostGame() {
-  if(!_getMyName()){ document.getElementById('my-name-input').style.border='2px solid #f44'; document.getElementById('my-name-input').focus(); return; }
-  document.getElementById('my-name-input').style.border='';
+  var hostNameEl = document.getElementById('host-name-input');
+  var roomNameEl = document.getElementById('room-name-input');
+  var myName = (hostNameEl.value||'').trim();
+  var roomLabel = (roomNameEl.value||'').trim() || 'Partita di '+myName;
+  if(!myName){ hostNameEl.style.border='2px solid #f44'; hostNameEl.focus(); return; }
+  hostNameEl.style.border='';
   if(!_fbReady){ alert('Firebase non pronto. Riprova.'); return; }
-  var myName = _getMyName();
   PLAYER_NAMES[0] = myName;
   mpRoom = genCode(); isHost = true; mySeat = 0;
-  dbg('HOST room='+mpRoom);
+  _humanSeats = {};
+  _humanSeatSet = new Set([0]);
+  dbg('HOST room='+mpRoom+' label='+roomLabel);
   document.getElementById('room-code').textContent = mpRoom;
-  showLobbySection('lobby-host');
+  document.getElementById('create-room-btn').style.display = 'none';
+  document.getElementById('host-seats-area').style.display = '';
   document.getElementById('host-status').textContent = 'In attesa di giocatori...';
   document.getElementById('start-mp-btn').style.display = 'none';
+  _roomLabel = roomLabel;
+  _updateSeatUI();
   startHostHeartbeat();
 
-  var joined = false;
   var _clientLastPing = Date.now();
   var _clientDisconnected = false;
 
@@ -2325,29 +2423,49 @@ function hostGame() {
     _clientLastPing = Date.now();
     if(_clientDisconnected){
       _clientDisconnected = false;
-      document.getElementById('disconnect-text').textContent = '✅ '+(_clientName||'Giocatore')+' riconnesso!';
+      document.getElementById('disconnect-text').textContent = '✅ Giocatore riconnesso!';
       document.getElementById('reconnect-btn').style.display = 'none';
       setTimeout(function(){ document.getElementById('disconnect-banner').style.display='none'; }, 1500);
     }
     if(data.t==='ping') return;
-    if(data.t==='join' && !joined){
-      joined = true;
-      _clientName = data.name || 'Amico';
-      dbg('HOST: joined! name='+_clientName);
-      document.getElementById('host-status').textContent = _clientName+' si e unito!';
-      document.getElementById('start-mp-btn').style.display = 'block';
-    }
-    if(data.t==='join' && joined && mpMode && game){
-      dbg('HOST: client REJOINED');
-      showStatus(_clientName+' riconnesso!', 2000);
-      bcastGSNow();
+    if(data.t==='join'){
+      // Check if this player already has a seat (rejoin)
+      var existingSeat = -1;
+      for(var k in _humanSeats){ if(_humanSeats[k].id === data._from){ existingSeat = parseInt(k); break; } }
+      if(existingSeat >= 0){
+        _humanSeats[existingSeat].lastPing = Date.now();
+        dbg('HOST: player REJOINED seat='+existingSeat+' name='+_humanSeats[existingSeat].name);
+        if(mpMode && game){
+          showStatus(_humanSeats[existingSeat].name+' riconnesso!', 2000);
+          bcastGSNow();
+        }
+        // Write seat assignment to dedicated path for this player
+        _fbDb.ref('rooms/'+mpRoom+'/seats/'+data._from).set(existingSeat);
+        return;
+      }
+      // New player — assign next free seat
+      if(mpMode) return; // game already started, no new joins
+      var freeSeat = -1;
+      for(var s=1;s<=3;s++){ if(!_humanSeats[s]){ freeSeat=s; break; } }
+      if(freeSeat < 0) return; // full
+      var pName = data.name || 'Giocatore '+(freeSeat+1);
+      _humanSeats[freeSeat] = {name:pName, id:data._from, lastPing:Date.now()};
+      _humanSeatSet.add(freeSeat);
+      dbg('HOST: new player seat='+freeSeat+' name='+pName);
+      _updateSeatUI();
+      // Write seat assignment to dedicated path for this player
+      _fbDb.ref('rooms/'+mpRoom+'/seats/'+data._from).set(freeSeat);
     }
     if(data.t==='play' && mpMode && game){
-      dbg('HOST play cardId='+data.cardId+' cp='+game.currentPlayer);
-      if(game.currentPlayer !== 1) return;
-      var card = game.hands[1].find(function(c){return c.id===data.cardId;});
-      if(!card || !isCardPlayable(1,card)) return;
-      _origPlayCard(1, card).catch(function(e){ dbg('playCard ERR: '+e); });
+      // Find which seat this player is
+      var playSeat = -1;
+      for(var k2 in _humanSeats){ if(_humanSeats[k2].id === data._from){ playSeat = parseInt(k2); break; } }
+      if(playSeat < 0) return;
+      dbg('HOST play seat='+playSeat+' cardId='+data.cardId+' cp='+game.currentPlayer);
+      if(game.currentPlayer !== playSeat) return;
+      var card = game.hands[playSeat].find(function(c){return c.id===data.cardId;});
+      if(!card || !isCardPlayable(playSeat,card)) return;
+      _origPlayCard(playSeat, card).catch(function(e){ dbg('playCard ERR: '+e); });
     }
   }
   mpListen(hostHandler);
@@ -2355,11 +2473,16 @@ function hostGame() {
   // Watchdog
   setInterval(function(){
     if(!mpMode || !game || game.phase==='done') return;
-    var elapsed = Date.now() - _clientLastPing;
-    if(elapsed > 30000 && !_clientDisconnected){
+    var anyDisc = false;
+    for(var k in _humanSeats){
+      if(Date.now() - _humanSeats[k].lastPing > 30000){
+        anyDisc = true;
+        break;
+      }
+    }
+    if(anyDisc && !_clientDisconnected){
       _clientDisconnected = true;
-      dbg('HOST: client DISCONNECTED');
-      document.getElementById('disconnect-text').textContent = '⚠️ '+_clientName+' disconnesso...';
+      document.getElementById('disconnect-text').textContent = '⚠️ Un giocatore disconnesso...';
       document.getElementById('reconnect-btn').style.display = 'inline-block';
       document.getElementById('disconnect-banner').style.display = 'block';
       startHostHeartbeat();
@@ -2371,8 +2494,19 @@ function startMultiplayerGame() {
   if(!isHost) return;
   mpMode = true;
   _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 15000);
-  PLAYER_NAMES[0] = document.getElementById('my-name-input').value.trim() || 'Tu';
-  PLAYER_NAMES[1] = _clientName;
+  PLAYER_NAMES[0] = document.getElementById('host-name-input').value.trim() || 'Tu';
+  // Fill seats: human players get their names, empty seats become CPU
+  var cpuNames = ['Riccardo','Zio Checco','Giuseppe'];
+  var cpuIdx = 0;
+  _humanSeatSet = new Set([0]);
+  for(var s=1;s<=3;s++){
+    if(_humanSeats[s]){
+      PLAYER_NAMES[s] = _humanSeats[s].name;
+      _humanSeatSet.add(s);
+    } else {
+      PLAYER_NAMES[s] = cpuNames[cpuIdx++] || ('CPU '+(s+1));
+    }
+  }
   deduplicateNames();
   document.getElementById('label-south').innerHTML=PLAYER_NAMES[0]+' <span class="lb-pts"></span>';
   document.getElementById('label-east').innerHTML=PLAYER_NAMES[1]+' <span class="lb-pts"></span>';
@@ -2384,24 +2518,24 @@ function startMultiplayerGame() {
   document.getElementById('quit-btn').style.display = '';
   initAudio(); initGame(); renderAll();
   dbg('HOST startGame cp='+game.currentPlayer);
-  mpSend({t:'start',gm:gameMode,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer});
+  mpSend({t:'start',gm:gameMode,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
   syncState();
   sndStart(); showStatus('Partita iniziata!',1500);
-  if(game.currentPlayer!==0 && game.currentPlayer!==1) setTimeout(function(){cpuTurn();},800);
+  if(!isHumanSeat(game.currentPlayer)) setTimeout(function(){cpuTurn();},800);
 }
 
 // ===== CLIENT =====
-function showJoinUI() { showLobbySection('lobby-join'); document.getElementById('join-error').textContent=''; document.getElementById('join-status').textContent=''; }
+function showJoinUI() { showLobbySection('lobby-join'); document.getElementById('join-error').textContent=''; document.getElementById('join-status').textContent=''; startLobbyBrowser(); }
 
 function joinGame() {
-  var joinName = _getMyName();
-  if(!joinName){ document.getElementById('my-name-input').style.border='2px solid #f44'; document.getElementById('my-name-input').focus(); return; }
-  document.getElementById('my-name-input').style.border='';
+  var joinName = (document.getElementById('join-name-input').value||'').trim();
+  if(!joinName){ document.getElementById('join-name-input').style.border='2px solid #f44'; document.getElementById('join-name-input').focus(); return; }
+  document.getElementById('join-name-input').style.border='';
   var code = document.getElementById('join-code-input').value.trim();
   if(code.length!==6){ document.getElementById('join-error').textContent='Codice a 6 lettere'; return; }
   if(!_fbReady){ document.getElementById('join-error').textContent='Firebase non pronto.'; return; }
   var myName = joinName;
-  isHost = false; mySeat = 1; mpRoom = code.toUpperCase();
+  isHost = false; mySeat = -1; mpRoom = code.toUpperCase();
   dbg('CLIENT joining room='+mpRoom);
   document.getElementById('join-status').textContent='Connessione...';
   document.getElementById('join-error').textContent='';
@@ -2410,6 +2544,18 @@ function joinGame() {
 
   var _hostLastPing = Date.now();
   var _hostDisconnected = false;
+
+  // Listen for seat assignment on dedicated path
+  var _seatRef = _fbDb.ref('rooms/'+mpRoom+'/seats/'+MY_ID);
+  _seatRef.on('value', function(snap){
+    var val = snap.val();
+    if(val !== null && val !== undefined){
+      mySeat = val;
+      dbg('CLIENT seat assigned via DB: mySeat='+mySeat);
+      document.getElementById('wait-status').textContent='Posto '+(mySeat+1)+' assegnato! In attesa dell\'host...';
+    }
+  });
+  _fbListeners.push(_seatRef);
 
   _listenState();
 
@@ -2429,8 +2575,10 @@ function joinGame() {
       return;
     }
     if(data.t==='start'){
-      dbg('CLIENT start! cp='+data.cp);
+      dbg('CLIENT start! cp='+data.cp+' mySeat='+mySeat);
+      if(mySeat < 0) mySeat = 1; // fallback
       mpMode = true; gameMode = data.gm||'perdere';
+      if(data.humanSeats) _humanSeatSet = new Set(data.humanSeats);
       for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
       game = {hands:data.hands.map(function(h){return h.map(function(c){return {suit:c.suit,rank:c.rank,id:c.id};});}),trick:[],trickNum:0,leadPlayer:data.lp||0,currentPlayer:data.cp||0,leadSuit:null,scores:[0,0,0,0],trickCards:[],phase:'playing',animating:false};
       document.getElementById('lobby-overlay').classList.add('hidden');
@@ -2475,7 +2623,7 @@ function joinGame() {
 
 // ─── Patched functions ───
 var _origPlayCard = playCard;
-function isHumanSeat(s){if(!mpMode)return s===0; return s===0||s===1;}
+function isHumanSeat(s){if(!mpMode)return s===0; return _humanSeatSet.has(s);}
 
 function bcastGS(){
   if(!mpMode||!isHost) return;
@@ -2520,10 +2668,10 @@ document.getElementById('retry-btn').onclick=function(){
   document.getElementById('game-over').classList.remove('show');
   if(mpMode && isHost){
     initGame(); deduplicateNames(); renderAll();
-    mpSend({t:'start',gm:gameMode,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer});
+    mpSend({t:'start',gm:gameMode,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
     syncState();
     sndStart(); showStatus('Nuova partita!',1500);
-    if(game.currentPlayer!==0 && game.currentPlayer!==1) setTimeout(function(){cpuTurn();},800);
+    if(!isHumanSeat(game.currentPlayer)) setTimeout(function(){cpuTurn();},800);
   } else if(mpMode && !isHost){
     showStatus('In attesa nuova partita...',2000);
   } else {
