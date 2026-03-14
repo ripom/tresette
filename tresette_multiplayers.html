@@ -125,6 +125,19 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   max-width:90vw;text-align:center;
 }
 #status-msg.show{opacity:1}
+#disconnect-banner{
+  position:fixed;top:0;left:0;right:0;
+  z-index:30;color:#fff;font-size:clamp(12px, 3vw, 15px);font-weight:bold;
+  text-shadow:0 0 8px rgba(255,0,0,0.5);
+  background:rgba(180,30,30,0.92);padding:clamp(6px, 1.2vh, 10px) clamp(12px, 3vw, 24px);
+  text-align:center;display:none;
+}
+#reconnect-btn{
+  display:inline-block;margin-left:12px;padding:4px 14px;font-size:clamp(11px,2.5vw,13px);
+  background:#fff;color:#a00;border:none;border-radius:6px;font-weight:bold;
+  cursor:pointer;vertical-align:middle;
+}
+#reconnect-btn:active{opacity:0.7}
 
 /* ════════ Last Trick Popup ════════ */
 #last-trick{
@@ -409,6 +422,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 <div id="turn-indicator"></div>
 <div id="scardone-banner">SCARDONE!</div>
 <div id="status-msg"></div>
+<div id="disconnect-banner"><span id="disconnect-text"></span> <button id="reconnect-btn" onclick="forceReconnect()">Riconnetti</button></div>
 <div id="last-trick"><div class="lt-label">Ultima presa</div></div>
 
 <div id="score-panel">
@@ -428,6 +442,8 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 <div id="rules-panel">
   <div class="rp-content">
     <h2 id="rules-title">📜 Tresette</h2>
+
+    <h3 style="color:#fa4;margin-top:12px">🃏 Regole del Gioco</h3>
     <p>Si gioca con il mazzo di <b>40 carte napoletane</b> (4 semi: Coppe, Denari, Bastoni, Spade).</p>
     <p id="rules-objective"><b>Obiettivo:</b> Dipende dalla modalità scelta.</p>
     <p><b>Giocatori:</b> 4 giocatori, ognuno per sé. 10 carte a testa.</p>
@@ -441,6 +457,45 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
       • <b>Ultima presa</b> = ⅓ punto bonus
     </p>
     <p>Totale nel mazzo: <b>11 punti</b>.</p>
+
+    <h3 style="color:#fa4;margin-top:16px">🎮 Modalità di Gioco</h3>
+    <p><b>🔻 A Perdere:</b> Vince chi fa <b>meno punti</b>. Attenzione agli Assi! Quando qualcuno gioca un Asso appare il banner "SCARDONE!" con un suono speciale.</p>
+    <p><b>🔺 A Vincere:</b> Vince chi fa <b>più punti</b>. Cerca di prendere le carte di valore!</p>
+
+    <h3 style="color:#fa4;margin-top:16px">👤 Gioco Singolo</h3>
+    <p>Giochi contro <b>3 avversari CPU</b>. Scegli la modalità (A Perdere o A Vincere), inserisci il tuo nome e clicca "Gioca da Solo".</p>
+
+    <h3 style="color:#fa4;margin-top:16px">🌐 Multiplayer Online</h3>
+    <p>Gioca con un amico in tempo reale! Ecco come:</p>
+    <p><b>Creare una partita (Host):</b></p>
+    <p>
+      1. Scegli la modalità (A Perdere / A Vincere)<br>
+      2. Clicca "GIOCA!" poi "Crea Partita Online"<br>
+      3. Inserisci il tuo nome<br>
+      4. Condividi il <b>codice stanza</b> al tuo amico (usa "📋 Copia Codice" o "🔗 Copia Link Invito")<br>
+      5. Quando l'amico si unisce, clicca "Inizia Partita"
+    </p>
+    <p><b>Unirsi a una partita:</b></p>
+    <p>
+      1. Clicca "GIOCA!" e inserisci il tuo nome<br>
+      2. Se vedi la stanza nella lista "Partite disponibili", cliccaci sopra per unirti automaticamente<br>
+      3. Oppure clicca "Unisciti (con codice)" e inserisci il codice a 6 caratteri<br>
+      4. Attendi che l'host avvii la partita
+    </p>
+
+    <h3 style="color:#fa4;margin-top:16px">🔄 Disconnessione e Riconnessione</h3>
+    <p>Se un giocatore si disconnette, appare un banner rosso in alto. Il gioco resta in pausa.</p>
+    <p>Per riconnettersi: riaprire il gioco, cercare la stanza nella lista e riunirsi. Si può anche usare il pulsante <b>"Riconnetti"</b> nel banner rosso.</p>
+    <p>Se l'host abbandona la partita, il giocatore viene riportato al menu principale.</p>
+
+    <h3 style="color:#fa4;margin-top:16px">ℹ️ Interfaccia</h3>
+    <p>
+      • <b>Indicatore turno:</b> Il nome del giocatore di turno lampeggia in arancione. In basso appare "Tocca a TE!" quando è il tuo turno.<br>
+      • <b>Punteggio:</b> In alto a destra con la modalità di gioco.<br>
+      • <b>Fine Partita:</b> Pulsante in alto a sinistra per abbandonare.<br>
+      • <b>Ultima presa:</b> Clicca sull'area in basso a destra per vedere le carte dell'ultima presa.
+    </p>
+
     <button class="rp-close" onclick="document.getElementById('rules-panel').classList.remove('show')">Chiudi</button>
   </div>
 </div>
@@ -490,8 +545,6 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   </div>
   <div id="lobby-join" class="lobby-section" style="display:none">
     <h3>Unisciti a una Partita</h3>
-    <div style="margin-bottom:8px">Il tuo nome:</div>
-    <input type="text" class="lobby-input" id="join-name-input" maxlength="12" placeholder="Il tuo nome" value="">
     <div style="margin-bottom:8px;margin-top:10px">Inserisci il codice:</div>
     <input type="text" class="lobby-input" id="join-code-input" maxlength="6" placeholder="CODICE" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
     <div class="lobby-actions" style="margin-top:12px">
@@ -1074,8 +1127,18 @@ function renderAll() {
     var turnText = (cp === myIdx) ? 'Tocca a TE!' : 'Turno di '+PLAYER_NAMES[cp];
     document.getElementById('turn-indicator').textContent = turnText;
     document.getElementById('turn-indicator').style.display = '';
+    // Start turn timer if it's a new HUMAN player's turn (delayed to let CPU resolve first)
+    if(_turnTimerPlayer !== cp && isHumanSeat(cp) && !game.animating) {
+      clearTimeout(window._turnTimerDelay);
+      window._turnTimerDelay = setTimeout(function(){
+        if(game && game.currentPlayer === cp && game.phase === 'playing' && !game.animating){
+          startTurnTimer();
+        }
+      }, 600);
+    }
   } else {
     document.getElementById('turn-indicator').style.display = 'none';
+    stopTurnTimer();
   }
 }
 
@@ -1248,6 +1311,63 @@ function renderScores() {
   }
 }
 
+// ═══ Turn Timer: countdown + CPU auto-play after 30s ═══
+// Only shows timer for HUMAN players (CPU plays instantly, no timer needed)
+var _turnTimerStart = 0;
+var _turnTimerPlayer = -1;
+var _turnTimerInterval = null;
+var TURN_TIMEOUT = 30; // seconds
+
+function startTurnTimer() {
+  stopTurnTimer();
+  if(!game || game.phase !== 'playing' || game.animating) return;
+  var cp = game.currentPlayer;
+  // Only start timer for human seats
+  if(!isHumanSeat(cp)) return;
+  _turnTimerStart = Date.now();
+  _turnTimerPlayer = cp;
+  _turnTimerInterval = setInterval(function(){
+    if(!game || game.phase !== 'playing' || game.currentPlayer !== _turnTimerPlayer || game.animating){
+      stopTurnTimer();
+      return;
+    }
+    var elapsed = (Date.now() - _turnTimerStart) / 1000;
+    var remaining = Math.ceil(TURN_TIMEOUT - elapsed);
+    // Update the active player's label with countdown
+    updateTurnCountdown(_turnTimerPlayer, remaining);
+    // Time's up — CPU plays on behalf
+    if(remaining <= 0){
+      var seat = _turnTimerPlayer;
+      stopTurnTimer();
+      // Only the host (or single-player) executes the auto-play
+      if(isHost || !mpMode){
+        dbg('TURN TIMEOUT: CPU auto-play for seat='+seat);
+        var playable = getPlayableCards(seat);
+        if(playable.length > 0){
+          var card = cpuSelectCard(seat, playable);
+          dbg('TURN TIMEOUT: playing card='+card.id);
+          playCard(seat, card);
+        }
+      }
+    }
+  }, 1000);
+}
+
+function stopTurnTimer() {
+  if(_turnTimerInterval){ clearInterval(_turnTimerInterval); _turnTimerInterval = null; }
+  _turnTimerPlayer = -1;
+}
+
+function updateTurnCountdown(playerIdx, sec) {
+  var rot = (mpMode && !isHost) ? 1 : 0;
+  var visualIdx = (playerIdx - rot + 4) % 4;
+  var label = document.getElementById('label-' + PLAYER_POS[visualIdx]);
+  if(!label) return;
+  var color = sec <= 10 ? '#f44' : sec <= 20 ? '#fa4' : '#aaa';
+  label.innerHTML = PLAYER_NAMES[playerIdx] + ' <span class="lb-pts">' + formatPunti(game.scores[playerIdx]) + '</span>' +
+    ' <span style="color:'+color+';font-size:clamp(8px,1.8vw,10px)">'+sec+'s</span>';
+}
+
 function renderLabels() {
   const rot = (mpMode && !isHost) ? 1 : 0;
   for (let v = 0; v < 4; v++) {
@@ -1310,7 +1430,7 @@ async function playCard(playerIdx, card) {
   // Scardone: Asso played in "a perdere" mode
   if(card.rank === 1 && gameMode === 'perdere') {
     showScardone();
-    if(mpMode && isHost) mpSend({t:'snd',s:'sc'});
+    if(mpMode && isHost) _pendingEffects.push({s:'sc'});
   }
 
   // Play card sound
@@ -1743,14 +1863,40 @@ function copyInviteLink() {
 function quitGame() {
   game.phase = 'done';
   document.getElementById('quit-btn').style.display = 'none';
+  document.getElementById('disconnect-banner').style.display = 'none';
   stopHostHeartbeat();
+  if(_mpPingTimer){ clearInterval(_mpPingTimer); _mpPingTimer=null; }
   if(mpMode){
+    mpSend({t:'quit'}); // notify the other player
     mpMode = false;
     if(mpEventSource){ mpEventSource.close(); mpEventSource=null; }
   }
   document.getElementById('overlay').classList.remove('hidden');
 }
 document.getElementById('quit-btn').onclick = quitGame;
+
+function forceReconnect() {
+  dbg('FORCE RECONNECT triggered');
+  document.getElementById('disconnect-text').textContent = '🔄 Riconnessione...';
+  document.getElementById('reconnect-btn').style.display = 'none';
+  // Close and reopen SSE
+  if(mpEventSource){ mpEventSource.close(); mpEventSource=null; }
+  if(_mpCurrentHandler){
+    mpStartSSE(_mpCurrentHandler);
+  }
+  if(!isHost){
+    if(game){
+      game.animating = false;
+      if(game.phase !== 'done') game.phase = 'playing';
+    }
+    var myName = _getMyName() || 'Amico';
+    mpSend({t:'join', name:myName});
+    if(game) renderAll();
+  } else {
+    if(game && mpMode) bcastGS();
+  }
+  setTimeout(function(){ document.getElementById('disconnect-banner').style.display='none'; }, 2000);
+}
 
 // Prevent scroll/bounce only on the game table itself — NOT on overlays or UI
 // iOS Safari: document-level touchmove preventDefault breaks ALL touch events
@@ -1825,9 +1971,9 @@ if (window.visualViewport) {
 let mpMode = false, isHost = false, mySeat = -1, mpEventSource = null;
 // Multiple ntfy-compatible servers — ordered by reliability (ntfy.sh last, most rate-limited)
 var NTFY_SERVERS = [
-  'https://ntfy.envs.net',
   'https://ntfy.adminforge.de',
-  'https://ntfy.sh'
+  'https://ntfy.sh',
+  'https://ntfy.envs.net'
 ];
 var ntfyBase = ''; // will be set after probing
 let mpRoom = '';
@@ -1965,7 +2111,7 @@ function startLobbyBrowser() {
     var now = Date.now();
     var changed = false;
     for(var k in _lobbyRooms){
-      if(now - _lobbyRooms[k].time > 20000){ delete _lobbyRooms[k]; changed = true; }
+      if(now - _lobbyRooms[k].time > 45000){ delete _lobbyRooms[k]; changed = true; }
     }
     if(changed) renderRoomList();
   }, 15000);
@@ -2003,7 +2149,18 @@ function renderRoomList() {
 function joinFromBrowser(code) {
   stopLobbyBrowser();
   document.getElementById('join-code-input').value = code;
-  showLobbySection('lobby-join');
+  // Use server from room-ad if available
+  var room = _lobbyRooms[code];
+  if(room && room.srv){
+    window._roomSrvOverride = room.srv;
+  }
+  if(!_getMyName()){
+    showLobbySection('lobby-menu');
+    document.getElementById('my-name-input').style.border='2px solid #f44';
+    document.getElementById('my-name-input').focus();
+    return;
+  }
+  joinGame();
 }
 
 // ═══ Host Heartbeat: announce room on lobby topic ═══
@@ -2018,28 +2175,39 @@ function startHostHeartbeat() {
     dbg('HEARTBEAT sent room='+mpRoom);
   }
   beat(); // send immediately
-  _heartbeatTimer = setInterval(beat, 10000); // then every 10s
+  _heartbeatTimer = setInterval(beat, 30000); // every 30s
 }
 function stopHostHeartbeat() {
   if(_heartbeatTimer){ clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
 }
 
 // Send a message — single POST per event (very low rate)
-function mpSend(data) {
+function mpSend(data, _retries) {
   data._from = MY_ID;
   var body = JSON.stringify(data);
-  dbg('SEND t='+data.t);
+  var retries = _retries || 0;
+  if(retries === 0) dbg('SEND t='+data.t);
   fetch(ntfyBase + '/tresette-' + mpRoom, { method:'POST', body: body })
     .then(function(r){
-      if(r.status === 429) dbg('SEND 429 rate limited!');
-      else dbg('SEND ok='+r.status);
+      if(r.status === 429 && retries < 2){
+        var delay = 1000 + retries * 1000;
+        dbg('SEND 429, retry #'+(retries+1)+' in '+delay+'ms');
+        setTimeout(function(){ mpSend(data, retries+1); }, delay);
+      } else if(r.status === 429){
+        dbg('SEND 429 FAILED after retries');
+      } else {
+        dbg('SEND ok='+r.status);
+      }
     })
     .catch(function(e){ dbg('SEND ERR '+e); });
 }
 
+// Global reference to current message handler for reconnection
+var _mpCurrentHandler = null;
+
 // Subscribe via SSE (Server-Sent Events) — ONE persistent connection.
-// No polling, no rate-limit issues, instant delivery.
 function mpStartSSE(handler) {
+  _mpCurrentHandler = handler;
   if(mpEventSource) { mpEventSource.close(); mpEventSource=null; }
   var url = ntfyBase+'/tresette-'+mpRoom+'/sse?since=30s';
   dbg('SSE open '+url.replace(ntfyBase,''));
@@ -2065,6 +2233,8 @@ function mpStartSSE(handler) {
 function _getMyName() {
   return (document.getElementById('my-name-input').value||'').trim();
 }
+// ===== Ping timer for disconnect detection =====
+var _mpPingTimer = null;
 // ===== HOST =====
 var _clientName = 'Amico';
 function hostGame() {
@@ -2082,16 +2252,41 @@ function hostGame() {
   startHostHeartbeat();
   mpSend({t:'room', host:true});
   let joined = false;
-  mpStartSSE(function(data){
+  var _clientLastPing = Date.now();
+  var _clientWatchdog = null;
+  var _clientDisconnected = false;
+  function hostMsgHandler(data){
     dbg('HOST handler t='+data.t+' joined='+joined+' mpMode='+mpMode);
+    // ANY message from client = proof of life
+    if(data._from !== MY_ID){
+      _clientLastPing = Date.now();
+      if(_clientDisconnected){
+        _clientDisconnected = false;
+        stopHostHeartbeat(); // stop re-advertising, client is back
+        document.getElementById('disconnect-text').textContent = '\u2705 ' + (_clientName||'Giocatore') + ' riconnesso!';
+        document.getElementById('reconnect-btn').style.display = 'none';
+        setTimeout(function(){ document.getElementById('disconnect-banner').style.display = 'none'; }, 1500);
+      }
+    }
+    // Client ping
+    if(data.t==='ping') { return; }
     if(data.t==='join' && !joined) {
       joined = true;
       _clientName = data.name || 'Amico';
+      _clientLastPing = Date.now();
       dbg('HOST: player joined! name='+_clientName);
       document.getElementById('host-status').textContent = _clientName + ' si e unito!';
       document.getElementById('start-mp-btn').style.display = 'block';
     }
+    // Client rejoins during an active game — resend full state immediately
+    if(data.t==='join' && joined && mpMode && game) {
+      dbg('HOST: client REJOINED! Resending state.');
+      _clientLastPing = Date.now();
+      showStatus(_clientName + ' si è riconnesso!', 2000);
+      bcastGSNow();
+    }
     if(data.t==='play' && mpMode && game) {
+      _clientLastPing = Date.now();
       dbg('HOST play recv cardId='+data.cardId+' currentPlayer='+game.currentPlayer+' phase='+game.phase+' animating='+game.animating);
       if(game.currentPlayer !== 1) { dbg('HOST play IGNORED: not seat 1 turn'); return; }
       var card = game.hands[1].find(function(c){return c.id===data.cardId;});
@@ -2102,13 +2297,36 @@ function hostGame() {
         dbg('HOST playCard done. cp='+game.currentPlayer);
       }).catch(function(e){ dbg('HOST playCard ERROR: '+e); });
     }
-  });
+  }
+  mpStartSSE(hostMsgHandler);
+  // Watchdog: detect client disconnect
+  _clientWatchdog = setInterval(function(){
+    if(!mpMode || !game || game.phase==='done') return;
+    var elapsed = Date.now() - _clientLastPing;
+    // Show disconnect banner after 60s of silence
+    if(elapsed > 60000 && !_clientDisconnected){
+      _clientDisconnected = true;
+      dbg('HOST: client DISCONNECTED ('+Math.round(elapsed/1000)+'s)');
+      document.getElementById('disconnect-text').textContent = '⚠️ ' + _clientName + ' disconnesso...';
+      document.getElementById('reconnect-btn').style.display = 'inline-block';
+      document.getElementById('disconnect-banner').style.display = 'block';
+      // Re-advertise room so client can find it in the lobby browser
+      startHostHeartbeat();
+    }
+    // Ensure HOST SSE is alive
+    if(mpEventSource && mpEventSource.readyState === 2){
+      dbg('HOST: SSE closed, reopening');
+      mpStartSSE(hostMsgHandler);
+    }
+  }, 15000);
 }
 
 function startMultiplayerGame() {
   if(!isHost) return;
   mpMode = true;
-  stopHostHeartbeat();
+  // Heartbeat keeps running so disconnected client can find room
+  // Host ping every 30s
+  _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 30000);
   PLAYER_NAMES[0] = document.getElementById('my-name-input').value.trim() || 'Tu';
   PLAYER_NAMES[1] = _clientName;
   deduplicateNames();
@@ -2128,56 +2346,144 @@ function startMultiplayerGame() {
 }
 
 // ===== CLIENT =====
-function showJoinUI() { showLobbySection('lobby-join'); document.getElementById('join-code-input').value=''; document.getElementById('join-error').textContent=''; document.getElementById('join-status').textContent=''; }
+function showJoinUI() { showLobbySection('lobby-join'); document.getElementById('join-error').textContent=''; document.getElementById('join-status').textContent=''; }
 
 function joinGame() {
-  var joinName = (document.getElementById('join-name-input').value||'').trim();
-  if(!joinName){ document.getElementById('join-name-input').style.border='2px solid #f44'; document.getElementById('join-name-input').focus(); return; }
-  document.getElementById('join-name-input').style.border='';
+  var joinName = _getMyName();
+  if(!joinName){ document.getElementById('my-name-input').style.border='2px solid #f44'; document.getElementById('my-name-input').focus(); return; }
+  document.getElementById('my-name-input').style.border='';
   const code = document.getElementById('join-code-input').value.trim();
   if(code.length!==6){ document.getElementById('join-error').textContent='Codice a 6 caratteri'; return; }
   var myName = joinName;
   isHost = false; mySeat = 1; mpRoom = code.toUpperCase();
-  // Extract server from room code (first char)
-  ntfyBase = serverFromCode(mpRoom);
-  dbg('CLIENT joining room='+mpRoom+' server='+ntfyBase);
-  // Check if this server was reachable during probing
+  // Use server from room browser if available, otherwise decode from room code
+  if(window._roomSrvOverride){
+    ntfyBase = window._roomSrvOverride;
+    window._roomSrvOverride = null;
+    dbg('CLIENT using server from room-ad: '+ntfyBase);
+  } else {
+    ntfyBase = serverFromCode(mpRoom);
+    dbg('CLIENT joining room='+mpRoom+' server='+ntfyBase);
+  }
+  // Check reachability — fallback to any available server
   var srvReachable = _serversOk.some(function(s){ return s.url === ntfyBase; });
   if(!srvReachable){
-    dbg('WARNING: server '+ntfyBase+' was NOT reachable during probe!');
-    document.getElementById('join-error').textContent='Server non raggiungibile da questa rete. Chiedi all\'host di ricreare la stanza.';
-    return;
+    if(_serversOk.length > 0){
+      ntfyBase = _serversOk[0].url;
+      dbg('Fallback to '+ntfyBase);
+    } else {
+      document.getElementById('join-error').textContent='Nessun server raggiungibile.';
+      return;
+    }
   }
   document.getElementById('join-status').textContent='Connessione...';
   document.getElementById('join-error').textContent='';
   mpSend({t:'join', name:myName});
   var joinRetry = setInterval(function(){ if(mpMode){clearInterval(joinRetry);return;} dbg('CLIENT retry join'); mpSend({t:'join', name:myName}); }, 8000);
-  mpStartSSE(function(data){
+  var _hostLastPing = Date.now();
+  var _hostDisconnected = false;
+  function clientHandler(data){
     dbg('CLIENT handler t='+data.t+' mpMode='+mpMode);
+    // ANY message from host = proof of life + clear disconnect
+    _hostLastPing = Date.now();
+    if(_hostDisconnected){
+      _hostDisconnected = false;
+      document.getElementById('disconnect-text').textContent = '\u2705 Riconnesso!';
+      document.getElementById('reconnect-btn').style.display = 'none';
+      setTimeout(function(){ document.getElementById('disconnect-banner').style.display = 'none'; }, 1500);
+    }
+    // Host ping
+    if(data.t==='ping') { return; }
+    // Host quit — notify and return to menu
+    if(data.t==='quit') {
+      dbg('CLIENT: host quit the game!');
+      showStatus('L\'host ha abbandonato la partita!', 3000);
+      if(_mpPingTimer){ clearInterval(_mpPingTimer); _mpPingTimer=null; }
+      setTimeout(function(){
+        mpMode = false;
+        if(mpEventSource){ mpEventSource.close(); mpEventSource=null; }
+        document.getElementById('quit-btn').style.display = 'none';
+        document.getElementById('overlay').classList.remove('hidden');
+      }, 3000);
+      return;
+    }
     if(data.t==='start') {
       dbg('CLIENT got start! cp='+data.cp+' lp='+data.lp);
       mpMode = true; gameMode = data.gm||'perdere';
+      _hostLastPing = Date.now();
       for(let i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
       game = {hands:data.hands.map(function(h){return h.map(function(c){return {suit:c.suit,rank:c.rank,id:c.id};});}),trick:[],trickNum:0,leadPlayer:data.lp||0,currentPlayer:data.cp||0,leadSuit:null,scores:[0,0,0,0],trickCards:[],phase:'playing',animating:false};
       document.getElementById('lobby-overlay').classList.add('hidden');
       document.getElementById('overlay').classList.add('hidden');
       document.getElementById('game-over').classList.remove('show');
       document.getElementById('quit-btn').style.display = '';
+      // Start client ping
+      _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 30000);
       initAudio(); renderAll(); sndStart(); showStatus('Partita iniziata!',1500);
     }
-    if(data.t==='gs' && game) {
-      dbg('CLIENT gs: cp='+data.cp+' trick='+data.tr.length+' trickNum='+data.tn+' phase='+data.ph);
+    if(data.t==='gs') {
+      // If game object doesn't exist yet (rejoin), create it
+      if(!game) {
+        game = {hands:[[],[],[],[]],trick:[],trickNum:0,leadPlayer:0,currentPlayer:0,leadSuit:null,scores:[0,0,0,0],trickCards:[],phase:'playing',animating:false};
+      }
+      // Ensure we're in multiplayer mode and overlays are hidden (handles rejoin)
+      if(!mpMode) {
+        mpMode = true;
+        gameMode = data.gm || gameMode || 'perdere';
+        if(data.names) for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
+        // Start client ping if not already running
+        if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 30000);
+        initAudio();
+      }
+      document.getElementById('lobby-overlay').classList.add('hidden');
+      document.getElementById('overlay').classList.add('hidden');
+      document.getElementById('game-over').classList.remove('show');
+      document.getElementById('quit-btn').style.display = '';
+      dbg('CLIENT gs: cp='+data.cp+' trick='+data.tr.length+' trickNum='+data.tn+' phase='+data.ph+' isHost='+isHost+' mySeat='+mySeat);
+      // Ensure client identity is correct on rejoin
+      isHost = false; mySeat = 1;
+      if(data.names) for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
+      if(data.gm) gameMode = data.gm;
       game.hands=data.h.map(function(h){return h.map(function(c){return {suit:c.suit,rank:c.rank,id:c.id};});});
       game.trick=data.tr.map(function(t){return {playerIdx:t.p,card:{suit:t.c.suit,rank:t.c.rank,id:t.c.id}};});
       game.trickNum=data.tn; game.leadPlayer=data.lp; game.currentPlayer=data.cp;
       game.leadSuit=data.ls; game.scores=data.sc.slice();
       game.trickCards=data.tc?data.tc.map(function(c){return {suit:c.suit,rank:c.rank,id:c.id};}):[];
-      game.phase=data.ph; game.animating=data.an||false; renderAll();
+      game.phase=data.ph||'playing';
+      game.animating=false; // always reset — client never animates autonomously
+      renderAll();
+    }
+    // Play bundled effects from host
+    if(data.fx){
+      data.fx.forEach(function(f){
+        if(f.s==='cp')sndCardPlay();if(f.s==='tw')sndTrickWon();
+        if(f.s==='w')sndWin();if(f.s==='l')sndLose();if(f.s==='sc')showScardone();
+        if(f.st)showStatus(f.st, f.d||1500);
+      });
     }
     if(data.t==='snd'){if(data.s==='cp')sndCardPlay();if(data.s==='tw')sndTrickWon();if(data.s==='w')sndWin();if(data.s==='l')sndLose();if(data.s==='sc')showScardone();}
     if(data.t==='st') showStatus(data.x, data.d||1500);
     if(data.t==='go'){game.phase='done';game.scores=data.sc.slice();renderAll();showGameOver();}
-  });
+  }
+  mpStartSSE(clientHandler);
+  // Client-side host watchdog — only runs during active game
+  setInterval(function(){
+    if(!mpMode || !game || game.phase==='done') return;
+    var elapsed = Date.now() - _hostLastPing;
+    if(elapsed > 60000 && !_hostDisconnected){
+      _hostDisconnected = true;
+      dbg('CLIENT: host DISCONNECTED ('+Math.round(elapsed/1000)+'s)');
+      document.getElementById('disconnect-text').textContent = '⚠️ Host disconnesso...';
+      document.getElementById('reconnect-btn').style.display = 'inline-block';
+      document.getElementById('disconnect-banner').style.display = 'block';
+      // Try one rejoin
+      mpSend({t:'join', name:myName});
+    }
+    // Check SSE health
+    if(mpEventSource && mpEventSource.readyState === 2){
+      mpStartSSE(clientHandler);
+    }
+  }, 15000);
   showLobbySection('lobby-waiting');
   document.getElementById('wait-status').textContent='Connesso! In attesa dell\'host...';
 }
@@ -2187,22 +2493,36 @@ var _origPlayCard = playCard;
 
 function isHumanSeat(s){if(!mpMode)return s===0; return s===0||s===1;}
 
-// == Sync patches ==
-// DON'T broadcast on every render (too much traffic) — only at key moments
-var _oRA=renderAll;
-// We keep renderAll as-is, no auto-broadcast
+// == Sync patches — BUNDLED + DEBOUNCED ==
+var _pendingEffects = [];
+var _bcastDebounce = null;
 
-// Explicit broadcast function for key game moments only
 function bcastGS(){
   if(!mpMode||!isHost) return;
-  dbg('bcastGS cp='+game.currentPlayer+' trick='+game.trick.length+' phase='+game.phase);
-  mpSend({t:'gs',h:game.hands,tr:game.trick.map(function(t){return {p:t.playerIdx,c:t.card};}),tn:game.trickNum,lp:game.leadPlayer,cp:game.currentPlayer,ls:game.leadSuit,sc:game.scores,tc:game.trickCards,ph:game.phase,an:false});
+  // Debounce: wait 300ms so rapid CPU plays batch into one message
+  clearTimeout(_bcastDebounce);
+  _bcastDebounce = setTimeout(_bcastGSNow, 300);
+}
+// Force immediate send (for critical moments like rejoin)
+function bcastGSNow(){
+  clearTimeout(_bcastDebounce);
+  _bcastGSNow();
+}
+function _bcastGSNow(){
+  if(!mpMode||!isHost) return;
+  dbg('bcastGS cp='+game.currentPlayer+' trick='+game.trick.length+' fx='+_pendingEffects.length);
+  var msg = {t:'gs',h:game.hands,tr:game.trick.map(function(t){return {p:t.playerIdx,c:t.card};}),tn:game.trickNum,lp:game.leadPlayer,cp:game.currentPlayer,ls:game.leadSuit,sc:game.scores,tc:game.trickCards,ph:game.phase,an:false,gm:gameMode,names:PLAYER_NAMES.slice()};
+  if(_pendingEffects.length > 0){
+    msg.fx = _pendingEffects.slice();
+    _pendingEffects = [];
+  }
+  mpSend(msg);
 }
 
-// No playCard patch needed — broadcast is done explicitly from host handlers
-var _oSCP=sndCardPlay; sndCardPlay=function(){_oSCP();if(mpMode&&isHost)mpSend({t:'snd',s:'cp'});};
-var _oSTW=sndTrickWon; sndTrickWon=function(){_oSTW();if(mpMode&&isHost)mpSend({t:'snd',s:'tw'});};
-var _oSS=showStatus; showStatus=function(x,d){_oSS(x,d);if(mpMode&&isHost)mpSend({t:'st',x:x,d:d});};
+// Queue effects instead of separate POSTs
+var _oSCP=sndCardPlay; sndCardPlay=function(){_oSCP();if(mpMode&&isHost)_pendingEffects.push({s:'cp'});};
+var _oSTW=sndTrickWon; sndTrickWon=function(){_oSTW();if(mpMode&&isHost)_pendingEffects.push({s:'tw'});};
+var _oSS=showStatus; showStatus=function(x,d){_oSS(x,d);if(mpMode&&isHost)_pendingEffects.push({st:x,d:d});};
 
 // CPU Turn: only host runs CPU, skip human seats
 cpuTurn=async function(){
@@ -2226,7 +2546,7 @@ cpuTurn=async function(){
   dbg('cpuTurn done, cp now='+game.currentPlayer);
 };
 // renderPlayerHand already handles MP client clicks directly, no extra patch needed
-var _oSGO=showGameOver; showGameOver=function(){_oSGO();if(mpMode&&isHost)mpSend({t:'go',sc:game.scores});};
+var _oSGO=showGameOver; showGameOver=function(){_oSGO();if(mpMode&&isHost){_pendingEffects=[];mpSend({t:'go',sc:game.scores});}};
 
 document.getElementById('retry-btn').onclick=function(){document.getElementById('game-over').classList.remove('show');document.getElementById('quit-btn').style.display='none';if(mpMode){mpMode=false;if(mpEventSource){mpEventSource.close();mpEventSource=null;}}document.getElementById('overlay').classList.remove('hidden');};
 
