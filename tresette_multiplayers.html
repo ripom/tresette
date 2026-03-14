@@ -2450,8 +2450,10 @@ function joinGame() {
       game.leadSuit=data.ls; game.scores=data.sc.slice();
       game.trickCards=data.tc?data.tc.map(function(c){return {suit:c.suit,rank:c.rank,id:c.id};}):[];
       game.phase=data.ph||'playing';
-      game.animating=false; // always reset — client never animates autonomously
+      game.animating=false;
       renderAll();
+      // If game ended, show game over
+      if(game.phase === 'done'){ showGameOver(); }
     }
     // Play bundled effects from host
     if(data.fx){
