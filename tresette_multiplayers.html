@@ -1084,7 +1084,9 @@ function createCardElement(card, faceUp) {
 // ─── Game State ───────────────────────────────────────────────
 let game = null;
 
-function initGame() {
+var _lastGameStarter = -1; // tracks who started the previous game
+
+function initGame(startPlayer) {
   const deck = shuffle(createDeck());
   const hands = [[], [], [], []];
   for (let i = 0; i < 40; i++) {
@@ -1098,16 +1100,27 @@ function initGame() {
     });
   });
 
+  // First game: random starter. Subsequent games: next player in cycle.
+  var sp;
+  if(typeof startPlayer === 'number'){
+    sp = startPlayer;
+  } else if(_lastGameStarter >= 0){
+    sp = (_lastGameStarter + 1) % 4;
+  } else {
+    sp = Math.floor(Math.random() * 4);
+  }
+  _lastGameStarter = sp;
+
   game = {
     hands,
-    trick: [],         // [{playerIdx, card}]
+    trick: [],
     trickNum: 0,
-    leadPlayer: 0,     // Who leads current trick
-    currentPlayer: 0,  // Whose turn it is
+    leadPlayer: sp,
+    currentPlayer: sp,
     leadSuit: null,
-    scores: [0, 0, 0, 0], // terzi
-    trickCards: [],     // last completed trick for display
-    phase: 'playing',  // 'playing' | 'evaluating' | 'done'
+    scores: [0, 0, 0, 0],
+    trickCards: [],
+    phase: 'playing',
     animating: false,
   };
 }
