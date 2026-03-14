@@ -2548,7 +2548,24 @@ cpuTurn=async function(){
 // renderPlayerHand already handles MP client clicks directly, no extra patch needed
 var _oSGO=showGameOver; showGameOver=function(){_oSGO();if(mpMode&&isHost){_pendingEffects=[];mpSend({t:'go',sc:game.scores});}};
 
-document.getElementById('retry-btn').onclick=function(){document.getElementById('game-over').classList.remove('show');document.getElementById('quit-btn').style.display='none';if(mpMode){mpMode=false;if(mpEventSource){mpEventSource.close();mpEventSource=null;}}document.getElementById('overlay').classList.remove('hidden');};
+document.getElementById('retry-btn').onclick=function(){
+  document.getElementById('game-over').classList.remove('show');
+  if(mpMode && isHost){
+    // Host: start new game in same room, keep same connection
+    initGame(); deduplicateNames(); renderAll();
+    dbg('HOST restart game cp='+game.currentPlayer);
+    mpSend({t:'start',gm:gameMode,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer});
+    sndStart(); showStatus('Nuova partita!',1500);
+    if(game.currentPlayer!==0 && game.currentPlayer!==1) setTimeout(function(){cpuTurn();},800);
+  } else if(mpMode && !isHost){
+    // Client: show waiting message, host will send 'start'
+    showStatus('In attesa che l\'host avvii una nuova partita...',2000);
+  } else {
+    // Single player: back to mode select
+    document.getElementById('quit-btn').style.display='none';
+    document.getElementById('overlay').classList.remove('hidden');
+  }
+};
 
 
 </script>
