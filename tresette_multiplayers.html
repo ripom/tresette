@@ -288,13 +288,19 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   background:rgba(0,0,0,0.4);padding:clamp(2px, 0.5vh, 4px) clamp(8px, 2vw, 16px);border-radius:6px;
   text-shadow:1px 1px 2px #000;
 }
-}
 #turn-indicator{
   position:fixed;bottom:clamp(2px, 0.5vh, 6px);left:50%;transform:translateX(-50%);
   z-index:20;color:#fff;font-size:clamp(13px, 3vw, 16px);font-weight:bold;
   background:rgba(255,130,0,0.85);padding:clamp(4px, 0.8vh, 6px) clamp(14px, 3.5vw, 24px);border-radius:8px;
   text-shadow:1px 1px 2px #000;
   box-shadow:0 0 12px rgba(255,170,68,0.5);
+}
+#lead-suit-badge{
+  position:fixed;top:calc(50% + clamp(58px, 16vw, 108px));left:50%;transform:translateX(-50%);
+  z-index:20;font-size:clamp(12px, 3vw, 16px);font-weight:bold;
+  background:rgba(0,0,0,0.55);padding:3px 14px;border-radius:10px;
+  letter-spacing:1px;pointer-events:none;display:none;
+  text-shadow:1px 1px 3px #000;
 }
 #scardone-banner{
   position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);
@@ -415,6 +421,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 
 <div id="trick-count">Mano 0 / 10</div>
 <div id="turn-indicator"></div>
+<div id="lead-suit-badge"></div>
 <div id="scardone-banner">SCARDONE!</div>
 <div id="status-msg"></div>
 <div id="disconnect-banner"><span id="disconnect-text"></span> <button id="reconnect-btn" onclick="forceReconnect()">Riconnetti</button></div>
@@ -885,20 +892,50 @@ const RANK_POINTS = {1:3, 2:1, 3:1, 4:0, 5:0, 6:0, 7:0, 8:1, 9:1, 10:1};
 
 const PLAYER_NAMES = ['Tu','Giuseppe','Riccardo','Zio Checco'];
 
-// Deduplicate names: if a name appears more than once, append 1, 2, etc.
-function deduplicateNames() {
-  var counts = {};
-  for(var i = 0; i < PLAYER_NAMES.length; i++){
-    var base = PLAYER_NAMES[i].toLowerCase();
-    if(!counts[base]) counts[base] = [];
-    counts[base].push(i);
+// Pool of Italian-flavoured CPU names to draw from randomly
+const CPU_NAME_POOL = [
+  'Alfredo','Armando','Aurelio','Bartolomeo','Benedetto','Bruno','Carlo',
+  'Cesare','Corrado','Daniele','Davide','Dino','Edmondo','Edoardo','Emanuele',
+  'Enzo','Ernesto','Ettore','Fabio','Federico','Filippo','Flavio','Fortunato',
+  'Franco','Gabriele','Giacomo','Gianni','Giovanni','Giulio','Giuseppe',
+  'Guido','Italo','Luca','Luigi','Marco','Mario','Massimo','Matteo','Maurizio',
+  'Michele','Nicola','Orlando','Ottavio','Paolo','Piero','Pietro','Remo',
+  'Renato','Riccardo','Roberto','Rocco','Romano','Rosario','Salvatore',
+  'Sergio','Silvano','Silvio','Simone','Stefano','Tommaso','Ugo','Umberto',
+  'Valentino','Vito','Vittorio','Zio Beppe','Zio Checco','Zio Toni',
+  'Nonno Leo','Nonno Gino','Cugino Max','Cugino Pino'
+];
+
+// Pick a CPU name at random that is NOT already in usedNames (case-insensitive)
+function pickCpuName(usedNames) {
+  var pool = CPU_NAME_POOL.slice();
+  // shuffle
+  for(var i = pool.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
   }
-  for(var key in counts){
-    var indices = counts[key];
-    if(indices.length > 1){
-      for(var j = 1; j < indices.length; j++){
-        PLAYER_NAMES[indices[j]] = PLAYER_NAMES[indices[j]] + j;
-      }
+  var used = usedNames.map(function(n){ return n.toLowerCase().trim(); });
+  for(var k = 0; k < pool.length; k++) {
+    if(used.indexOf(pool[k].toLowerCase()) === -1) return pool[k];
+  }
+  // All pool names exhausted — generate a unique fallback
+  return 'CPU ' + Math.floor(Math.random() * 900 + 100);
+}
+
+// Deduplicate names: if a name appears more than once, append a counter suffix.
+function deduplicateNames() {
+  var seen = {};
+  for(var i = 0; i < PLAYER_NAMES.length; i++) {
+    var key = PLAYER_NAMES[i].toLowerCase().trim();
+    if(seen[key] !== undefined) {
+      // Collision: keep trying appended numbers until unique
+      var base = PLAYER_NAMES[i];
+      var n = 2;
+      while(seen[(base + n).toLowerCase()] !== undefined) n++;
+      PLAYER_NAMES[i] = base + n;
+      seen[(base + n).toLowerCase()] = i;
+    } else {
+      seen[key] = i;
     }
   }
 }
@@ -1093,7 +1130,8 @@ function createCardElement(card, faceUp) {
   // Use Napoletane card image
   const img = document.createElement('img');
   img.className = 'card-img';
-  img.src = CARD_DATA[card.suit + "_" + card.rank];
+  const _imgSuit = card.suit === 'coppe' ? 'bastoni' : card.suit === 'bastoni' ? 'coppe' : card.suit;
+  img.src = CARD_DATA[_imgSuit + "_" + card.rank];
   img.alt = `${RANK_NAMES[card.rank]} di ${SUIT_NAMES[card.suit]}`;
   img.draggable = false;
   el.appendChild(img);
@@ -1153,7 +1191,7 @@ function renderAll() {
   renderLabels();
   document.getElementById('trick-count').textContent = `Mano ${game.trickNum} / 10`;
   // Turn indicator
-  if(game.phase==='playing'){
+  if(game.phase==='playing' && !game.animating){
     var myIdx = (mpMode && !isHost) ? mySeat : 0;
     var cp = game.currentPlayer;
     var turnText = (cp === myIdx) ? 'Tocca a TE!' : 'Turno di '+PLAYER_NAMES[cp];
@@ -1330,6 +1368,22 @@ function renderTrick() {
     el.style.height = th + 'px';
     area.appendChild(el);
   });
+
+  // Lead-suit badge
+  const badge = document.getElementById('lead-suit-badge');
+  if(badge) {
+    if(game.trick.length > 0) {
+      const suitColors  = {coppe:'#e44', denari:'#e44', bastoni:'#aaa', spade:'#aaa'};
+      const leadSuit = game.trick[0].card.suit;
+      const SUIT_NAMES_IT = {coppe:'Coppe', denari:'Denari', bastoni:'Bastoni', spade:'Spade'};
+      badge.textContent = 'giocata di ' + (SUIT_NAMES_IT[leadSuit] || leadSuit);
+      badge.style.color = suitColors[leadSuit] || '#fff';
+      badge.style.display = 'block';
+    } else {
+      badge.textContent = '';
+      badge.style.display = 'none';
+    }
+  }
 }
 
 function renderScores() {
@@ -1413,7 +1467,7 @@ function renderLabels() {
     const actual = (v + rot) % 4;
     const label = document.getElementById('label-' + PLAYER_POS[v]);
     label.innerHTML = PLAYER_NAMES[actual] + ' <span class="lb-pts">' + formatPunti(game.scores[actual]) + '</span>';
-    label.classList.toggle('active-turn', game.currentPlayer === actual && game.phase === 'playing');
+    label.classList.toggle('active-turn', game.currentPlayer === actual && game.phase === 'playing' && !game.animating);
   }
 }
 
@@ -1473,13 +1527,17 @@ async function playCard(playerIdx, card) {
   // Play card sound
   sndCardPlay();
 
+  const trickComplete = game.trick.length === 4;
+  if (trickComplete) {
+    game.animating = true;
+  }
+
   // Render — and sync state so client sees the card in the trick
   renderAll();
   if(mpMode && isHost) syncState();
 
   // Check if trick is complete
-  if (game.trick.length === 4) {
-    game.animating = true;
+  if (trickComplete) {
     await delay(800);
 
     const winner = evaluateTrick();
@@ -1502,9 +1560,6 @@ async function playCard(playerIdx, card) {
     if(mpMode && isHost) syncState();
 
     await delay(1400);
-
-    // Clear trick
-    game.trick = [];
     game.leadPlayer = winner;
     game.currentPlayer = winner;
     game.animating = false;
@@ -1513,11 +1568,23 @@ async function playCard(playerIdx, card) {
     if (game.trickNum >= 10) {
       game.phase = 'done';
       renderAll();
-      if(mpMode && isHost) syncState();
+      if(mpMode && isHost) {
+        var finalState = syncState();
+        mpSend({t:'final', seq:finalState.seq, state:finalState});
+        setTimeout(function(){
+          if(mpMode && isHost && game && game.phase === 'done'){
+            var retryFinalState = syncState();
+            mpSend({t:'final', seq:retryFinalState.seq, state:retryFinalState});
+          }
+        }, 350);
+      }
       await delay(500);
       showGameOver();
       return;
     }
+
+    // Clear trick
+    game.trick = [];
 
     renderAll();
     if(mpMode && isHost) syncState();
@@ -1714,8 +1781,9 @@ function showGameOver() {
   const winners = game.scores.map((s, i) => s === winScore ? i : -1).filter(i => i >= 0);
   const losers = game.scores.map((s, i) => s === loseScore ? i : -1).filter(i => i >= 0);
 
-  const playerIsWinner = winners.includes(0);
-  const playerIsLoser = losers.includes(0);
+  const localSeat = (mpMode && !isHost && mySeat >= 0) ? mySeat : 0;
+  const playerIsWinner = winners.includes(localSeat);
+  const playerIsLoser = losers.includes(localSeat);
 
   if (playerIsWinner) {
     document.getElementById('go-title').textContent = '🎉 Hai Vinto!';
@@ -1766,7 +1834,8 @@ function showGameOver() {
     const d = document.createElement('div');
     d.className = 'preview-card';
     const img = document.createElement('img');
-    img.src = CARD_DATA[s + "_" + r];
+    const _ps = s === 'coppe' ? 'bastoni' : s === 'bastoni' ? 'coppe' : s;
+    img.src = CARD_DATA[_ps + "_" + r];
     img.alt = RANK_NAMES[r] + " di " + SUIT_NAMES[s];
     img.draggable = false;
     d.appendChild(img);
@@ -1785,6 +1854,11 @@ function startSinglePlayerFromOverlay() {
   document.getElementById('my-name-input').style.border='';
   var myName = _getMyName();
   PLAYER_NAMES[0] = myName;
+  var usedNames = [myName];
+  for(var s = 1; s <= 3; s++){
+    PLAYER_NAMES[s] = pickCpuName(usedNames);
+    usedNames.push(PLAYER_NAMES[s]);
+  }
   mpMode = false; isHost = false;
   document.getElementById('overlay').classList.add('hidden');
   startGame();
@@ -1820,19 +1894,43 @@ function backToOverlay() {
 
 // No play-btn anymore — buttons are directly on overlay
 document.getElementById('retry-btn').onclick = () => {
-  document.getElementById('game-over').classList.remove('show');
-  document.getElementById('quit-btn').style.display='none';
-  document.getElementById('overlay').classList.remove('hidden');
+  handleRetryGame();
 };
-document.getElementById('retry-btn').addEventListener('touchend', (e) => {
-  e.preventDefault();
-  document.getElementById('game-over').classList.remove('show');
-  document.getElementById('quit-btn').style.display='none';
-  document.getElementById('overlay').classList.remove('hidden');
-}, { passive: false });
+document.getElementById('retry-btn').addEventListener('touchend', handleRetryGame, { passive: false });
 document.getElementById('rules-btn').onclick = () => {
   document.getElementById('rules-panel').classList.add('show');
 };
+
+var _retryTouchLock = false;
+function handleRetryGame(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'touchend') {
+      _retryTouchLock = true;
+      setTimeout(function(){ _retryTouchLock = false; }, 400);
+    } else if (_retryTouchLock) {
+      return;
+    }
+  }
+
+  document.getElementById('game-over').classList.remove('show');
+  if (mpMode && isHost) {
+    initGame();
+    deduplicateNames();
+    renderAll();
+    mpSend({t:'start',gm:gameMode,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
+    syncState();
+    sndStart();
+    showStatus('Nuova partita!',1500);
+    if(!isHumanSeat(game.currentPlayer)) setTimeout(function(){cpuTurn();},800);
+  } else if (mpMode && !isHost) {
+    showStatus('In attesa nuova partita...',2000);
+  } else {
+    document.getElementById('quit-btn').style.display='none';
+    document.getElementById('overlay').classList.remove('hidden');
+  }
+}
 
 function copyRoomCode() {
   var code = mpRoom;
@@ -1929,13 +2027,17 @@ function quitGame() {
   stopHostHeartbeat();
   if(_mpPingTimer){ clearInterval(_mpPingTimer); _mpPingTimer=null; }
   if(mpMode){
-    mpSend({t:'quit'});
+    if(isHost) mpSend({t:'quit'});
     mpMode = false;
     _fbCleanup();
     if(_fbDb && mpRoom){
-      _fbDb.ref('lobby/'+mpRoom).remove();
-      _fbDb.ref('rooms/'+mpRoom+'/state').remove();
-      _fbDb.ref('rooms/'+mpRoom+'/seats').remove();
+      if(isHost){
+        _fbDb.ref('lobby/'+mpRoom).remove();
+        _fbDb.ref('rooms/'+mpRoom+'/state').remove();
+        _fbDb.ref('rooms/'+mpRoom+'/seats').remove();
+      } else if(MY_ID){
+        _fbDb.ref('rooms/'+mpRoom+'/seats/'+MY_ID).remove();
+      }
     }
   }
   document.getElementById('overlay').classList.remove('hidden');
@@ -2089,10 +2191,16 @@ function cancelLobby() {
 // ─── Firebase helpers ───
 var _fbListeners = [];
 var _msgCount = 0;
+var _hostWatchdogTimer = null;
+var _clientWatchdogTimer = null;
 function _fbCleanup(){
   _fbListeners.forEach(function(r){ try{r.off();}catch(e){} });
   _fbListeners = [];
   _stateRef = null;
+  _latestAppliedStateSeq = 0;
+  _stateSeq = 0;
+  if(_hostWatchdogTimer){ clearInterval(_hostWatchdogTimer); _hostWatchdogTimer = null; }
+  if(_clientWatchdogTimer){ clearInterval(_clientWatchdogTimer); _clientWatchdogTimer = null; }
 }
 // Delete old messages to keep Firebase DB lean (host only)
 function _cleanOldMessages(){
@@ -2144,11 +2252,10 @@ function mpListen(handler) {
 // ─── State sync: host writes full state to DB, client listens ───
 var _stateRef = null;
 var _stateSeq = 0;
+var _latestAppliedStateSeq = 0;
 
-function syncState() {
-  if(!mpMode || !isHost || !_fbDb || !mpRoom) return;
-  _stateSeq++;
-  var state = {
+function makeStateSnapshot(seq) {
+  return {
     h: game.hands,
     tr: game.trick.map(function(t){ return {p:t.playerIdx, c:t.card}; }),
     tn: game.trickNum,
@@ -2161,11 +2268,62 @@ function syncState() {
     an: game.animating || false,
     gm: gameMode,
     names: PLAYER_NAMES.slice(),
-    seq: _stateSeq,
+    hs: Array.from(_humanSeatSet),
+    seq: seq,
     _ts: firebase.database.ServerValue.TIMESTAMP
   };
+}
+
+function syncState() {
+  if(!mpMode || !isHost || !_fbDb || !mpRoom) return;
+  _stateSeq++;
+  var state = makeStateSnapshot(_stateSeq);
   _fbDb.ref('rooms/'+mpRoom+'/state').set(state)
     .catch(function(e){ dbg('STATE ERR: '+e); });
+  return state;
+}
+
+function applyRemoteState(data) {
+  var seq = data.seq || 0;
+  if(seq && seq < _latestAppliedStateSeq) return false;
+  _latestAppliedStateSeq = Math.max(_latestAppliedStateSeq, seq);
+  // Firebase drops empty arrays as null — treat null/missing hand entries as []
+  var rawHands = data.h || [];
+  game.hands = [0,1,2,3].map(function(i){
+    var h = rawHands[i];
+    return (h && typeof h === 'object') ? Object.values(h).map(function(c){ return {suit:c.suit,rank:c.rank,id:c.id}; }) : [];
+  });
+  game.trick = (data.tr||[]).map(function(t){ return {playerIdx:t.p, card:{suit:t.c.suit,rank:t.c.rank,id:t.c.id}}; });
+  game.trickNum = data.tn || 0;
+  game.leadPlayer = data.lp || 0;
+  game.currentPlayer = data.cp || 0;
+  game.leadSuit = data.ls || null;
+  game.scores = data.sc ? data.sc.slice() : [0,0,0,0];
+  game.trickCards = data.tc ? Object.values(data.tc).map(function(c){ return {suit:c.suit,rank:c.rank,id:c.id}; }) : [];
+  game.phase = data.ph || 'playing';
+  game.animating = !!data.an;
+
+  renderAll();
+  if(game.phase === 'done') showGameOver();
+  return true;
+}
+
+function pullLatestState(minSeq, attempts) {
+  if(!_fbDb || !mpRoom || attempts <= 0) return;
+  _fbDb.ref('rooms/'+mpRoom+'/state').once('value').then(function(snap){
+    var data = snap.val();
+    if(!data || data.seq == null) return;  // seq always present in valid states
+    var seq = data.seq || 0;
+    var requiredSeq = Math.max(minSeq || 0, _latestAppliedStateSeq || 0);
+    if(seq < requiredSeq) {
+      setTimeout(function(){ pullLatestState(minSeq, attempts - 1); }, 250);
+      return;
+    }
+    applyRemoteState(data);
+    if(data.ph !== 'done' && attempts > 1) {
+      setTimeout(function(){ pullLatestState(minSeq, attempts - 1); }, 500);
+    }
+  }).catch(function(e){ dbg('STATE PULL ERR: '+e); });
 }
 
 function _listenState() {
@@ -2179,9 +2337,10 @@ function _listenState() {
 
   _stateRef.on('value', function(snap){
     var data = snap.val();
-    if(!data || !data.h) return;
+    if(!data || data.seq == null) return;  // seq always present in valid states
     var seq = data.seq || 0;
-    if(seq <= _prevSeq && !_firstSnap) return;
+    var seenSeq = Math.max(_prevSeq, _latestAppliedStateSeq);
+    if(seq <= seenSeq && !_firstSnap) return;
     _prevSeq = seq;
     dbg('STATE seq='+seq+' cp='+data.cp+' tr='+(data.tr?data.tr.length:0)+' tn='+data.tn);
 
@@ -2194,12 +2353,17 @@ function _listenState() {
     }
     document.getElementById('lobby-overlay').classList.add('hidden');
     document.getElementById('overlay').classList.add('hidden');
-    document.getElementById('game-over').classList.remove('show');
+    // Only hide game-over if incoming state is NOT the final done-state;
+    // otherwise applyRemoteState shows it correctly.
+    if((data.ph || '') !== 'done') {
+      document.getElementById('game-over').classList.remove('show');
+    }
     document.getElementById('quit-btn').style.display = '';
     isHost = false;
     // mySeat is set by the dedicated seats listener — do NOT overwrite it here
     if(data.names) for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
     if(data.gm) gameMode = data.gm;
+    if(data.hs) _humanSeatSet = new Set(data.hs);
 
     // Detect changes for sound effects (skip on first snapshot)
     var newTrickLen = data.tr ? data.tr.length : 0;
@@ -2225,20 +2389,7 @@ function _listenState() {
     _prevPhase = data.ph || '';
     _firstSnap = false;
 
-    // Apply state
-    game.hands = data.h.map(function(h){ return h.map(function(c){ return {suit:c.suit,rank:c.rank,id:c.id}; }); });
-    game.trick = (data.tr||[]).map(function(t){ return {playerIdx:t.p, card:{suit:t.c.suit,rank:t.c.rank,id:t.c.id}}; });
-    game.trickNum = data.tn;
-    game.leadPlayer = data.lp;
-    game.currentPlayer = data.cp;
-    game.leadSuit = data.ls;
-    game.scores = data.sc.slice();
-    game.trickCards = data.tc ? data.tc.map(function(c){ return {suit:c.suit,rank:c.rank,id:c.id}; }) : [];
-    game.phase = data.ph || 'playing';
-    game.animating = false;
-
-    renderAll();
-    if(game.phase === 'done') showGameOver();
+    if(!applyRemoteState(data)) return;
   });
   _fbListeners.push(_stateRef);
   dbg('Listening on state for room '+mpRoom);
@@ -2427,7 +2578,15 @@ function hostGame() {
       document.getElementById('reconnect-btn').style.display = 'none';
       setTimeout(function(){ document.getElementById('disconnect-banner').style.display='none'; }, 1500);
     }
-    if(data.t==='ping') return;
+    if(data.t==='ping'){
+      for(var hp in _humanSeats){
+        if(_humanSeats[hp].id === data._from){
+          _humanSeats[hp].lastPing = Date.now();
+          break;
+        }
+      }
+      return;
+    }
     if(data.t==='join'){
       // Check if this player already has a seat (rejoin)
       var existingSeat = -1;
@@ -2461,6 +2620,7 @@ function hostGame() {
       var playSeat = -1;
       for(var k2 in _humanSeats){ if(_humanSeats[k2].id === data._from){ playSeat = parseInt(k2); break; } }
       if(playSeat < 0) return;
+      _humanSeats[playSeat].lastPing = Date.now();
       dbg('HOST play seat='+playSeat+' cardId='+data.cardId+' cp='+game.currentPlayer);
       if(game.currentPlayer !== playSeat) return;
       var card = game.hands[playSeat].find(function(c){return c.id===data.cardId;});
@@ -2471,7 +2631,8 @@ function hostGame() {
   mpListen(hostHandler);
 
   // Watchdog
-  setInterval(function(){
+  if(_hostWatchdogTimer) clearInterval(_hostWatchdogTimer);
+  _hostWatchdogTimer = setInterval(function(){
     if(!mpMode || !game || game.phase==='done') return;
     var anyDisc = false;
     for(var k in _humanSeats){
@@ -2495,17 +2656,17 @@ function startMultiplayerGame() {
   mpMode = true;
   _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 15000);
   PLAYER_NAMES[0] = document.getElementById('host-name-input').value.trim() || 'Tu';
-  // Fill seats: human players get their names, empty seats become CPU
-  var cpuNames = ['Riccardo','Zio Checco','Giuseppe'];
-  var cpuIdx = 0;
+  // Fill seats: human players get their names, empty seats become CPU with random names
+  var usedNames = [PLAYER_NAMES[0]];
   _humanSeatSet = new Set([0]);
   for(var s=1;s<=3;s++){
     if(_humanSeats[s]){
       PLAYER_NAMES[s] = _humanSeats[s].name;
       _humanSeatSet.add(s);
     } else {
-      PLAYER_NAMES[s] = cpuNames[cpuIdx++] || ('CPU '+(s+1));
+      PLAYER_NAMES[s] = pickCpuName(usedNames);
     }
+    usedNames.push(PLAYER_NAMES[s]);
   }
   deduplicateNames();
   document.getElementById('label-south').innerHTML=PLAYER_NAMES[0]+' <span class="lb-pts"></span>';
@@ -2568,6 +2729,16 @@ function joinGame() {
       setTimeout(function(){ document.getElementById('disconnect-banner').style.display='none'; }, 1500);
     }
     if(data.t==='ping') return;
+    if(data.t==='final'){
+      dbg('CLIENT final seq='+(data.seq||0)+' hasState='+(data.state ? 'yes' : 'no')+' ph='+(data.state&&data.state.ph));
+      if(data.state && data.state.seq != null){
+        // data.state.h may be null when Firebase drops empty arrays — applyRemoteState handles that
+        applyRemoteState(data.state);
+      } else {
+        pullLatestState(data.seq || 0, 4);
+      }
+      return;
+    }
     if(data.t==='quit'){
       showStatus('L\'host ha abbandonato!', 3000);
       if(_mpPingTimer){ clearInterval(_mpPingTimer); _mpPingTimer=null; }
@@ -2592,7 +2763,8 @@ function joinGame() {
   mpListen(clientHandler);
 
   // Watchdog
-  setInterval(function(){
+  if(_clientWatchdogTimer) clearInterval(_clientWatchdogTimer);
+  _clientWatchdogTimer = setInterval(function(){
     if(!mpMode || !game || game.phase==='done') return;
     if(Date.now() - _hostLastPing > 30000 && !_hostDisconnected){
       _hostDisconnected = true;
@@ -2664,21 +2836,7 @@ function forceReconnect() {
   setTimeout(function(){ document.getElementById('disconnect-banner').style.display='none'; }, 2000);
 }
 
-document.getElementById('retry-btn').onclick=function(){
-  document.getElementById('game-over').classList.remove('show');
-  if(mpMode && isHost){
-    initGame(); deduplicateNames(); renderAll();
-    mpSend({t:'start',gm:gameMode,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
-    syncState();
-    sndStart(); showStatus('Nuova partita!',1500);
-    if(!isHumanSeat(game.currentPlayer)) setTimeout(function(){cpuTurn();},800);
-  } else if(mpMode && !isHost){
-    showStatus('In attesa nuova partita...',2000);
-  } else {
-    document.getElementById('quit-btn').style.display='none';
-    document.getElementById('overlay').classList.remove('hidden');
-  }
-};
+document.getElementById('retry-btn').onclick = handleRetryGame;
 
 </script>
 
