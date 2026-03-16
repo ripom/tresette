@@ -185,6 +185,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding:env(safe-area-inset-top, 12px) 12px env(safe-area-inset-bottom, 12px);
   touch-action:auto;
+  overscroll-behavior:contain;
 }
 #overlay::before{content:'';flex:1 0 0px}
 #overlay::after{content:'';flex:1 0 0px}
@@ -215,6 +216,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   margin-bottom:clamp(10px, 2vh, 20px);max-width:min(480px, 95vw);flex-shrink:0;width:100%;
 }
 .info-box b{color:#fa4}
+.menu-actions{display:flex;flex-direction:column;gap:10px;align-items:center;touch-action:manipulation}
 
 #play-btn{
   font-size:clamp(14px, 3.5vw, 20px);padding:clamp(10px, 2vh, 14px) clamp(30px, 10vw, 70px);
@@ -325,6 +327,8 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 /* ─── Mobile (<520px): move score panel to bottom-left ─── */
 @media (max-width: 520px) {
   #score-panel{top:auto;bottom:clamp(68px, 18vw, 90px);right:auto;left:clamp(2px, 0.5vw, 4px)}
+  #overlay{padding-top:calc(env(safe-area-inset-top, 12px) + 14px);padding-bottom:calc(96px + env(safe-area-inset-bottom, 12px))}
+  #overlay::before,#overlay::after{display:none}
 }
 
 /* ─── Landscape mobile ────────────────────────────── */
@@ -603,10 +607,10 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
     <input type="text" class="lobby-input" id="my-name-input" maxlength="12" placeholder="Il tuo nome" value="" style="width:min(220px,60vw);text-align:center">
   </div>
 
-  <div class="lobby-actions" style="flex-direction:column;gap:10px;align-items:center">
-    <button class="lobby-btn primary" style="width:min(280px,80vw)" onclick="startSinglePlayerFromOverlay()">🃏 Gioca da Solo (vs CPU)</button>
-    <button class="lobby-btn primary" style="width:min(280px,80vw);background:rgba(20,80,40,0.9)" onclick="showCreateRoom()">🏠 Crea Stanza</button>
-    <button class="lobby-btn" style="width:min(280px,80vw)" onclick="showJoinRoom()">🚪 Unisciti a Stanza</button>
+  <div class="menu-actions">
+    <button class="lobby-btn primary" type="button" style="width:min(280px,80vw)" onpointerdown="return runOverlayMenuAction(event,'single')" onclick="return runOverlayMenuAction(event,'single')">🃏 Gioca da Solo (vs CPU)</button>
+    <button class="lobby-btn primary" type="button" style="width:min(280px,80vw);background:rgba(20,80,40,0.9)" onpointerdown="return runOverlayMenuAction(event,'create')" onclick="return runOverlayMenuAction(event,'create')">🏠 Crea Stanza</button>
+    <button class="lobby-btn" type="button" style="width:min(280px,80vw)" onpointerdown="return runOverlayMenuAction(event,'join')" onclick="return runOverlayMenuAction(event,'join')">🚪 Unisciti a Stanza</button>
   </div>
 </div>
 
@@ -1849,6 +1853,23 @@ function showGameOver() {
 })();
 
 // "GIOCA!" buttons are now directly on the overlay
+var _overlayMenuActionLock = false;
+function runOverlayMenuAction(ev, action) {
+  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+  if(_overlayMenuActionLock) return false;
+  _overlayMenuActionLock = true;
+  var active = document.activeElement;
+  if(active && typeof active.blur === 'function') active.blur();
+  var actions = {
+    single: startSinglePlayerFromOverlay,
+    create: showCreateRoom,
+    join: showJoinRoom
+  };
+  var fn = actions[action];
+  requestAnimationFrame(function(){ if(fn) fn(); });
+  setTimeout(function(){ _overlayMenuActionLock = false; }, 650);
+  return false;
+}
 function startSinglePlayerFromOverlay() {
   if(!_getMyName()){ document.getElementById('my-name-input').style.border='2px solid #f44'; document.getElementById('my-name-input').focus(); return; }
   document.getElementById('my-name-input').style.border='';
