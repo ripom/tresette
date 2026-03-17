@@ -20,7 +20,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 
 /* ════════ Cards ════════ */
 .card{
-  width:68px;height:105px;border-radius:6px;position:absolute;
+  width:130px;height:200px;border-radius:6px;position:absolute;
   cursor:default;transition:transform .2s,box-shadow .2s,top .3s,left .3s;
   box-shadow:1px 2px 6px rgba(0,0,0,0.4);
   transform-origin:center center;
@@ -60,15 +60,15 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 .card-inner{position:relative;width:100%;height:100%;pointer-events:none}
 
 /* ════════ Player Areas ════════ */
-#player-hand{position:fixed;bottom:clamp(2px, 1vh, 10px);left:50%;transform:translateX(-50%);height:clamp(68px, 18vw, 120px);display:flex;align-items:flex-end;z-index:10}
-#north-hand{position:fixed;top:clamp(4px, 1vh, 10px);left:50%;transform:translateX(-50%);height:clamp(36px, 9vw, 60px);z-index:5}
-#west-hand{position:fixed;left:clamp(2px, 0.5vw, 10px);top:50%;transform:translateY(-50%);width:clamp(36px, 9vw, 60px);z-index:5}
-#east-hand{position:fixed;right:clamp(2px, 0.5vw, 10px);top:50%;transform:translateY(-50%);width:clamp(36px, 9vw, 60px);z-index:5}
+#player-hand{position:fixed;bottom:clamp(2px, 1vh, 10px);left:50%;transform:translateX(-50%);height:clamp(68px, 22vh, 220px);display:flex;align-items:flex-end;z-index:10}
+#north-hand{position:fixed;top:clamp(4px, 1vh, 10px);left:50%;transform:translateX(-50%);height:clamp(36px, 11vh, 110px);z-index:5}
+#west-hand{position:fixed;left:clamp(2px, 0.5vw, 10px);top:50%;transform:translateY(-50%);width:clamp(36px, 7vw, 110px);z-index:5}
+#east-hand{position:fixed;right:clamp(2px, 0.5vw, 10px);top:50%;transform:translateY(-50%);width:clamp(36px, 7vw, 110px);z-index:5}
 
 /* ════════ Trick Area ════════ */
 #trick-area{
   position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:clamp(100px, 30vw, 200px);height:clamp(100px, 30vw, 200px);z-index:8;
+  width:clamp(120px, 38vw, 460px);height:clamp(120px, 38vh, 460px);z-index:8;
 }
 .trick-card{position:absolute}
 .trick-card.pos-south{bottom:0;left:50%;transform:translateX(-50%)}
@@ -83,10 +83,10 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   background:rgba(0,0,0,0.3);padding:clamp(2px, 0.5vh, 3px) clamp(4px, 1.5vw, 10px);border-radius:10px;
   letter-spacing:1px;white-space:nowrap;touch-action:none;
 }
-.player-label.south{bottom:clamp(68px, 18vw, 135px);left:50%;transform:translateX(-50%)}
-.player-label.north{top:clamp(40px, 11vw, 75px);left:50%;transform:translateX(-50%)}
-.player-label.west{left:clamp(36px, 9vw, 75px);top:50%;transform:translateY(-50%)}
-.player-label.east{right:clamp(36px, 9vw, 75px);top:50%;transform:translateY(-50%)}
+.player-label.south{bottom:clamp(55px, 17vh, 170px);left:50%;transform:translateX(-50%)}
+.player-label.north{top:clamp(40px, 13vh, 130px);left:50%;transform:translateX(-50%)}
+.player-label.west{left:clamp(36px, 8vw, 130px);top:50%;transform:translateY(-50%)}
+.player-label.east{right:clamp(36px, 8vw, 130px);top:50%;transform:translateY(-50%)}
 .player-label .lb-pts{color:#fa4;font-size:clamp(8px, 1.8vw, 10px);margin-left:4px}
 .player-label.active-turn{
   border:2px solid #fa4;
@@ -333,14 +333,14 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   box-shadow:0 0 12px rgba(255,170,68,0.5);
 }
 #lead-suit-badge{
-  position:fixed;top:calc(50% + clamp(58px, 16vw, 108px));left:50%;transform:translateX(-50%);
+  position:fixed;top:calc(50% + clamp(70px, 22vh, 200px));left:50%;transform:translateX(-50%);
   z-index:20;font-size:clamp(12px, 3vw, 16px);font-weight:bold;
   background:rgba(0,0,0,0.55);padding:3px 14px;border-radius:10px;
   letter-spacing:1px;display:none;
   text-shadow:1px 1px 3px #000;touch-action:none;
 }
 #trick-winner-badge{
-  position:fixed;top:calc(50% + clamp(80px, 21vw, 135px));left:50%;transform:translateX(-50%);
+  position:fixed;top:calc(50% + clamp(94px, 28vh, 230px));left:50%;transform:translateX(-50%);
   z-index:20;font-size:clamp(10px, 2.5vw, 14px);font-weight:bold;
   background:rgba(0,0,0,0.55);padding:3px 14px;border-radius:10px;
   letter-spacing:0.5px;display:none;
@@ -368,8 +368,8 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 
 /* ─── Portrait mobile (<520px): panels at bottom, score left, tournament right ─── */
 @media (max-width: 520px) and (orientation: portrait) {
-  #score-panel{top:auto;bottom:clamp(100px, 28vw, 140px);right:auto;left:clamp(2px, 0.5vw, 4px);width:clamp(90px, 42vw, 170px)}
-  #tournament-panel{top:auto;bottom:clamp(100px, 28vw, 140px);left:auto;right:clamp(2px, 0.5vw, 4px);width:clamp(90px, 42vw, 170px)}
+  #score-panel{top:auto;bottom:clamp(100px, 28vw, 140px);right:auto;left:clamp(2px, 0.5vw, 4px);width:clamp(72px, 34vw, 136px)}
+  #tournament-panel{top:auto;bottom:clamp(100px, 28vw, 140px);left:auto;right:clamp(2px, 0.5vw, 4px);width:clamp(72px, 34vw, 136px)}
   /* Banners: top-left area */
   #lead-suit-badge{top:clamp(90px, 22vw, 130px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
   #trick-winner-badge{top:clamp(118px, 28vw, 160px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
@@ -388,8 +388,8 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   /* South label: higher up so it doesn't overlap cards */
   .player-label.south{bottom:clamp(64px, 20vh, 110px);left:auto;right:calc(50% + clamp(50px, 10vw, 100px));transform:none}
   /* Banners: top-right area, further right */
-  #lead-suit-badge{top:clamp(4px, 2vh, 12px);left:auto;right:clamp(140px, 16vw, 240px);transform:none}
-  #trick-winner-badge{top:clamp(28px, 8vh, 40px);left:auto;right:clamp(140px, 16vw, 240px);transform:none}
+  #lead-suit-badge{top:clamp(4px, 2vh, 12px);left:auto;right:clamp(100px, 12vw, 200px);transform:none}
+  #trick-winner-badge{top:clamp(28px, 8vh, 40px);left:auto;right:clamp(100px, 12vw, 200px);transform:none}
   .info-box{max-height:30vh;overflow-y:auto}
   .preview-row{display:none}
   #overlay .sub2{margin-bottom:8px}
@@ -1444,9 +1444,10 @@ function renderAll() {
 function getCardSize() {
   const w = innerWidth;
   const h = innerHeight;
-  const base = Math.min(w, h * 0.8);
-  // Fluid: scales from ~38px at 280px to 68px at 768px+
-  const cw = Math.round(Math.max(38, Math.min(68, base * 0.09)));
+  // Use both dimensions so cards shrink when window gets smaller in any direction
+  const baseW = w * 0.098;
+  const baseH = h * 0.126;
+  const cw = Math.round(Math.max(30, Math.min(91, Math.min(baseW, baseH))));
   const ch = Math.round(cw * 1.54);
   return { cw, ch };
 }
@@ -1459,7 +1460,7 @@ function renderPlayerHand() {
   const hand = game.hands[myIdx];
   const total = hand.length;
   const { cw, ch } = getCardSize();
-  const maxHandWidth = Math.min(innerWidth - 20, 700);
+  const maxHandWidth = Math.min(innerWidth - 20, 1200);
   const overlap = Math.min(cw * 0.72, maxHandWidth / Math.max(total, 1));
   const totalW = (total - 1) * overlap + cw;
   const startX = (maxHandWidth - totalW) / 2;
@@ -1513,10 +1514,10 @@ function renderPlayerHand() {
 function renderOpponentHands() {
   const w = innerWidth;
   const base = Math.min(w, innerHeight * 0.8);
-  const oppW = Math.round(Math.max(28, Math.min(45, base * 0.06)));
+  const oppW = Math.round(Math.max(38, Math.min(68, base * 0.09)));
   const oppH = Math.round(oppW * 1.5);
-  const northGap = Math.round(Math.max(14, Math.min(28, base * 0.038)));
-  const sideGap = Math.round(Math.max(10, Math.min(20, base * 0.026)));
+  const northGap = Math.round(Math.max(18, Math.min(38, base * 0.05)));
+  const sideGap = Math.round(Math.max(14, Math.min(28, base * 0.036)));
 
   // Seat mapping: in MP client mode, remap who goes where visually
   // Host (or single-player): south=0 east=1 north=2 west=3
@@ -1583,7 +1584,9 @@ function renderTrick() {
   const area = document.getElementById('trick-area');
   area.innerHTML = '';
   const { cw, ch } = getCardSize();
-  const trickScale = Math.max(0.7, Math.min(1, innerWidth / 768));
+  // Portrait mobile: boost trick card size by 30%
+  const isPortraitMobile = innerWidth <= 520 && innerHeight > innerWidth;
+  const trickScale = Math.max(0.7, Math.min(1, innerWidth / 768)) * (isPortraitMobile ? 1.3 : 1);
   const tw = Math.round(cw * trickScale);
   const th = Math.round(ch * trickScale);
   // Remap visual positions for client
@@ -2573,7 +2576,7 @@ function handleResize() {
   clearTimeout(resizeTimeout);
   resizeTimeout = setTimeout(() => {
     if (game) renderAll();
-  }, 100);
+  }, 50);
 }
 window.addEventListener('resize', handleResize);
 if (window.visualViewport) {
