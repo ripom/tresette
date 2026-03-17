@@ -81,7 +81,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   position:fixed;color:#ddd;font-size:clamp(9px, 2.2vw, 12px);font-weight:700;
   text-shadow:1px 1px 3px rgba(0,0,0,0.7);z-index:6;
   background:rgba(0,0,0,0.3);padding:clamp(2px, 0.5vh, 3px) clamp(4px, 1.5vw, 10px);border-radius:10px;
-  letter-spacing:1px;white-space:nowrap;
+  letter-spacing:1px;white-space:nowrap;touch-action:none;
 }
 .player-label.south{bottom:clamp(68px, 18vw, 135px);left:50%;transform:translateX(-50%)}
 .player-label.north{top:clamp(40px, 11vw, 75px);left:50%;transform:translateX(-50%)}
@@ -105,8 +105,14 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   position:fixed;top:clamp(4px, 1vh, 10px);right:clamp(4px, 1vw, 10px);width:clamp(95px, 25vw, 180px);z-index:20;
   background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);
   border-radius:clamp(4px, 1vw, 8px);padding:clamp(4px, 1.5vw, 12px);color:#ddd;
+  touch-action:none;
 }
-#score-panel h3{font-size:clamp(9px, 2.2vw, 13px);color:#fa4;margin-bottom:clamp(3px, 1vw, 8px);text-align:center;letter-spacing:clamp(1px, 0.4vw, 2px)}
+#score-panel .sp-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#score-panel .sp-title{font-size:clamp(9px, 2.2vw, 13px);color:#fa4;font-weight:700;letter-spacing:clamp(1px, 0.4vw, 2px)}
+#score-panel .sp-toggle{font-size:clamp(10px, 2vw, 14px);color:#888;transition:transform .2s}
+#score-panel .sp-toggle.open{transform:rotate(180deg)}
+#score-panel .sp-body{overflow:hidden;transition:max-height .3s ease}
+#score-panel .sp-body.collapsed{max-height:0!important}
 .score-row{display:flex;justify-content:space-between;font-size:clamp(9px, 2vw, 12px);padding:clamp(1px, 0.5vh, 3px) 0;border-bottom:1px solid rgba(255,255,255,0.05)}
 .score-row:last-child{border:none}
 .score-row .sr-name{color:#ccc}
@@ -114,6 +120,27 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 .score-row.you .sr-name{color:#5af}
 .score-row.loser .sr-pts{color:#f44}
 .score-row.winner .sr-pts{color:#4f4}
+
+/* ════════ Tournament Panel ════════ */
+#tournament-panel{
+  position:fixed;top:auto;bottom:clamp(4px, 1vh, 10px);right:clamp(4px, 1vw, 10px);width:clamp(95px, 25vw, 180px);z-index:20;
+  background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);
+  border-radius:clamp(4px, 1vw, 8px);padding:clamp(4px, 1.5vw, 12px);color:#ddd;
+  touch-action:none;
+}
+#tournament-panel .tp-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#tournament-panel .tp-title{font-size:clamp(8px, 1.8vw, 11px);color:#5af;font-weight:700;letter-spacing:clamp(0.5px, 0.3vw, 1.5px)}
+#tournament-panel .tp-toggle{font-size:clamp(10px, 2vw, 14px);color:#888;transition:transform .2s}
+#tournament-panel .tp-toggle.open{transform:rotate(180deg)}
+#tournament-panel .tp-body{overflow:hidden;transition:max-height .3s ease}
+#tournament-panel .tp-body.collapsed{max-height:0!important}
+.tp-row{display:flex;justify-content:space-between;font-size:clamp(9px, 2vw, 12px);padding:clamp(1px, 0.5vh, 3px) 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.tp-row:last-child{border:none}
+.tp-row .tp-name{color:#ccc}
+.tp-row .tp-pts{color:#fff;font-weight:bold}
+.tp-row.you .tp-name{color:#5af}
+.tp-row.eliminated .tp-pts{color:#f44}
+.tp-row.leader .tp-pts{color:#4f4}
 
 /* ════════ Info / Status ════════ */
 #status-msg{
@@ -274,6 +301,14 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 .go-result-row.loser .grr-status{color:#f44}
 .go-result-row.winner .grr-pts{color:#4f4}
 .go-result-row.winner .grr-status{color:#4f4}
+#continue-btn{
+  margin-top:clamp(10px, 2vh, 20px);font-size:clamp(13px, 3vw, 16px);padding:clamp(8px, 1.5vh, 10px) clamp(20px, 6vw, 40px);
+  background:linear-gradient(135deg,#2a6a8a,#3a9aba);
+  color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold;
+  touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0.1);
+  min-height:44px;
+}
+#continue-btn:active{filter:brightness(1.15);transform:scale(0.97)}
 #retry-btn{
   margin-top:clamp(10px, 2vh, 20px);font-size:clamp(13px, 3vw, 16px);padding:clamp(8px, 1.5vh, 10px) clamp(20px, 6vw, 40px);
   background:linear-gradient(135deg,#2a7a2a,#3a9a3a);
@@ -301,8 +336,15 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   position:fixed;top:calc(50% + clamp(58px, 16vw, 108px));left:50%;transform:translateX(-50%);
   z-index:20;font-size:clamp(12px, 3vw, 16px);font-weight:bold;
   background:rgba(0,0,0,0.55);padding:3px 14px;border-radius:10px;
-  letter-spacing:1px;pointer-events:none;display:none;
-  text-shadow:1px 1px 3px #000;
+  letter-spacing:1px;display:none;
+  text-shadow:1px 1px 3px #000;touch-action:none;
+}
+#trick-winner-badge{
+  position:fixed;top:calc(50% + clamp(80px, 21vw, 135px));left:50%;transform:translateX(-50%);
+  z-index:20;font-size:clamp(10px, 2.5vw, 14px);font-weight:bold;
+  background:rgba(0,0,0,0.55);padding:3px 14px;border-radius:10px;
+  letter-spacing:0.5px;display:none;
+  text-shadow:1px 1px 3px #000;color:#5af;touch-action:none;
 }
 #scardone-banner{
   position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);
@@ -324,21 +366,36 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   .card.playable:active{transform:translateY(-10px) scale(1.04);box-shadow:0 0 18px rgba(255,255,120,0.8),2px 4px 12px rgba(0,0,0,0.4);z-index:100!important}
 }
 
-/* ─── Mobile (<520px): move score panel to bottom-left ─── */
-@media (max-width: 520px) {
-  #score-panel{top:auto;bottom:clamp(68px, 18vw, 90px);right:auto;left:clamp(2px, 0.5vw, 4px)}
+/* ─── Portrait mobile (<520px): panels at bottom, score left, tournament right ─── */
+@media (max-width: 520px) and (orientation: portrait) {
+  #score-panel{top:auto;bottom:clamp(100px, 28vw, 140px);right:auto;left:clamp(2px, 0.5vw, 4px);width:clamp(90px, 42vw, 170px)}
+  #tournament-panel{top:auto;bottom:clamp(100px, 28vw, 140px);left:auto;right:clamp(2px, 0.5vw, 4px);width:clamp(90px, 42vw, 170px)}
+  /* Banners: top-left area */
+  #lead-suit-badge{top:clamp(90px, 22vw, 130px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
+  #trick-winner-badge{top:clamp(118px, 28vw, 160px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
   #overlay{padding-top:calc(env(safe-area-inset-top, 12px) + 14px);padding-bottom:calc(96px + env(safe-area-inset-bottom, 12px))}
   #overlay::before,#overlay::after{display:none}
 }
 
-/* ─── Landscape mobile ────────────────────────────── */
+/* ─── Landscape mobile: panels on left/right sides, south label closer to cards ─── */
 @media (max-height: 500px) and (orientation: landscape) {
+  #score-panel{top:auto;bottom:clamp(2px, 1vh, 8px);left:clamp(2px, 0.5vw, 8px);right:auto;width:clamp(120px, 18vw, 180px)}
+  #tournament-panel{top:auto;bottom:clamp(2px, 1vh, 8px);right:clamp(2px, 0.5vw, 8px);left:auto;width:clamp(120px, 18vw, 180px)}
+  /* Trick area: moderately sized, centered */
+  #trick-area{width:clamp(140px, 36vw, 280px);height:clamp(100px, 50vh, 220px)}
+  /* North label: beside north hand */
+  .player-label.north{top:clamp(28px, 7vh, 50px);left:auto;right:calc(50% + clamp(50px, 10vw, 100px));transform:none}
+  /* South label: higher up so it doesn't overlap cards */
+  .player-label.south{bottom:clamp(64px, 20vh, 110px);left:auto;right:calc(50% + clamp(50px, 10vw, 100px));transform:none}
+  /* Banners: top-right area, further right */
+  #lead-suit-badge{top:clamp(4px, 2vh, 12px);left:auto;right:clamp(140px, 16vw, 240px);transform:none}
+  #trick-winner-badge{top:clamp(28px, 8vh, 40px);left:auto;right:clamp(140px, 16vw, 240px);transform:none}
   .info-box{max-height:30vh;overflow-y:auto}
   .preview-row{display:none}
   #overlay .sub2{margin-bottom:8px}
 }
 
-/* ─── Rules panel small screens ─── */
+/* ─── General small screens (portrait + landscape) ─── */
 @media (max-width: 520px), (max-height: 500px) {
   #rules-panel .rp-content{padding:16px;max-height:85vh;max-height:85dvh;width:95%}
   #rules-panel h2{font-size:clamp(14px, 3.5vw, 20px)}
@@ -424,18 +481,34 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 </div>
 
 <div id="trick-count">Mano 0 / 10</div>
-<div id="turn-indicator"></div>
+
 <div id="lead-suit-badge"></div>
+<div id="trick-winner-badge"></div>
 <div id="scardone-banner">SCARDONE!</div>
 <div id="status-msg"></div>
 <div id="disconnect-banner"><span id="disconnect-text"></span> <button id="reconnect-btn" onclick="forceReconnect()">Riconnetti</button></div>
 <div id="score-panel">
-  <h3 id="score-title">PUNTEGGIO</h3>
-  <div id="score-rows"></div>
+  <div class="sp-header" onclick="toggleScorePanel()">
+    <span class="sp-title" id="score-title">PUNTEGGIO</span>
+    <span class="sp-toggle open" id="sp-toggle-icon">▼</span>
+  </div>
+  <div class="sp-body" id="sp-body">
+    <div id="score-rows"></div>
+  </div>
 </div>
 
 <button id="rules-btn">📜 Regole</button>
 <button id="quit-btn" style="display:none">❌ Fine Partita</button>
+
+<div id="tournament-panel" style="display:none">
+  <div class="tp-header" onclick="toggleTournament()">
+    <span class="tp-title">🏆 TORNEO</span>
+    <span class="tp-toggle open" id="tp-toggle-icon">▼</span>
+  </div>
+  <div class="tp-body" id="tp-body">
+    <div id="tp-rows"></div>
+  </div>
+</div>
 
 <div id="volume-ctrl">
   <span class="vol-icon" id="vol-toggle">🔊</span>
@@ -464,7 +537,23 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 
     <h3 style="color:#fa4;margin-top:16px">🎮 Modalità di Gioco</h3>
     <p><b>🔻 A Perdere:</b> Vince chi fa <b>meno punti</b>. Attenzione agli Assi! Quando qualcuno gioca un Asso appare il banner "SCARDONE!" con un suono speciale.</p>
+    <p style="margin-left:12px;font-size:clamp(11px,2.2vw,12px);color:#bbb">
+      • <b>Perde</b> chi ha totalizzato <b>più punti</b> di tutti.<br>
+      • <b>Perde anche</b> chi non ha fatto almeno <b>1 punto intero</b> (un Asso o 3 figure).<br>
+      • <b>🚀 Volo:</b> Se la somma dei punti dei 3 giocatori con meno punti <b>non raggiunge 3 punti</b>, chi ha fatto più punti fa "volo" e <b>vince</b> invece di perdere! Perdono solo quelli che non hanno fatto almeno 1 punto.
+    </p>
     <p><b>🔺 A Vincere:</b> Vince chi fa <b>più punti</b>. Cerca di prendere le carte di valore!</p>
+
+    <h3 style="color:#fa4;margin-top:16px">🏆 Torneo</h3>
+    <p>Le partite si giocano a <b>torneo</b>. Si fanno tante mani consecutive fino a quando un giocatore arriva a <b>7 punti penalità</b> e viene eliminato.</p>
+    <p style="margin-left:12px;font-size:clamp(11px,2.2vw,12px);color:#bbb">
+      • Chi <b>perde</b> una mano: <b>+1 punto</b> penalità<br>
+      • Chi <b>vince</b>: <b>0 punti</b><br>
+      • Chi fa <b>volo</b>: <b>−2 punti</b> (minimo 0)<br>
+      • Il torneo finisce quando qualcuno raggiunge <b>7 punti</b>.<br>
+      • Vince il torneo chi ha <b>meno punti penalità</b>.
+    </p>
+    <p>La classifica del torneo è visibile durante la partita (pannello "🏆 TORNEO", cliccabile per mostrare/nascondere).</p>
 
     <h3 style="color:#fa4;margin-top:16px">👤 Gioco Singolo</h3>
     <p>Giochi contro <b>3 avversari CPU</b>. Scegli la modalità (A Perdere o A Vincere), inserisci il tuo nome e clicca "Gioca da Solo".</p>
@@ -494,8 +583,10 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 
     <h3 style="color:#fa4;margin-top:16px">ℹ️ Interfaccia</h3>
     <p>
-      • <b>Indicatore turno:</b> Il nome del giocatore di turno lampeggia in arancione. In basso appare "Tocca a TE!" quando è il tuo turno.<br>
-      • <b>Punteggio:</b> In alto a destra con la modalità di gioco.<br>
+      • <b>Indicatore turno:</b> Il nome del giocatore di turno lampeggia in arancione.<br>
+      • <b>Presa corrente:</b> Un banner mostra in tempo reale chi sta vincendo la mano e quanti punti sono in gioco.<br>
+      • <b>Classifica mano:</b> Il pannello punteggio ordina i giocatori per posizione in tempo reale.<br>
+      • <b>Classifica torneo:</b> Il pannello "🏆 TORNEO" mostra i punti penalità accumulati (cliccalo per mostrare/nascondere).<br>
       • <b>Fine Partita:</b> Pulsante in alto a sinistra per abbandonare.<br>
       • <b>Ultima presa:</b> Clicca sull'area in basso a destra per vedere le carte dell'ultima presa.
     </p>
@@ -597,8 +688,11 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
     <span id="info-objective"><b>🎯 Obiettivo:</b> Prendi MENO punti possibili!</span><br>
     <span id="info-suits"></span><br>
     <b>📊 Gerarchia:</b> 3 › 2 › A › Re › Cav › Fan › 7 › 6 › 5 › 4<br>
-    <b>💰 Punteggio:</b> Asso = 1 punto, 2/3 = ⅓ punto, Figure = ⅓ punto. Ultima presa = ⅓ punto.<br>
+    <b>💰 Punteggio:</b> Asso = 1 punto, 2/3/Re/Cav/Fan = ⅓ punto ciascuno. Ultima presa = ⅓ punto bonus. Totale: 11 punti.<br>
     <b>🃏 Come giocare:</b> Clicca o tocca una carta per giocarla. Devi seguire il seme di mano se puoi!<br>
+    <b>⚠️ A Perdere:</b> Perde chi fa più punti e chi non arriva a 1 punto intero.<br>
+    <b>🚀 Volo:</b> Se i 3 con meno punti non arrivano a 3, chi ha più punti vince!<br>
+    <b>🏆 Torneo:</b> Si gioca fino a 7 punti penalità. Perdi = +1, Volo = −2.<br>
     <b>👥 Multiplayer:</b> Gioca online con un amico! Crea o unisciti a una partita dalla lobby.<br>
   </div>
 
@@ -619,7 +713,8 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   <div class="go-content">
     <h2 id="go-title"></h2>
     <div class="go-results" id="go-results"></div>
-    <button id="retry-btn">GIOCA ANCORA</button>
+    <button id="continue-btn" style="display:none">CONTINUA ▶</button>
+    <button id="retry-btn" style="display:none">GIOCA ANCORA</button>
   </div>
 </div>
 
@@ -1142,6 +1237,141 @@ function createCardElement(card, faceUp) {
   return el;
 }
 
+// ─── Tournament State ─────────────────────────────────────────
+var tournamentScores = [0, 0, 0, 0]; // penalty points per player
+var tournamentActive = false;
+var TOURNAMENT_LIMIT = 7; // first to reach this loses the tournament
+var tournamentOver = false;
+
+function resetTournament() {
+  tournamentScores = [0, 0, 0, 0];
+  tournamentOver = false;
+  tournamentActive = true;
+  renderTournament();
+}
+
+function toggleTournament() {
+  var body = document.getElementById('tp-body');
+  var icon = document.getElementById('tp-toggle-icon');
+  if (body.classList.contains('collapsed')) {
+    body.classList.remove('collapsed');
+    icon.classList.add('open');
+  } else {
+    body.classList.add('collapsed');
+    icon.classList.remove('open');
+  }
+}
+
+function toggleScorePanel() {
+  var body = document.getElementById('sp-body');
+  var icon = document.getElementById('sp-toggle-icon');
+  if (body.classList.contains('collapsed')) {
+    body.classList.remove('collapsed');
+    icon.classList.add('open');
+  } else {
+    body.classList.add('collapsed');
+    icon.classList.remove('open');
+  }
+}
+
+// ─── Draggable panels (touch + mouse) ────────────────────────
+(function initDraggablePanels() {
+  var panels = ['score-panel', 'tournament-panel', 'lead-suit-badge', 'trick-winner-badge', 'label-south', 'label-north', 'label-west', 'label-east'];
+  panels.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var dragging = false;
+    var startX, startY, origLeft, origTop;
+    var dragThreshold = 8; // px to distinguish drag from tap
+    var moved = false;
+
+    function onStart(e) {
+      var t = e.touches ? e.touches[0] : e;
+      dragging = true;
+      moved = false;
+      startX = t.clientX;
+      startY = t.clientY;
+      var rect = el.getBoundingClientRect();
+      origLeft = rect.left;
+      origTop = rect.top;
+      // Clear any right/bottom positioning so left/top works
+      el.style.transition = 'none';
+    }
+
+    function onMove(e) {
+      if (!dragging) return;
+      var t = e.touches ? e.touches[0] : e;
+      var dx = t.clientX - startX;
+      var dy = t.clientY - startY;
+      if (!moved && Math.abs(dx) < dragThreshold && Math.abs(dy) < dragThreshold) return;
+      moved = true;
+      e.preventDefault();
+      var newLeft = Math.max(0, Math.min(window.innerWidth - el.offsetWidth, origLeft + dx));
+      var newTop = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, origTop + dy));
+      el.style.left = newLeft + 'px';
+      el.style.top = newTop + 'px';
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+    }
+
+    function onEnd(e) {
+      dragging = false;
+      el.style.transition = '';
+    }
+
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd, { passive: true });
+    el.addEventListener('mousedown', onStart);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+  });
+})();
+
+function renderTournament() {
+  var panel = document.getElementById('tournament-panel');
+  if (!tournamentActive) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  var container = document.getElementById('tp-rows');
+  container.innerHTML = '';
+  var myIdx = (mpMode && !isHost) ? mySeat : 0;
+  var minScore = Math.min(...tournamentScores);
+  var maxScore = Math.max(...tournamentScores);
+  // Sort by tournament score ascending (best first)
+  var players = tournamentScores.map(function(s, i) { return { idx: i, score: s, name: PLAYER_NAMES[i] }; });
+  players.sort(function(a, b) { return a.score - b.score; });
+  players.forEach(function(p, rank) {
+    var row = document.createElement('div');
+    var cls = 'tp-row';
+    if (p.idx === myIdx) cls += ' you';
+    if (p.score >= TOURNAMENT_LIMIT) cls += ' eliminated';
+    else if (p.score === minScore) cls += ' leader';
+    row.className = cls;
+    row.innerHTML = '<span class="tp-name">' + (rank + 1) + '° ' + p.name + '</span><span class="tp-pts">' + p.score + '</span>';
+    container.appendChild(row);
+  });
+}
+
+function updateTournamentScores(winnerSet, loserSet, voloActive) {
+  if (!tournamentActive || tournamentOver) return;
+  for (var i = 0; i < 4; i++) {
+    if (winnerSet.has(i) && voloActive) {
+      tournamentScores[i] = Math.max(0, tournamentScores[i] - 2); // volo: -2
+    } else if (loserSet.has(i)) {
+      tournamentScores[i] += 1; // loser: +1
+    }
+    // winners (non-volo) get 0
+  }
+  renderTournament();
+  // Check if someone reached the limit
+  for (var j = 0; j < 4; j++) {
+    if (tournamentScores[j] >= TOURNAMENT_LIMIT) {
+      tournamentOver = true;
+      break;
+    }
+  }
+}
+
 // ─── Game State ───────────────────────────────────────────────
 let game = null;
 
@@ -1194,13 +1424,9 @@ function renderAll() {
   renderScores();
   renderLabels();
   document.getElementById('trick-count').textContent = `Mano ${game.trickNum} / 10`;
-  // Turn indicator
+  // Turn timer (no banner, just timer logic)
   if(game.phase==='playing' && !game.animating){
-    var myIdx = (mpMode && !isHost) ? mySeat : 0;
     var cp = game.currentPlayer;
-    var turnText = (cp === myIdx) ? 'Tocca a TE!' : 'Turno di '+PLAYER_NAMES[cp];
-    document.getElementById('turn-indicator').textContent = turnText;
-    document.getElementById('turn-indicator').style.display = '';
     // Start turn timer if it's a new HUMAN player's turn (delayed to let CPU resolve first)
     if(_turnTimerPlayer !== cp && isHumanSeat(cp) && !game.animating) {
       clearTimeout(window._turnTimerDelay);
@@ -1211,7 +1437,6 @@ function renderAll() {
       }, 600);
     }
   } else {
-    document.getElementById('turn-indicator').style.display = 'none';
     stopTurnTimer();
   }
 }
@@ -1375,6 +1600,7 @@ function renderTrick() {
 
   // Lead-suit badge
   const badge = document.getElementById('lead-suit-badge');
+  const trickWinnerBadge = document.getElementById('trick-winner-badge');
   if(badge) {
     if(game.trick.length > 0) {
       const suitColors  = {coppe:'#e44', denari:'#e44', bastoni:'#aaa', spade:'#aaa'};
@@ -1383,9 +1609,31 @@ function renderTrick() {
       badge.textContent = 'giocata di ' + (SUIT_NAMES_IT[leadSuit] || leadSuit);
       badge.style.color = suitColors[leadSuit] || '#fff';
       badge.style.display = 'block';
+
+      // Trick winner badge: who is currently winning the trick + points
+      let bestIdx = 0;
+      let bestPower = -1;
+      game.trick.forEach(({ playerIdx, card }, i) => {
+        if (card.suit === leadSuit && RANK_POWER[card.rank] > bestPower) {
+          bestPower = RANK_POWER[card.rank];
+          bestIdx = i;
+        }
+      });
+      const currentWinner = game.trick[bestIdx].playerIdx;
+      const myIdx = (mpMode && !isHost) ? mySeat : 0;
+      let currentPts = 0;
+      game.trick.forEach(({ card }) => { currentPts += RANK_POINTS[card.rank]; });
+      // Add last trick bonus if this is trick 10 and all 4 cards are played
+      if (game.trickNum === 9 && game.trick.length === 4) currentPts += 1;
+      const winnerName = currentWinner === myIdx ? 'Prendi tu' : 'Prende ' + PLAYER_NAMES[currentWinner];
+      const ptsLabel = currentPts > 0 ? ' (+' + formatPunti(currentPts) + ')' : ' (0)';
+      trickWinnerBadge.textContent = '▶ ' + winnerName + ptsLabel;
+      trickWinnerBadge.style.display = 'block';
     } else {
       badge.textContent = '';
       badge.style.display = 'none';
+      trickWinnerBadge.textContent = '';
+      trickWinnerBadge.style.display = 'none';
     }
   }
 }
@@ -1393,19 +1641,55 @@ function renderTrick() {
 function renderScores() {
   const container = document.getElementById('score-rows');
   container.innerHTML = '';
+  const isPerdere = gameMode === 'perdere';
   // Show game mode in score panel title
-  document.getElementById('score-title').textContent = gameMode === 'perdere' ? '🔻 A PERDERE' : '🔺 A VINCERE';
+  document.getElementById('score-title').textContent = isPerdere ? '🔻 A PERDERE' : '🔺 A VINCERE';
   const myIdx = (mpMode && !isHost) ? mySeat : 0;
-  const rot = (mpMode && !isHost) ? mySeat : 0;
-  // Show scores in visual order (my seat first)
-  for (let v = 0; v < 4; v++) {
-    const actual = (v + rot) % 4;
-    const s = game.scores[actual];
-    const row = document.createElement('div');
-    row.className = 'score-row' + (actual === myIdx ? ' you' : '');
-    row.innerHTML = `<span class="sr-name">${PLAYER_NAMES[actual]}</span><span class="sr-pts">${formatPunti(s)}</span>`;
-    container.appendChild(row);
+
+  // Build player list with scores
+  const players = game.scores.map((s, i) => ({ idx: i, score: s, name: PLAYER_NAMES[i] }));
+
+  if (isPerdere) {
+    // Classify each player into ranking groups for correct ordering:
+    //   Group 0 = winners (safe), Group 1 = losers (<1pt), Group 2 = losers (max score)
+    // Handle volo: if bottom 3 sum < 3 punti (9 terzi), max scorer wins instead
+    const MIN_PUNTO = 3;
+    const maxScore = Math.max(...game.scores);
+    const tempSorted = players.slice().sort((a, b) => a.score - b.score);
+    // Bottom 3 = the 3 players with the LEAST points (excluding the top scorer)
+    const bottomThreeSum = tempSorted[0].score + tempSorted[1].score + tempSorted[2].score;
+    const isVolo = bottomThreeSum < 9;
+
+    players.forEach(p => {
+      if (isVolo) {
+        // Volo: max scorer wins, <1pt losers, rest are safe
+        if (p.score === maxScore) p.rankGroup = 0;
+        else if (p.score >= MIN_PUNTO) p.rankGroup = 1;
+        else p.rankGroup = 2;
+      } else {
+        // Normal: safe players first, then <1pt losers, then max-score losers
+        if (p.score >= MIN_PUNTO && p.score < maxScore) p.rankGroup = 0;
+        else if (p.score < MIN_PUNTO) p.rankGroup = 1;
+        else p.rankGroup = 2; // max score
+      }
+    });
+
+    // Sort: by group first, then by score ascending within each group
+    players.sort((a, b) => {
+      if (a.rankGroup !== b.rankGroup) return a.rankGroup - b.rankGroup;
+      return a.score - b.score;
+    });
+  } else {
+    // A vincere: highest first
+    players.sort((a, b) => b.score - a.score);
   }
+
+  players.forEach((p, rank) => {
+    const row = document.createElement('div');
+    row.className = 'score-row' + (p.idx === myIdx ? ' you' : '');
+    row.innerHTML = `<span class="sr-name">${rank + 1}° ${p.name}</span><span class="sr-pts">${formatPunti(p.score)}</span>`;
+    container.appendChild(row);
+  });
 }
 
 // ═══ Turn Timer: countdown + CPU auto-play after 30s ═══
@@ -1552,10 +1836,6 @@ async function playCard(playerIdx, card) {
     if (game.trickNum === 10) pts += 1; // 1 terzo for last trick
 
     game.scores[winner] += pts;
-
-    // Flash trick winner
-    const verb = winner === 0 ? 'prendi' : 'prende';
-    showStatus(`${PLAYER_NAMES[winner]} ${verb}! (+${formatPunti(pts)})`, 1200);
 
     // Trick win sound
     sndTrickWon();
@@ -1774,55 +2054,160 @@ function showGameOver() {
   const el = document.getElementById('game-over');
   el.classList.add('show');
 
-  const maxScore = Math.max(...game.scores);
-  const minScore = Math.min(...game.scores);
-
-  // In "a perdere": highest score loses. In "a vincere": highest score wins.
   const isPerdere = gameMode === 'perdere';
-  const winScore = isPerdere ? minScore : maxScore;
-  const loseScore = isPerdere ? maxScore : minScore;
-
-  const winners = game.scores.map((s, i) => s === winScore ? i : -1).filter(i => i >= 0);
-  const losers = game.scores.map((s, i) => s === loseScore ? i : -1).filter(i => i >= 0);
-
   const localSeat = (mpMode && !isHost && mySeat >= 0) ? mySeat : 0;
-  const playerIsWinner = winners.includes(localSeat);
-  const playerIsLoser = losers.includes(localSeat);
 
-  if (playerIsWinner) {
-    document.getElementById('go-title').textContent = '🎉 Hai Vinto!';
-    document.getElementById('go-title').style.color = '#4f4';
-    sndWin();
-  } else if (playerIsLoser) {
-    document.getElementById('go-title').textContent = '😞 Hai Perso!';
-    document.getElementById('go-title').style.color = '#f44';
-    sndLose();
+  // Build player list
+  const sorted = game.scores.map((s, i) => ({ name: PLAYER_NAMES[i], score: s, idx: i }));
+
+  // Determine winners and losers
+  let winnerSet = new Set();
+  let loserSet = new Set();
+  let voloActive = false;
+
+  if (isPerdere) {
+    // --- A PERDERE rules ---
+    // 1 punto intero = 3 terzi (un asso o 3 figure)
+    const MIN_PUNTO = 3; // 3 terzi = 1 punto intero
+    const maxScore = Math.max(...game.scores);
+
+    // Sort a copy by score ascending to find the 3 players with least points
+    const byScoreAsc = sorted.slice().sort((a, b) => a.score - b.score);
+    // The bottom 3 are the 3 players with the LEAST points (excluding the top scorer)
+    // i.e. byScoreAsc[0], byScoreAsc[1], byScoreAsc[2] — the 3 lowest scorers
+    const bottomThreeSum = byScoreAsc[0].score + byScoreAsc[1].score + byScoreAsc[2].score;
+    // 3 punti interi = 9 terzi
+    const VOLO_THRESHOLD = 9;
+
+    if (bottomThreeSum < VOLO_THRESHOLD) {
+      // VOLO! The player with the most points wins!
+      voloActive = true;
+      // Winner: player(s) with highest score
+      game.scores.forEach((s, i) => { if (s === maxScore) winnerSet.add(i); });
+      // Losers: anyone who didn't reach at least 1 punto intero (except the volo winner)
+      game.scores.forEach((s, i) => {
+        if (!winnerSet.has(i) && s < MIN_PUNTO) loserSet.add(i);
+      });
+    } else {
+      // Normal "a perdere": highest score loses
+      // Also anyone who didn't reach at least 1 punto intero loses
+      game.scores.forEach((s, i) => {
+        if (s === maxScore) loserSet.add(i);
+        else if (s < MIN_PUNTO) loserSet.add(i);
+      });
+      // Winners: everyone not in loserSet
+      game.scores.forEach((s, i) => {
+        if (!loserSet.has(i)) winnerSet.add(i);
+      });
+    }
   } else {
-    document.getElementById('go-title').textContent = '🃏 Fine Partita';
-    document.getElementById('go-title').style.color = '#fa4';
+    // --- A VINCERE ---
+    const maxScore = Math.max(...game.scores);
+    const minScore = Math.min(...game.scores);
+    game.scores.forEach((s, i) => {
+      if (s === maxScore) winnerSet.add(i);
+      if (s === minScore) loserSet.add(i);
+    });
   }
+
+  const playerIsWinner = winnerSet.has(localSeat);
+  const playerIsLoser = loserSet.has(localSeat);
+
+  // Re-sort: winners first, then neutral, then losers; within each group by score
+  sorted.sort((a, b) => {
+    const aGroup = winnerSet.has(a.idx) ? 0 : (loserSet.has(a.idx) ? 2 : 1);
+    const bGroup = winnerSet.has(b.idx) ? 0 : (loserSet.has(b.idx) ? 2 : 1);
+    if (aGroup !== bGroup) return aGroup - bGroup;
+    return isPerdere ? a.score - b.score : b.score - a.score;
+  });
 
   const resultsEl = document.getElementById('go-results');
   resultsEl.innerHTML = '';
 
-  // Sort: in perdere lowest first = best, in vincere highest first = best
-  const sorted = game.scores.map((s, i) => ({ name: PLAYER_NAMES[i], score: s, idx: i }))
-    .sort((a, b) => isPerdere ? a.score - b.score : b.score - a.score);
+  // If volo, show a banner
+  if (voloActive) {
+    const voloBanner = document.createElement('div');
+    voloBanner.style.cssText = 'text-align:center;color:#ff2;font-size:clamp(14px,3.5vw,20px);font-weight:bold;margin-bottom:10px;text-shadow:0 0 10px rgba(255,200,0,0.6);';
+    const voloWinnerNames = sorted.filter(p => winnerSet.has(p.idx)).map(p => p.name).join(', ');
+    voloBanner.textContent = `🚀 VOLO! ${voloWinnerNames} vince!`;
+    resultsEl.appendChild(voloBanner);
+  }
 
   sorted.forEach((p, rank) => {
-    const isWinner = p.score === winScore;
-    const isLoser = p.score === loseScore;
-    const isPlayer = p.idx === 0;
+    const isWinner = winnerSet.has(p.idx);
+    const isLoser = loserSet.has(p.idx);
+    const isPlayer = p.idx === localSeat;
     const row = document.createElement('div');
     row.className = 'go-result-row' + (isLoser ? ' loser' : '') + (isWinner ? ' winner' : '');
-    const winLabel = isPlayer ? '✅ VINCI' : '✅ VINCE';
-    const loseLabel = isPlayer ? '❌ PERDI' : '❌ PERDE';
+    let statusLabel = '';
+    if (isWinner) {
+      if (voloActive) statusLabel = isPlayer ? '🚀 VOLO!' : '🚀 VOLO!';
+      else statusLabel = isPlayer ? '✅ VINCI' : '✅ VINCE';
+    } else if (isLoser) {
+      if (isPerdere && p.score < 3 && !voloActive) {
+        statusLabel = isPlayer ? '❌ <1pt!' : '❌ <1pt!';
+      } else {
+        statusLabel = isPlayer ? '❌ PERDI' : '❌ PERDE';
+      }
+    }
     row.innerHTML =
       `<span class="grr-name">${rank + 1}° ${p.name}</span>` +
       `<span class="grr-pts">${formatPuntiLong(p.score)}</span>` +
-      `<span class="grr-status">${isWinner ? winLabel : isLoser ? loseLabel : ''}</span>`;
+      `<span class="grr-status">${statusLabel}</span>`;
     resultsEl.appendChild(row);
   });
+
+  // Update tournament scores
+  updateTournamentScores(winnerSet, loserSet, voloActive);
+
+  // --- Set title: if tournament just ended, reflect tournament result; otherwise hand result ---
+  if (tournamentOver) {
+    const myTourneyScore = tournamentScores[localSeat];
+    const minTourney = Math.min(...tournamentScores);
+    if (myTourneyScore === minTourney) {
+      document.getElementById('go-title').textContent = '🏆 Hai Vinto il Torneo!';
+      document.getElementById('go-title').style.color = '#4f4';
+      sndWin();
+    } else if (myTourneyScore >= TOURNAMENT_LIMIT) {
+      document.getElementById('go-title').textContent = '💀 Hai Perso il Torneo!';
+      document.getElementById('go-title').style.color = '#f44';
+      sndLose();
+    } else {
+      document.getElementById('go-title').textContent = '🏆 Torneo Finito!';
+      document.getElementById('go-title').style.color = '#fa4';
+    }
+  } else {
+    if (playerIsWinner) {
+      document.getElementById('go-title').textContent = voloActive ? '🚀 Hai fatto VOLO!' : '🎉 Hai Vinto!';
+      document.getElementById('go-title').style.color = '#4f4';
+      sndWin();
+    } else if (playerIsLoser) {
+      document.getElementById('go-title').textContent = '😞 Hai Perso!';
+      document.getElementById('go-title').style.color = '#f44';
+      sndLose();
+    } else {
+      document.getElementById('go-title').textContent = '🃏 Fine Partita';
+      document.getElementById('go-title').style.color = '#fa4';
+    }
+  }
+
+  // Show correct button: CONTINUA during tournament, GIOCA ANCORA when tournament over
+  document.getElementById('continue-btn').style.display = tournamentOver ? 'none' : '';
+  document.getElementById('retry-btn').style.display = tournamentOver ? '' : 'none';
+
+  // If tournament is over, show tournament result
+  if (tournamentOver) {
+    const tEl = document.createElement('div');
+    tEl.style.cssText = 'margin-top:12px;padding:8px;border-top:1px solid rgba(255,255,255,0.2);text-align:center;';
+    const tSorted = tournamentScores.map((s, i) => ({ name: PLAYER_NAMES[i], score: s, idx: i }))
+      .sort((a, b) => a.score - b.score);
+    const tLoser = tSorted[3];
+    const tWinner = tSorted[0];
+    tEl.innerHTML = `<div style="color:#fa4;font-weight:bold;font-size:clamp(12px,3vw,16px);margin-bottom:4px">🏆 TORNEO FINITO!</div>`
+      + `<div style="color:#4f4;font-size:clamp(10px,2.5vw,13px)">👑 ${tWinner.name} vince il torneo (${tWinner.score} pt)</div>`
+      + `<div style="color:#f44;font-size:clamp(10px,2.5vw,13px)">💀 ${tLoser.name} perde il torneo (${tLoser.score} pt)</div>`;
+    resultsEl.appendChild(tEl);
+  }
 }
 
 // ─── Init & Start ─────────────────────────────────────────────
@@ -1918,10 +2303,52 @@ document.getElementById('retry-btn').onclick = () => {
   handleRetryGame();
 };
 document.getElementById('retry-btn').addEventListener('touchend', handleRetryGame, { passive: false });
+document.getElementById('continue-btn').onclick = () => {
+  handleContinueTournament();
+};
+document.getElementById('continue-btn').addEventListener('touchend', handleContinueTournament, { passive: false });
 document.getElementById('rules-btn').onclick = () => {
   document.getElementById('rules-panel').classList.add('show');
 };
 
+// --- Continue tournament (next round, same players) ---
+var _continueTouchLock = false;
+function handleContinueTournament(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'touchend') {
+      _continueTouchLock = true;
+      setTimeout(function(){ _continueTouchLock = false; }, 400);
+    } else if (_continueTouchLock) {
+      return;
+    }
+  }
+  document.getElementById('game-over').classList.remove('show');
+  if (mpMode && isHost) {
+    initGame();
+    deduplicateNames();
+    renderAll();
+    renderTournament();
+    mpSend({t:'start',gm:gameMode,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
+    syncState();
+    sndStart();
+    showStatus('Nuova mano!',1500);
+    if(!isHumanSeat(game.currentPlayer)) setTimeout(function(){cpuTurn();},800);
+  } else if (mpMode && !isHost) {
+    showStatus('In attesa nuova mano...',2000);
+  } else {
+    initGame();
+    deduplicateNames();
+    renderAll();
+    renderTournament();
+    sndStart();
+    showStatus('Nuova mano!', 1500);
+    if (!isHumanSeat(game.currentPlayer)) setTimeout(function(){ cpuTurn(); }, 800);
+  }
+}
+
+// --- Retry (new tournament) ---
 var _retryTouchLock = false;
 function handleRetryGame(e) {
   if (e) {
@@ -1936,20 +2363,30 @@ function handleRetryGame(e) {
   }
 
   document.getElementById('game-over').classList.remove('show');
+
+  // Reset tournament for a new session
+  resetTournament();
+
   if (mpMode && isHost) {
     initGame();
     deduplicateNames();
     renderAll();
+    renderTournament();
     mpSend({t:'start',gm:gameMode,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
     syncState();
     sndStart();
-    showStatus('Nuova partita!',1500);
+    showStatus('Nuovo torneo!',1500);
     if(!isHumanSeat(game.currentPlayer)) setTimeout(function(){cpuTurn();},800);
   } else if (mpMode && !isHost) {
-    showStatus('In attesa nuova partita...',2000);
+    showStatus('In attesa nuovo torneo...',2000);
   } else {
-    document.getElementById('quit-btn').style.display='none';
-    document.getElementById('overlay').classList.remove('hidden');
+    initGame();
+    deduplicateNames();
+    renderAll();
+    renderTournament();
+    sndStart();
+    showStatus('Nuovo torneo!', 1500);
+    if (!isHumanSeat(game.currentPlayer)) setTimeout(function(){ cpuTurn(); }, 800);
   }
 }
 
@@ -2104,6 +2541,9 @@ function startGame() {
   document.getElementById('lobby-overlay').classList.add('hidden');
   document.getElementById('game-over').classList.remove('show');
   document.getElementById('quit-btn').style.display = '';
+
+  // Start a new tournament
+  resetTournament();
 
   // Update rules panel based on mode
   const isPerdere = gameMode === 'perdere';
