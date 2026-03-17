@@ -1356,7 +1356,7 @@ function updateTournamentScores(winnerSet, loserSet, voloActive) {
   if (!tournamentActive || tournamentOver) return;
   for (var i = 0; i < 4; i++) {
     if (winnerSet.has(i) && voloActive) {
-      tournamentScores[i] = Math.max(0, tournamentScores[i] - 2); // volo: -2
+      tournamentScores[i] = tournamentScores[i] - 2; // volo: -2 (can go negative)
     } else if (loserSet.has(i)) {
       tournamentScores[i] += 1; // loser: +1
     }
@@ -2734,6 +2734,9 @@ function makeStateSnapshot(seq) {
     names: PLAYER_NAMES.slice(),
     hs: Array.from(_humanSeatSet),
     seq: seq,
+    tsc: tournamentScores.slice(),
+    tact: tournamentActive,
+    tov: tournamentOver,
     _ts: firebase.database.ServerValue.TIMESTAMP
   };
 }
@@ -2766,6 +2769,14 @@ function applyRemoteState(data) {
   game.trickCards = data.tc ? Object.values(data.tc).map(function(c){ return {suit:c.suit,rank:c.rank,id:c.id}; }) : [];
   game.phase = data.ph || 'playing';
   game.animating = !!data.an;
+
+  // Sync tournament state from host
+  if (data.tsc) {
+    tournamentScores = data.tsc.slice();
+    tournamentActive = !!data.tact;
+    tournamentOver = !!data.tov;
+    renderTournament();
+  }
 
   renderAll();
   if(game.phase === 'done') showGameOver();
@@ -3141,7 +3152,10 @@ function startMultiplayerGame() {
   document.getElementById('overlay').classList.add('hidden');
   document.getElementById('game-over').classList.remove('show');
   document.getElementById('quit-btn').style.display = '';
-  initAudio(); initGame(); renderAll();
+  initAudio(); initGame();
+  // Start tournament for multiplayer
+  resetTournament();
+  renderAll(); renderTournament();
   dbg('HOST startGame cp='+game.currentPlayer);
   mpSend({t:'start',gm:gameMode,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
   syncState();
@@ -3221,7 +3235,11 @@ function joinGame() {
       document.getElementById('game-over').classList.remove('show');
       document.getElementById('quit-btn').style.display = '';
       if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 15000);
-      initAudio(); renderAll(); sndStart(); showStatus('Partita iniziata!',1500);
+      // Initialize tournament on client if not already active
+      if (!tournamentActive) {
+        resetTournament();
+      }
+      initAudio(); renderAll(); renderTournament(); sndStart(); showStatus('Partita iniziata!',1500);
     }
   }
   mpListen(clientHandler);
