@@ -2482,6 +2482,7 @@ function copyInviteLink() {
 })();
 
 function quitGame() {
+  _clearSession();
   game.phase = 'done';
   document.getElementById('quit-btn').style.display = 'none';
   document.getElementById('disconnect-banner').style.display = 'none';
@@ -2591,9 +2592,42 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const MY_ID = Math.random().toString(36).slice(2, 10);
+// Persistent ID: survives page refresh so reconnection works
+const MY_ID = (function(){
+  var stored = null;
+  try { stored = localStorage.getItem('tresette_my_id'); } catch(e){}
+  if(stored && stored.length >= 6) return stored;
+  var id = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  try { localStorage.setItem('tresette_my_id', id); } catch(e){}
+  return id;
+})();
 var _fbReady = false;
 var _fbDb = null;
+
+// Session persistence helpers for auto-rejoin
+function _saveSession(room, name, hosting) {
+  try {
+    sessionStorage.setItem('tresette_room', room);
+    sessionStorage.setItem('tresette_name', name);
+    sessionStorage.setItem('tresette_host', hosting ? '1' : '0');
+  } catch(e){}
+}
+function _clearSession() {
+  try {
+    sessionStorage.removeItem('tresette_room');
+    sessionStorage.removeItem('tresette_name');
+    sessionStorage.removeItem('tresette_host');
+  } catch(e){}
+}
+function _getSession() {
+  try {
+    var room = sessionStorage.getItem('tresette_room');
+    var name = sessionStorage.getItem('tresette_name');
+    var hosting = sessionStorage.getItem('tresette_host') === '1';
+    if(room && name) return {room:room, name:name, hosting:hosting};
+  } catch(e){}
+  return null;
+}
 
 // ─── Firebase SDK (compat version) ───
 (function loadFirebase(){
@@ -3030,6 +3064,7 @@ function hostGame() {
   if(!_fbReady){ alert('Firebase non pronto. Riprova.'); return; }
   PLAYER_NAMES[0] = myName;
   mpRoom = genCode(); isHost = true; mySeat = 0;
+  _saveSession(mpRoom, myName, true);
   _humanSeats = {};
   _humanSeatSet = new Set([0]);
   dbg('HOST room='+mpRoom+' label='+roomLabel);
@@ -3063,9 +3098,22 @@ function hostGame() {
       return;
     }
     if(data.t==='join'){
-      // Check if this player already has a seat (rejoin)
+      // Check if this player already has a seat (rejoin by ID)
       var existingSeat = -1;
       for(var k in _humanSeats){ if(_humanSeats[k].id === data._from){ existingSeat = parseInt(k); break; } }
+      // If no match by ID, try matching by name (player refreshed page and got new ID)
+      if(existingSeat < 0 && data.name && mpMode) {
+        for(var kn in _humanSeats){
+          if(_humanSeats[kn].name === data.name && (Date.now() - _humanSeats[kn].lastPing) > 10000){
+            existingSeat = parseInt(kn);
+            // Update the stored ID to the new one
+            _humanSeats[existingSeat].id = data._from;
+            // Remove old seat reference
+            dbg('HOST: player REJOIN by name, updating ID for seat='+existingSeat);
+            break;
+          }
+        }
+      }
       if(existingSeat >= 0){
         _humanSeats[existingSeat].lastPing = Date.now();
         dbg('HOST: player REJOINED seat='+existingSeat+' name='+_humanSeats[existingSeat].name);
@@ -3175,6 +3223,7 @@ function joinGame() {
   if(!_fbReady){ document.getElementById('join-error').textContent='Firebase non pronto.'; return; }
   var myName = joinName;
   isHost = false; mySeat = -1; mpRoom = code.toUpperCase();
+  _saveSession(mpRoom, myName, false);
   dbg('CLIENT joining room='+mpRoom);
   document.getElementById('join-status').textContent='Connessione...';
   document.getElementById('join-error').textContent='';
@@ -3271,6 +3320,24 @@ function joinGame() {
     code=code.toUpperCase();
     var iv=setInterval(function(){
       if(_fbReady){clearInterval(iv);document.getElementById('overlay').classList.add('hidden');document.getElementById('lobby-overlay').classList.remove('hidden');showLobbySection('lobby-join');document.getElementById('join-code-input').value=code;}
+    },200);
+    return; // URL code takes priority over session
+  }
+  // Auto-rejoin from session (page refresh)
+  var sess = _getSession();
+  if(sess && !sess.hosting){
+    var iv2=setInterval(function(){
+      if(_fbReady){
+        clearInterval(iv2);
+        dbg('Auto-rejoin from session: room='+sess.room+' name='+sess.name);
+        document.getElementById('overlay').classList.add('hidden');
+        document.getElementById('lobby-overlay').classList.remove('hidden');
+        document.getElementById('join-name-input').value = sess.name;
+        document.getElementById('join-code-input').value = sess.room;
+        showLobbySection('lobby-join');
+        // Auto-trigger join after a short delay
+        setTimeout(function(){ joinGame(); }, 500);
+      }
     },200);
   }
 })();
