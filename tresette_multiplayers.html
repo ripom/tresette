@@ -530,6 +530,37 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 }
 #emote-trigger-btn:hover,#emote-trigger-btn:active{background:rgba(255,170,68,0.35);color:#fff;transform:scale(1.05)}
 
+/* ════════ Audio Toggle ════════ */
+#vol-toggle {
+  position:fixed;
+  top:clamp(4px, 1vh, 10px);
+  right:clamp(4px, 1vw, 10px);
+  z-index:90;
+  backdrop-filter: blur(5px);
+  background:rgba(0,0,0,0.5);
+  border:1px solid rgba(255,255,255,0.15);
+  color:#ddd;
+  border-radius:50%;
+  cursor:pointer;
+  font-size:clamp(16px, 3.5vw, 20px);
+  touch-action:manipulation;
+  width:clamp(36px, 8vw, 44px);
+  height:clamp(36px, 8vw, 44px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:background .2s, transform .2s;
+  user-select:none; -webkit-user-select:none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+#vol-toggle:hover { 
+  background:rgba(0,0,0,0.7); 
+  color:#fff 
+}
+#vol-toggle:active { 
+  transform:scale(0.95);
+}
+
 </style>
 </head>
 <body>
@@ -591,10 +622,14 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   </div>
 </div>
 
-<div id="volume-ctrl">
-  <span class="vol-icon" id="vol-toggle">🔊</span>
-  <input type="range" id="vol-slider" min="0" max="100" value="60">
-  <span class="vol-pct" id="vol-pct">60%</span>
+
+<button id="vol-toggle" title="Attiva/Disattiva Audio">🔊</button>
+<div style="display:none">
+  <div id="volume-ctrl">
+    <!-- Kept hidden for compatibility with existing JS logic -->
+    <input type="range" id="vol-slider" min="0" max="100" value="60">
+    <span class="vol-pct" id="vol-pct">60%</span>
+  </div>
 </div>
 
 <div id="rules-panel">
@@ -874,12 +909,30 @@ const CARD_DATA = {
   "spade_9": "data:image/png;base64,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"
 };
 
-const AUDIO_SR = 22050;
+const AUDIO_SR = 44100; // CD quality sample rate for richness
 let audioCtx = null;
 let masterGain = null;
+let reverbNode = null;
 let audioBuffers = {};
 let volumeLevel = 0.6;
 let muted = false;
+
+// ─── Improved synthesis helpers for realistic, deep sounds ───
+function noise() { return Math.random() * 2 - 1; }
+
+function genEnv(n, attack, decay, sustain, release, sustainLevel) {
+  // ADSR envelope, all in samples
+  const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    let v;
+    if (i < attack) v = i / attack;
+    else if (i < attack + decay) v = 1 - (1 - sustainLevel) * ((i - attack) / decay);
+    else if (i < n - release) v = sustainLevel;
+    else v = sustainLevel * (1 - (i - (n - release)) / release);
+    out[i] = Math.max(0, v);
+  }
+  return out;
+}
 
 function genSamples(freq, dur, type, vol) {
   const n = Math.floor(AUDIO_SR * dur);
@@ -887,7 +940,7 @@ function genSamples(freq, dur, type, vol) {
   for (let i = 0; i < n; i++) {
     const t = i / AUDIO_SR;
     const env = vol * Math.max(0, 1 - t / dur);
-    const phase = (freq * t) % 1;
+    const phase = ((freq * t) % 1 + 1) % 1;
     let w;
     if (type === 'sine') w = Math.sin(2 * Math.PI * freq * t);
     else if (type === 'square') w = phase < 0.5 ? 1 : -1;
@@ -900,7 +953,7 @@ function genSamples(freq, dur, type, vol) {
 }
 
 function mixTones(tones) {
-  const totalDur = Math.max(...tones.map(t => (t.delay||0) + t.dur)) + 0.02;
+  const totalDur = Math.max(...tones.map(t => (t.delay||0) + t.dur)) + 0.05;
   const n = Math.floor(AUDIO_SR * totalDur);
   const out = new Float32Array(n);
   for (const t of tones) {
@@ -913,80 +966,469 @@ function mixTones(tones) {
   return out;
 }
 
-// Pre-generate raw samples for all sounds
+// Convolution reverb impulse response — creates "room" feel
+function createReverbIR(duration, decay) {
+  const len = Math.floor(AUDIO_SR * duration);
+  const buf = audioCtx.createBuffer(2, len, AUDIO_SR);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
+  }
+  return buf;
+}
+
+// ─── Advanced voice synthesis helpers (used by emote sounds) ───
+function _glottal(phase) {
+  const p = ((phase % 1) + 1) % 1;
+  if (p < 0.4) return 3*p*(1 - p/0.4);
+  if (p < 0.5) return 3*0.4*(1 - (p-0.4)/0.1);
+  return 0;
+}
+function _makeFormant(freq, bw) {
+  const r = Math.exp(-Math.PI * bw / AUDIO_SR);
+  const c = 2 * r * Math.cos(2 * Math.PI * freq / AUDIO_SR);
+  return { r:r, c:c, y1:0, y2:0 };
+}
+function _filterFormant(f, x) {
+  const y = x + f.c * f.y1 - f.r * f.r * f.y2;
+  f.y2 = f.y1; f.y1 = y; return y;
+}
+function _sndRng(seed) { seed[0] = (seed[0] * 16807 + 7) % 2147483647; return (seed[0] / 2147483647) * 2 - 1; }
+
+// Pre-generate realistic sound samples
 const RAW_SOUNDS = {
-  // Card slapped on table — modeled after real recordings:
-  // A card landing is mostly a ~40ms broadband noise burst
-  // with slight low-mid emphasis (table resonance) and fast decay.
-  // We use multiple noise layers with different spectral shaping.
+  // ─── Card slapped on table: short sharp THWACK ───
+  // A real card slap is ~50-80ms total: instant attack, broadband noise snap,
+  // low-frequency table thud, very fast decay. No whoosh, no flutter — just SLAP.
   cardPlay: (() => {
-    const dur = 0.07;
+    const dur = 0.08;
     const n = Math.floor(AUDIO_SR * dur);
     const out = new Float32Array(n);
-    // Deterministic noise
-    let s1 = 37, s2 = 91;
-    const rng = () => { s1 = (s1 * 16807) % 2147483647; return (s1 / 2147483647) * 2 - 1; };
-    const rng2 = () => { s2 = (s2 * 48271) % 2147483647; return (s2 / 2147483647) * 2 - 1; };
-    // Simple one-pole low-pass filter state
+    const rng = (seed) => { seed[0] = (seed[0] * 16807 + 7) % 2147483647; return (seed[0] / 2147483647) * 2 - 1; };
+    const s1 = [[37]], s2 = [[91]], s3 = [[173]];
     let lp = 0;
+
     for (let i = 0; i < n; i++) {
       const t = i / AUDIO_SR;
-      // Sharp attack, fast exponential decay (real card snap is ~30-50ms)
-      const env = Math.min(1, i / (AUDIO_SR * 0.001)) * Math.exp(-t * 70);
-      // Raw broadband noise
-      const noise = rng() * 0.8;
-      // Low-pass filtered noise for body (table thump)
-      lp += 0.15 * (rng2() - lp);  // cutoff ~1.5kHz at 22050
-      const body = lp * 1.5;
-      out[i] = (noise * 0.55 + body * 0.45) * env;
+      let sample = 0;
+
+      // Attack: near-instant (<0.3ms)
+      const att = Math.min(1.0, i / (AUDIO_SR * 0.0003));
+
+      // 1) Sharp noise snap — the card hitting flat on the surface
+      //    Very fast decay (~8ms), full broadband
+      const snapEnv = att * Math.exp(-t * 180) * 0.85;
+      sample += rng(s1) * snapEnv;
+
+      // 2) Mid-frequency body — the "papery" character of the card
+      //    Filtered noise, slightly slower decay
+      lp += 0.22 * (rng(s2) - lp);
+      const bodyEnv = att * Math.exp(-t * 90) * 0.5;
+      sample += lp * bodyEnv;
+
+      // 3) Low table thud — the wood absorbing the hit
+      //    A couple of damped sine modes
+      const thudEnv = att * Math.exp(-t * 60) * 0.45;
+      const thud = Math.sin(2 * Math.PI * 110 * t) * 0.6
+                 + Math.sin(2 * Math.PI * 200 * t) * 0.3
+                 + Math.sin(2 * Math.PI * 65 * t) * 0.25;
+      sample += thud * thudEnv;
+
+      out[i] = sample;
     }
+
+    // Normalize
+    let peak = 0;
+    for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(out[i]));
+    if (peak > 0) for (let i = 0; i < n; i++) out[i] = out[i] / peak * 0.92;
     return out;
   })(),
-  // Card slide: softer swoosh
+
+  // ─── Card slide: gentle swoosh with pitch sweep ───
   cardSlide: (() => {
-    const n = Math.floor(AUDIO_SR * 0.06);
+    const dur = 0.1;
+    const n = Math.floor(AUDIO_SR * dur);
     const out = new Float32Array(n);
-    let s = 55;
+    let lp = 0;
+    let seed = [55];
+    const rng = (s) => { s[0] = (s[0] * 48271 + 3) % 2147483647; return (s[0] / 2147483647) * 2 - 1; };
     for (let i = 0; i < n; i++) {
       const t = i / AUDIO_SR;
-      s = (s * 16807) % 2147483647;
-      out[i] = ((s / 2147483647) * 2 - 1) * Math.exp(-t * 70) * 0.2;
+      const env = Math.sin(Math.PI * t / dur) * 0.35; // bell-shaped envelope
+      // Filtered noise with sweeping cutoff
+      const cutoff = 0.05 + 0.15 * (t / dur);
+      lp += cutoff * (rng(seed) - lp);
+      out[i] = lp * env;
     }
     return out;
   })(),
-  // Trick won: pleasant two-note chime
-  trickWon: mixTones([
-    {freq:523, dur:0.15, type:'sine', vol:0.5},
-    {freq:659, dur:0.2, type:'sine', vol:0.45, delay:0.12}
-  ]),
-  // Win fanfare
-  win: mixTones([
-    {freq:392, dur:0.15, type:'sine', vol:0.5},
-    {freq:494, dur:0.15, type:'sine', vol:0.5, delay:0.15},
-    {freq:587, dur:0.15, type:'sine', vol:0.5, delay:0.3},
-    {freq:784, dur:0.3, type:'sine', vol:0.55, delay:0.45}
-  ]),
-  // Lose sound: descending
-  lose: mixTones([
-    {freq:392, dur:0.2, type:'sine', vol:0.45},
-    {freq:330, dur:0.2, type:'sine', vol:0.4, delay:0.2},
-    {freq:262, dur:0.35, type:'sine', vol:0.4, delay:0.4}
-  ]),
-  // Start game jingle
-  start: mixTones([
-    {freq:330, dur:0.12, type:'sine', vol:0.45},
-    {freq:392, dur:0.12, type:'sine', vol:0.45, delay:0.12},
-    {freq:494, dur:0.18, type:'sine', vol:0.5, delay:0.24}
-  ]),
-  // Scardone: dodgy descending trombone-like sound
-  scardone: mixTones([
-    {freq:220, dur:0.15, type:'sawtooth', vol:0.5},
-    {freq:185, dur:0.15, type:'sawtooth', vol:0.5, delay:0.12},
-    {freq:147, dur:0.2, type:'sawtooth', vol:0.55, delay:0.24},
-    {freq:110, dur:0.35, type:'sawtooth', vol:0.6, delay:0.4},
-    {freq:350, dur:0.08, type:'square', vol:0.3, delay:0.0},
-    {freq:280, dur:0.08, type:'square', vol:0.25, delay:0.12}
-  ]),
+
+  // ─── Trick won: rich two-note bell chime with overtones ───
+  trickWon: (() => {
+    const dur = 0.6;
+    const n = Math.floor(AUDIO_SR * dur);
+    const out = new Float32Array(n);
+    const notes = [
+      {freq: 523.25, start: 0, vol: 0.4},     // C5
+      {freq: 659.25, start: 0.12, vol: 0.38},  // E5
+    ];
+    for (const note of notes) {
+      const off = Math.floor(note.start * AUDIO_SR);
+      for (let i = 0; i + off < n; i++) {
+        const t = i / AUDIO_SR;
+        const env = Math.exp(-t * 5) * note.vol;
+        // Bell-like: fundamental + inharmonic partials
+        const w = Math.sin(2*Math.PI*note.freq*t)
+                + 0.5 * Math.sin(2*Math.PI*note.freq*2.02*t) * Math.exp(-t*8)
+                + 0.25 * Math.sin(2*Math.PI*note.freq*3.01*t) * Math.exp(-t*12)
+                + 0.12 * Math.sin(2*Math.PI*note.freq*4.97*t) * Math.exp(-t*16);
+        out[i + off] += w * env;
+      }
+    }
+    for (let i = 0; i < n; i++) out[i] = Math.max(-1, Math.min(1, out[i]));
+    return out;
+  })(),
+
+  // ─── Win fanfare: triumphant ascending chord ───
+  win: (() => {
+    const dur = 1.2;
+    const n = Math.floor(AUDIO_SR * dur);
+    const out = new Float32Array(n);
+    const notes = [
+      {freq: 261.63, start: 0, dur: 0.3, vol: 0.35},     // C4
+      {freq: 329.63, start: 0.15, dur: 0.3, vol: 0.35},   // E4
+      {freq: 392.00, start: 0.30, dur: 0.3, vol: 0.35},   // G4
+      {freq: 523.25, start: 0.45, dur: 0.5, vol: 0.4},    // C5
+    ];
+    for (const note of notes) {
+      const off = Math.floor(note.start * AUDIO_SR);
+      const len = Math.floor(note.dur * AUDIO_SR);
+      for (let i = 0; i < len && i + off < n; i++) {
+        const t = i / AUDIO_SR;
+        const env = note.vol * Math.sin(Math.PI * t / note.dur); // smooth bell
+        const w = Math.sin(2*Math.PI*note.freq*t)
+                + 0.4 * Math.sin(2*Math.PI*note.freq*2*t) * Math.exp(-t*4)
+                + 0.15 * Math.sin(2*Math.PI*note.freq*3*t) * Math.exp(-t*6);
+        out[i + off] += w * env;
+      }
+    }
+    for (let i = 0; i < n; i++) out[i] = Math.max(-1, Math.min(1, out[i]));
+    return out;
+  })(),
+
+  // ─── Lose: melancholic descending minor chord ───
+  lose: (() => {
+    const dur = 1.0;
+    const n = Math.floor(AUDIO_SR * dur);
+    const out = new Float32Array(n);
+    const notes = [
+      {freq: 392.00, start: 0, dur: 0.35, vol: 0.35},     // G4
+      {freq: 311.13, start: 0.20, dur: 0.35, vol: 0.33},   // Eb4
+      {freq: 261.63, start: 0.40, dur: 0.45, vol: 0.35},   // C4
+    ];
+    for (const note of notes) {
+      const off = Math.floor(note.start * AUDIO_SR);
+      const len = Math.floor(note.dur * AUDIO_SR);
+      for (let i = 0; i < len && i + off < n; i++) {
+        const t = i / AUDIO_SR;
+        const env = note.vol * Math.exp(-t * 3.5);
+        const w = Math.sin(2*Math.PI*note.freq*t)
+                + 0.3 * Math.sin(2*Math.PI*note.freq*2*t) * Math.exp(-t*5);
+        out[i + off] += w * env;
+      }
+    }
+    for (let i = 0; i < n; i++) out[i] = Math.max(-1, Math.min(1, out[i]));
+    return out;
+  })(),
+
+  // ─── Start game: bright ascending arpeggio ───
+  start: (() => {
+    const dur = 0.7;
+    const n = Math.floor(AUDIO_SR * dur);
+    const out = new Float32Array(n);
+    const notes = [
+      {freq: 329.63, start: 0, dur: 0.15, vol: 0.35},     // E4
+      {freq: 392.00, start: 0.12, dur: 0.15, vol: 0.35},   // G4
+      {freq: 493.88, start: 0.24, dur: 0.25, vol: 0.4},    // B4
+    ];
+    for (const note of notes) {
+      const off = Math.floor(note.start * AUDIO_SR);
+      const len = Math.floor(note.dur * AUDIO_SR);
+      for (let i = 0; i < len && i + off < n; i++) {
+        const t = i / AUDIO_SR;
+        const env = note.vol * Math.exp(-t * 4);
+        const w = Math.sin(2*Math.PI*note.freq*t)
+                + 0.35 * Math.sin(2*Math.PI*note.freq*2*t) * Math.exp(-t*6)
+                + 0.15 * Math.sin(2*Math.PI*note.freq*3*t) * Math.exp(-t*10);
+        out[i + off] += w * env;
+      }
+    }
+    for (let i = 0; i < n; i++) out[i] = Math.max(-1, Math.min(1, out[i]));
+    return out;
+  })(),
+
+  // ─── Scardone: dramatic descending brass/trombone with tremolo ───
+  scardone: (() => {
+    const dur = 1.0;
+    const n = Math.floor(AUDIO_SR * dur);
+    const out = new Float32Array(n);
+    // Dramatic descending glissando with rich harmonics
+    for (let i = 0; i < n; i++) {
+      const t = i / AUDIO_SR;
+      // Frequency sweeps from ~300Hz down to ~80Hz
+      const freq = 300 * Math.exp(-t * 1.8) + 80;
+      const env = Math.min(1, t / 0.02) * Math.exp(-t * 1.5) * 0.55;
+      // Tremolo (vibrato volume)
+      const trem = 1 + 0.15 * Math.sin(2 * Math.PI * 6 * t);
+      // Rich sawtooth-ish waveform (sum of harmonics)
+      let w = 0;
+      for (let h = 1; h <= 6; h++) {
+        w += Math.sin(2 * Math.PI * freq * h * t) / h * Math.exp(-t * h * 0.8);
+      }
+      // Add some noise for brass "buzz"
+      const buzzSeed = Math.sin(t * 12345.6789) * 43758.5453;
+      const buzz = (buzzSeed - Math.floor(buzzSeed)) * 2 - 1;
+      out[i] = (w * 0.7 + buzz * 0.08) * env * trem;
+    }
+    for (let i = 0; i < n; i++) out[i] = Math.max(-1, Math.min(1, out[i]));
+    return out;
+  })(),
+
+  // ─── Emote sounds — CARTOON STYLE (fun, exaggerated, bouncy) ───
+
+  // 😄 Happy: Fun, natural infectious laugh "Hahaha-ha!"
+  // Uses vocal synthesis with pitch scoops and formant variation for naturalness and joy
+  emoteHappy: (() => {
+    const dur = 1.2; const n = Math.floor(AUDIO_SR * dur);
+    const out = new Float32Array(n);
+    const seed = [345];
+
+    // 5 bursts: varying duration and spacing for natural rhythm
+    // "Ha... Ha... Hahaha!" - starts separate, then accelerates
+    const bursts = [
+      {t: 0.00, d: 0.14, p: 1.05}, // Ha
+      {t: 0.17, d: 0.12, p: 1.15}, // Ha
+      {t: 0.32, d: 0.11, p: 1.20}, // Ha
+      {t: 0.44, d: 0.10, p: 1.15}, // Ha
+      {t: 0.55, d: 0.18, p: 0.95}  // Haaaa
+    ];
+
+    // Formants for a bright "Ah" / "Eh" vowel mixture (fun/smiling sound)
+    // Smile = higher F2
+    let f1 = _makeFormant(650, 80);   // Throat/Chest resonance
+    let f2 = _makeFormant(1400, 100); // Mouth cavity (smiling)
+    
+    // Pitch envelope state
+    let phase = 0;
+
+    for (let i = 0; i < n; i++) {
+        const t = i / AUDIO_SR;
+        let amp = 0;
+        let f0_mod = 1;
+        let breath = 0;
+        
+        // Sum bursts
+        for (let b of bursts) {
+             if (t >= b.t && t < b.t + b.d * 1.5) {
+                 const relTime = (t - b.t) / b.d; // normalized time
+                 if (relTime < 1.5) {
+                     // Envelope: Fast attack, rounded sustain, decay
+                     // Using a sine-window approx for natural airflow amplitude
+                     const env = Math.max(0, Math.sin(relTime * Math.PI / 1.5));
+                     amp += env * Math.pow(env, 0.5); // Square root to fatten the body
+                     
+                     // Pitch scoop: Starts slightly lower, goes up, then drops at end of syllable
+                     // This creates the human "ha" articulation
+                     f0_mod = b.p * (0.9 + 0.15 * Math.sin(Math.min(1, relTime * 1.5) * Math.PI)); 
+                     
+                     // Breath at start (h) and end (aspiration)
+                     if (relTime < 0.2 || relTime > 1.2) breath += 0.5 * env;
+                 }
+             }
+        }
+        
+        if (amp > 0.001) {
+             // Base pitch ~280Hz (Joyful Tenor/Alto range) - with slight vibrato for life
+             const vib = 1 + 0.025 * Math.sin(2*Math.PI * 6.5 * t);
+             const f0 = 280 * f0_mod * vib;
+             
+             phase += f0 / AUDIO_SR;
+             
+             // Glottal source (vocal cords buzzing)
+             const glot = _glottal(phase) * 0.8;
+             
+             // Breath noise (h-sound turbulence)
+             const nz = _sndRng(seed) * 0.3 * (breath + 0.05);
+
+             const src = glot + nz;
+             
+             // Apply vocal tract filter
+             const v1 = _filterFormant(f1, src);
+             const v2 = _filterFormant(f2, src);
+             
+             // Mix: F1 is usually stronger, F2 gives the "smile" character
+             out[i] = (v1 + v2 * 0.5) * amp;
+        }
+    }
+    
+    // Normalize and add room reverb tail simulation (decay)
+    let max = 0; for(let i=0; i<n; i++) max = Math.max(max, Math.abs(out[i]));
+    if(max>0) for(let i=0; i<n; i++) out[i] = (out[i]/max) * 0.9;
+    
+    return out;
+  })(),
+
+  // 😢 Sad: cartoon slide-whistle down + wah-wah trombone
+  emoteSad: (() => {
+    const dur = 0.7; const n = Math.floor(AUDIO_SR * dur);
+    const out = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const t = i / AUDIO_SR;
+      // Slide whistle going down: 800Hz → 150Hz
+      const slideF = 800 * Math.exp(-t * 3.5) + 150;
+      const slideEnv = Math.exp(-t * 2.5) * 0.3;
+      const slide = Math.sin(2*Math.PI*slideF*t) * slideEnv;
+      // Wah-wah trombone: "wah wah waaah"
+      const wahF = 180 - 50*(t/dur);
+      const wahAmt = 0.5 + 0.5 * Math.sin(2*Math.PI*3*t); // wah modulation
+      let wah = 0;
+      for (let h = 1; h <= 5; h++) {
+        wah += Math.sin(2*Math.PI*wahF*h*t) / h;
+      }
+      const wahEnv = Math.sin(Math.PI * t/dur) * 0.3 * wahAmt;
+      out[i] = Math.max(-0.9, Math.min(0.9, slide + wah * wahEnv));
+    }
+    return out;
+  })(),
+
+  // 💪 Ready: cartoon punch/pow — big impact with comic spring
+  emoteReady: (() => {
+    const dur = 0.3; const n = Math.floor(AUDIO_SR * dur);
+    const out = new Float32Array(n);
+    const seed = [77];
+    for (let i = 0; i < n; i++) {
+      const t = i / AUDIO_SR;
+      // MASSIVE punchy impact
+      const att = Math.min(1, t / 0.001);
+      // Deep boom
+      const boom = Math.sin(2*Math.PI*60*t) * Math.exp(-t * 15) * 0.6;
+      // Mid crack
+      const crack = Math.sin(2*Math.PI*250*t) * Math.exp(-t * 35) * 0.4;
+      // Noise burst
+      const nz = _sndRng(seed) * Math.exp(-t * 50) * 0.5;
+      // Comic spring after hit (boing!)
+      const springT = t - 0.05;
+      let spring = 0;
+      if (springT > 0) {
+        const sf = 600 * Math.exp(-springT * 8);
+        spring = Math.sin(2*Math.PI*sf*springT) * Math.exp(-springT * 12) * 0.25;
+      }
+      out[i] = Math.max(-0.9, Math.min(0.9, (boom + crack + nz) * att + spring));
+    }
+    return out;
+  })(),
+
+  // ⏳ Waiting: cartoon clock ticking that speeds up impatiently
+  emoteWaiting: (() => {
+    const dur = 0.6; const n = Math.floor(AUDIO_SR * dur);
+    const out = new Float32Array(n);
+    const seed = [131];
+    // Ticks that get faster and more agitated
+    const ticks = [0, 0.12, 0.22, 0.30, 0.36, 0.41, 0.45, 0.48];
+    for (let ti = 0; ti < ticks.length; ti++) {
+      const clickStart = Math.floor(ticks[ti] * AUDIO_SR);
+      // Pitch rises with impatience
+      const clickF = 1200 + ti * 200;
+      const vol = 0.3 + ti * 0.04;
+      for (let i = 0; i < Math.floor(0.015 * AUDIO_SR); i++) {
+        const idx = clickStart + i;
+        if (idx >= n) break;
+        const t = i / AUDIO_SR;
+        const env = Math.exp(-t * 400) * vol;
+        out[idx] += (Math.sin(2*Math.PI*clickF*t) * 0.5 + _sndRng(seed) * 0.3) * env;
+      }
+    }
+    // Exasperated final "boing" at the end
+    const boingStart = Math.floor(0.50 * AUDIO_SR);
+    for (let i = 0; i < Math.floor(0.1 * AUDIO_SR); i++) {
+      const idx = boingStart + i;
+      if (idx >= n) break;
+      const t = i / AUDIO_SR;
+      const f = 500 * (1 + Math.exp(-t*15) * Math.sin(2*Math.PI*20*t));
+      out[idx] += Math.sin(2*Math.PI*f*t) * Math.exp(-t*15) * 0.3;
+    }
+    return out;
+  })(),
+
+  // 😲 Surprised: cartoon "ZOINK!" — fast ascending slide + pop
+  emoteSurprised: (() => {
+    const dur = 0.35; const n = Math.floor(AUDIO_SR * dur);
+    const out = new Float32Array(n);
+    const seed = [211];
+    for (let i = 0; i < n; i++) {
+      const t = i / AUDIO_SR;
+      // Ultra-fast ascending slide whistle: 200Hz → 2000Hz in 100ms
+      if (t < 0.12) {
+        const f = 200 + 1800 * Math.pow(t / 0.12, 0.6);
+        const env = Math.min(1, t/0.003) * (1 - t/0.12) * 0.55;
+        out[i] += Math.sin(2*Math.PI*f*t) * env;
+      }
+      // Pop at the top (like a bubble)
+      if (t >= 0.10 && t < 0.16) {
+        const pt = t - 0.10;
+        const popEnv = Math.exp(-pt * 80) * 0.5;
+        out[i] += _sndRng(seed) * popEnv;
+        out[i] += Math.sin(2*Math.PI*2500*pt) * Math.exp(-pt*120) * 0.3;
+      }
+      // Wobble ring-out
+      if (t >= 0.14) {
+        const wt = t - 0.14;
+        const wf = 1200 + 300 * Math.sin(2*Math.PI*12*wt);
+        out[i] += Math.sin(2*Math.PI*wf*wt) * Math.exp(-wt * 15) * 0.15;
+      }
+      out[i] = Math.max(-0.9, Math.min(0.9, out[i]));
+    }
+    return out;
+  })(),
+
+  // 😜 Teasing: cartoon raspberry/pernacchia + "nah nah" melody
+  emoteTeasing: (() => {
+    const dur = 0.7; const n = Math.floor(AUDIO_SR * dur);
+    const out = new Float32Array(n);
+    const seed = [257];
+    // Raspberry/pernacchia sound first (0-0.25s)
+    for (let i = 0; i < Math.floor(0.25 * AUDIO_SR); i++) {
+      const t = i / AUDIO_SR;
+      const env = Math.sin(Math.PI * t / 0.25) * 0.4;
+      // Low buzzy vibration (lips flapping ~50Hz modulated)
+      const buzz = Math.sin(2*Math.PI*85*t);
+      const mod = 0.5 + 0.5 * Math.sin(2*Math.PI*50*t); // flutter
+      // Add noise for spit texture
+      const spit = _sndRng(seed) * 0.3;
+      // Low harmonics for fatness
+      const low = Math.sin(2*Math.PI*170*t) * 0.3 + Math.sin(2*Math.PI*255*t) * 0.15;
+      out[i] = (buzz * mod + low + spit * 0.2) * env;
+    }
+    // Then "nah nah" taunting melody (cartoon style, 0.30s+)
+    const melody = [{t:0.30,d:0.08,f:520},{t:0.40,d:0.08,f:420},{t:0.50,d:0.12,f:340}];
+    for (const note of melody) {
+      for (let i = 0; i < Math.floor(note.d * AUDIO_SR); i++) {
+        const idx = Math.floor(note.t * AUDIO_SR) + i;
+        if (idx >= n) break;
+        const nt = i / AUDIO_SR;
+        const env = Math.sin(Math.PI * nt / note.d) * 0.35;
+        // Cartoon-nasal square-ish wave
+        const phase = ((note.f * nt) % 1 + 1) % 1;
+        const v = (phase < 0.4 ? 1 : -1) * 0.5 
+                + Math.sin(2*Math.PI*note.f*3*nt) * 0.12;
+        out[idx] += v * env;
+      }
+    }
+    for (let i = 0; i < n; i++) out[i] = Math.max(-0.9, Math.min(0.9, out[i]));
+    return out;
+  })(),
 };
 
 
@@ -1007,7 +1449,19 @@ function initAudio() {
     audioCtx = new AC();
     masterGain = audioCtx.createGain();
     masterGain.gain.value = volumeLevel;
-    masterGain.connect(audioCtx.destination);
+    // Create convolution reverb for room depth
+    try {
+      reverbNode = audioCtx.createConvolver();
+      reverbNode.buffer = createReverbIR(1.5, 3.0);
+      var reverbGain = audioCtx.createGain();
+      reverbGain.gain.value = 0.15; // subtle reverb
+      reverbNode.connect(reverbGain);
+      reverbGain.connect(audioCtx.destination);
+      masterGain.connect(audioCtx.destination); // dry
+      masterGain.connect(reverbNode);            // wet (reverb)
+    } catch(e) {
+      masterGain.connect(audioCtx.destination);
+    }
     for (const [name, raw] of Object.entries(RAW_SOUNDS)) {
       audioBuffers[name] = samplesToBuffer(raw);
     }
@@ -4124,12 +4578,12 @@ document.addEventListener('webkitfullscreenchange',_updateFsBtn);
 // ═══════════════════════════════════════════════════════════════
 (function initEmoticons(){
   var EMOTES = [
-    {id:'happy',   emoji:'\uD83D\uDE04', label:'Felice'},
-    {id:'sad',     emoji:'\uD83D\uDE22', label:'Triste'},
-    {id:'ready',   emoji:'\uD83D\uDCAA', label:'Pronto'},
-    {id:'waiting', emoji:'\u23F3',        label:'Aspetto'},
-    {id:'surprised',emoji:'\uD83D\uDE32', label:'Sorpreso'},
-    {id:'teasing', emoji:'\uD83D\uDE1C', label:'Provocare'}
+    {id:'happy',   emoji:'\uD83D\uDE04', label:'Felice',    snd:'emoteHappy'},
+    {id:'sad',     emoji:'\uD83D\uDE22', label:'Triste',    snd:'emoteSad'},
+    {id:'ready',   emoji:'\uD83D\uDCAA', label:'Pronto',    snd:'emoteReady'},
+    {id:'waiting', emoji:'\u23F3',        label:'Aspetto',   snd:'emoteWaiting'},
+    {id:'surprised',emoji:'\uD83D\uDE32', label:'Sorpreso', snd:'emoteSurprised'},
+    {id:'teasing', emoji:'\uD83D\uDE1C', label:'Provocare', snd:'emoteTeasing'}
   ];
   var POSITIONS = ['south','east','north','west'];
   var emoteTimers = {};
@@ -4214,6 +4668,8 @@ document.addEventListener('webkitfullscreenchange',_updateFsBtn);
     var bubble = document.getElementById('emote-'+pos);
     if(!bubble) return;
     bubble.textContent = emote.emoji;
+    // Play emote sound
+    if(emote.snd) playBuffer(emote.snd);
     // Show on the player's card area for ALL players
     posOnCards(bubble, pos);
     bubble.classList.add('show');
