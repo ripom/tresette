@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Tresette Multiplayer — Carte Napoletane</title>
 <script>
 // Served via GitHub Pages or any HTTP server for full iOS/cross-platform support
@@ -181,6 +184,13 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   font-size:clamp(10px, 2.2vw, 12px);touch-action:manipulation;min-height:36px;
 }
 #quit-btn:hover{background:rgba(160,40,40,0.8)}
+#fullscreen-btn{
+  position:fixed;top:clamp(80px, 10vh, 94px);left:clamp(4px, 1vw, 10px);z-index:60;
+  background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);
+  color:#ddd;padding:clamp(4px, 1vw, 6px) clamp(8px, 2vw, 14px);border-radius:6px;cursor:pointer;
+  font-size:clamp(10px, 2.2vw, 12px);touch-action:manipulation;min-height:36px;
+}
+#fullscreen-btn:hover{background:rgba(0,0,0,0.7)}
 
 /* ════════ Rules Panel ════════ */
 #rules-panel{
@@ -370,9 +380,9 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 @media (max-width: 520px) and (orientation: portrait) {
   #score-panel{top:auto;bottom:clamp(100px, 28vw, 140px);right:auto;left:clamp(2px, 0.5vw, 4px);width:clamp(72px, 34vw, 136px)}
   #tournament-panel{top:auto;bottom:clamp(100px, 28vw, 140px);left:auto;right:clamp(2px, 0.5vw, 4px);width:clamp(72px, 34vw, 136px)}
-  /* Banners: top-left area */
-  #lead-suit-badge{top:clamp(90px, 22vw, 130px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
-  #trick-winner-badge{top:clamp(118px, 28vw, 160px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
+  /* Banners: top-left area, below fullscreen button */
+  #lead-suit-badge{top:clamp(124px, 30vw, 170px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
+  #trick-winner-badge{top:clamp(152px, 36vw, 200px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
   #overlay{padding-top:calc(env(safe-area-inset-top, 12px) + 14px);padding-bottom:calc(96px + env(safe-area-inset-bottom, 12px))}
   #overlay::before,#overlay::after{display:none}
 }
@@ -547,6 +557,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 
 <button id="rules-btn">📜 Regole</button>
 <button id="quit-btn" style="display:none">❌ Fine Partita</button>
+<button id="fullscreen-btn" onclick="toggleFullscreen()">⛶ Schermo intero</button>
 
 <div id="tournament-panel" style="display:none">
   <div class="tp-header" onclick="toggleTournament()">
@@ -3444,6 +3455,61 @@ function forceReconnect() {
 }
 
 document.getElementById('retry-btn').onclick = handleRetryGame;
+
+// ── Fullscreen toggle ──
+function _requestFs(el){
+  if(el.requestFullscreen) return el.requestFullscreen();
+  if(el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); return Promise.resolve(); }
+  if(el.msRequestFullscreen) { el.msRequestFullscreen(); return Promise.resolve(); }
+  return Promise.reject();
+}
+function _exitFs(){
+  var d=document;
+  if(d.exitFullscreen) d.exitFullscreen();
+  else if(d.webkitExitFullscreen) d.webkitExitFullscreen();
+  else if(d.msExitFullscreen) d.msExitFullscreen();
+}
+function _isFs(){
+  return !!(document.fullscreenElement||document.webkitFullscreenElement||document.msFullscreenElement);
+}
+function toggleFullscreen(){
+  if(!_isFs()){
+    _requestFs(document.documentElement).catch(function(){
+      return _requestFs(document.body);
+    }).catch(function(){});
+  } else {
+    _exitFs();
+  }
+}
+function _updateFsBtn(){
+  var btn=document.getElementById('fullscreen-btn'); if(!btn) return;
+  btn.textContent=_isFs()?'⛶ Esci schermo intero':'⛶ Schermo intero';
+}
+document.addEventListener('fullscreenchange',_updateFsBtn);
+document.addEventListener('webkitfullscreenchange',_updateFsBtn);
+
+// Auto-enter fullscreen on first user interaction (desktop only)
+(function(){
+  var isMobile = /Android|iPhone|iPad|iPod|Mobile|Touch/i.test(navigator.userAgent);
+  if(isMobile) return;
+  var done=false;
+  function autoFs(){
+    if(done||_isFs()) return;
+    done=true;
+    _requestFs(document.documentElement).catch(function(){
+      return _requestFs(document.body);
+    }).catch(function(){});
+    cleanup();
+  }
+  function cleanup(){
+    ['click','pointerup','keydown'].forEach(function(ev){
+      document.removeEventListener(ev,autoFs,true);
+    });
+  }
+  ['click','pointerup','keydown'].forEach(function(ev){
+    document.addEventListener(ev,autoFs,true);
+  });
+})();
 
 // ═══════════════════════════════════════════════════════════════
 //  EMOTICON SYSTEM – labels untouched, menus/bubbles float independently
