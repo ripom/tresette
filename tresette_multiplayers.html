@@ -463,6 +463,47 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 .lobby-status{color:#aaa;font-size:13px;margin-top:8px}
 .lobby-error{color:#f66;font-size:13px;margin-top:8px}
 
+/* ════════ Emoticon System ════════ */
+.emoticon-bubble{
+  position:fixed;pointer-events:none;z-index:30;
+  font-size:clamp(28px,7vw,48px);opacity:0;
+  transition:opacity .3s;
+  filter:drop-shadow(0 0 6px rgba(255,200,0,0.6));
+  animation:emote-bounce 0.6s ease-in-out infinite alternate;
+}
+.emoticon-bubble.show{opacity:1}
+@keyframes emote-bounce{
+  0%{transform:scale(1)}
+  100%{transform:scale(1.18)}
+}
+.emote-menu{
+  position:fixed;z-index:50;
+  background:rgba(0,0,0,0.88);border:1px solid rgba(255,255,255,0.25);
+  border-radius:10px;padding:6px 4px;
+  display:none;flex-wrap:wrap;gap:2px;justify-content:center;
+  min-width:clamp(130px,36vw,200px);
+  box-shadow:0 4px 20px rgba(0,0,0,0.7);
+  touch-action:manipulation;
+}
+.emote-menu.show{display:flex}
+.emote-btn{
+  font-size:clamp(24px,6vw,36px);cursor:pointer;background:none;border:none;
+  padding:4px 6px;border-radius:6px;transition:background .15s,transform .15s;
+  line-height:1;-webkit-tap-highlight-color:transparent;
+}
+.emote-btn:hover,.emote-btn:active{background:rgba(255,255,255,0.15);transform:scale(1.15)}
+#emote-trigger-btn{
+  position:fixed;z-index:20;
+  background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.18);
+  color:#ddd;font-size:clamp(8px,1.8vw,11px);font-weight:600;letter-spacing:0.5px;
+  padding:clamp(2px,0.4vh,4px) clamp(6px,1.5vw,10px);
+  border-radius:10px;cursor:pointer;line-height:1.2;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  transition:background .15s,transform .15s,color .15s;
+  white-space:nowrap;
+}
+#emote-trigger-btn:hover,#emote-trigger-btn:active{background:rgba(255,170,68,0.35);color:#fff;transform:scale(1.05)}
+
 </style>
 </head>
 <body>
@@ -475,9 +516,16 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   <div id="trick-area"></div>
 
   <div class="player-label south" id="label-south">Tu <span class="lb-pts"></span></div>
+  <button id="emote-trigger-btn" title="Emoticon">😀 Emoticons</button>
   <div class="player-label north" id="label-north">Riccardo <span class="lb-pts"></span></div>
   <div class="player-label west"  id="label-west">Zio Checco <span class="lb-pts"></span></div>
   <div class="player-label east"  id="label-east">Giuseppe <span class="lb-pts"></span></div>
+
+  <!-- Emoticon bubbles (independent of labels, positioned by JS) -->
+  <div class="emoticon-bubble" id="emote-south"></div>
+  <div class="emoticon-bubble" id="emote-north"></div>
+  <div class="emoticon-bubble" id="emote-west"></div>
+  <div class="emoticon-bubble" id="emote-east"></div>
 </div>
 
 <div id="trick-count">Mano 0 / 10</div>
@@ -3150,6 +3198,11 @@ function hostGame() {
       if(!card || !isCardPlayable(playSeat,card)) return;
       _origPlayCard(playSeat, card).catch(function(e){ dbg('playCard ERR: '+e); });
     }
+    if(data.t==='emote' && data.eid && typeof data.pidx==='number'){
+      try{
+        var es=window._emoteSystem; if(es){ var em=es.findEmote(data.eid); if(em) es.showForPlayer(data.pidx,em); }
+      }catch(e){}
+    }
   }
   mpListen(hostHandler);
 
@@ -3290,6 +3343,11 @@ function joinGame() {
       }
       initAudio(); renderAll(); renderTournament(); sndStart(); showStatus('Partita iniziata!',1500);
     }
+    if(data.t==='emote' && data.eid && typeof data.pidx==='number'){
+      try{
+        var es=window._emoteSystem; if(es){ var em=es.findEmote(data.eid); if(em) es.showForPlayer(data.pidx,em); }
+      }catch(e){}
+    }
   }
   mpListen(clientHandler);
 
@@ -3386,6 +3444,178 @@ function forceReconnect() {
 }
 
 document.getElementById('retry-btn').onclick = handleRetryGame;
+
+// ═══════════════════════════════════════════════════════════════
+//  EMOTICON SYSTEM – labels untouched, menus/bubbles float independently
+// ═══════════════════════════════════════════════════════════════
+(function initEmoticons(){
+  var EMOTES = [
+    {id:'happy',   emoji:'\uD83D\uDE04', label:'Felice'},
+    {id:'sad',     emoji:'\uD83D\uDE22', label:'Triste'},
+    {id:'ready',   emoji:'\uD83D\uDCAA', label:'Pronto'},
+    {id:'waiting', emoji:'\u23F3',        label:'Aspetto'},
+    {id:'surprised',emoji:'\uD83D\uDE32', label:'Sorpreso'},
+    {id:'teasing', emoji:'\uD83D\uDE1C', label:'Provocare'}
+  ];
+  var POSITIONS = ['south','east','north','west'];
+  var emoteTimers = {};
+  var openMenuPos = null;
+
+  // Dynamically create a single reusable menu
+  var menuEl = document.createElement('div');
+  menuEl.className = 'emote-menu';
+  menuEl.id = 'emote-menu-popup';
+  EMOTES.forEach(function(e){
+    var btn = document.createElement('button');
+    btn.className = 'emote-btn';
+    btn.textContent = e.emoji;
+    btn.title = e.label;
+    btn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      if(openMenuPos) onEmoteSelect(openMenuPos, e);
+    });
+    btn.addEventListener('pointerdown', function(ev){ ev.stopPropagation(); });
+    menuEl.appendChild(btn);
+  });
+  document.body.appendChild(menuEl);
+
+  // ── helpers ──
+  function getRot(){
+    return (typeof mpMode!=='undefined'&&mpMode&&!isHost&&typeof mySeat!=='undefined'&&mySeat>=0)?mySeat:0;
+  }
+  function getVisualPos(idx){ return POSITIONS[(idx-getRot()+4)%4]; }
+  function idxForPos(pos){ var v=POSITIONS.indexOf(pos); return v<0?-1:(v+getRot())%4; }
+  function humanSeat(){ return getRot(); }
+
+  // ── position a floating element near a label ──
+  function posNear(el, labelId, above){
+    var lbl = document.getElementById(labelId);
+    if(!lbl){ el.style.display='none'; return; }
+    var r = lbl.getBoundingClientRect();
+    var cx = r.left + r.width/2;
+    var cy = r.top + r.height/2;
+    var pos = labelId.replace('label-','');
+    el.style.position = 'fixed';
+    if(pos==='south'){
+      el.style.left = cx+'px'; el.style.top = (r.top-4)+'px';
+      el.style.transform = 'translate(-50%,-100%)';
+    } else if(pos==='north'){
+      el.style.left = cx+'px'; el.style.top = (r.bottom+4)+'px';
+      el.style.transform = 'translate(-50%,0)';
+    } else if(pos==='west'){
+      el.style.left = (r.right+4)+'px'; el.style.top = cy+'px';
+      el.style.transform = 'translate(0,-50%)';
+    } else if(pos==='east'){
+      el.style.left = (r.left-4)+'px'; el.style.top = cy+'px';
+      el.style.transform = 'translate(-100%,-50%)';
+    }
+  }
+
+  // ── position emoticon bubble on the player's card area ──
+  var HAND_IDS = {south:'player-hand',east:'east-hand',north:'north-hand',west:'west-hand'};
+  function posOnCards(el, pos){
+    var hand = document.getElementById(HAND_IDS[pos]);
+    if(!hand){ el.style.display='none'; return; }
+    var r = hand.getBoundingClientRect();
+    var cx = r.left + r.width/2;
+    var cy = r.top + r.height/2;
+    el.style.position = 'fixed';
+    el.style.top = cy + 'px';
+    if(pos==='east'){
+      // Shift left so the emoji doesn't get clipped by the right edge
+      el.style.left = (r.left) + 'px';
+      el.style.transform = 'translate(-50%,-50%)';
+    } else if(pos==='west'){
+      // Shift right so it doesn't get clipped by the left edge
+      el.style.left = (r.right) + 'px';
+      el.style.transform = 'translate(-50%,-50%)';
+    } else {
+      el.style.left = cx + 'px';
+      el.style.transform = 'translate(-50%,-50%)';
+    }
+  }
+
+  // ── show/hide emoticon bubble ──
+  function showEmoticon(pos, emote){
+    var bubble = document.getElementById('emote-'+pos);
+    if(!bubble) return;
+    bubble.textContent = emote.emoji;
+    // Show on the player's card area for ALL players
+    posOnCards(bubble, pos);
+    bubble.classList.add('show');
+    if(emoteTimers[pos]) clearTimeout(emoteTimers[pos]);
+    emoteTimers[pos] = setTimeout(function(){
+      bubble.classList.remove('show');
+    }, 5000);
+  }
+  function showEmoticonForPlayer(idx,emote){ showEmoticon(getVisualPos(idx),emote); }
+
+  // ── menu (above the trigger button) ──
+  function openMenu(){
+    closeMenu();
+    var btn = document.getElementById('emote-trigger-btn');
+    if(!btn) return;
+    var r = btn.getBoundingClientRect();
+    menuEl.style.position = 'fixed';
+    menuEl.style.left = (r.left + r.width/2) + 'px';
+    menuEl.style.top = (r.top - 6) + 'px';
+    menuEl.style.transform = 'translate(-50%,-100%)';
+    menuEl.classList.add('show');
+    openMenuPos = 'south';
+  }
+  function closeMenu(){
+    menuEl.classList.remove('show');
+    openMenuPos = null;
+  }
+  function onEmoteSelect(pos, emote){
+    closeMenu();
+    showEmoticon(pos, emote);
+    if(typeof mpMode!=='undefined'&&mpMode){
+      try{ mpSend({t:'emote',pidx:idxForPos(pos),eid:emote.id}); }catch(e){}
+    }
+  }
+
+  // ── dedicated emote button – right of label (desktop) or above label (mobile) ──
+  (function(){
+    var btn = document.getElementById('emote-trigger-btn');
+    if(!btn) return;
+
+    function isMobile(){ return window.innerWidth <= 520 || window.innerHeight <= 500; }
+
+    function positionBtn(){
+      var lbl = document.getElementById('label-south');
+      if(!lbl) return;
+      var r = lbl.getBoundingClientRect();
+      if(isMobile()){
+        // Above the label, centered
+        btn.style.left = (r.left + r.width/2) + 'px';
+        btn.style.top = (r.top - 4) + 'px';
+        btn.style.transform = 'translate(-50%,-100%)';
+      } else {
+        // To the right of the label
+        btn.style.left = (r.right + 14) + 'px';
+        btn.style.top = (r.top + r.height/2) + 'px';
+        btn.style.transform = 'translateY(-50%)';
+      }
+    }
+    positionBtn();
+    window.addEventListener('resize', positionBtn);
+    setInterval(positionBtn, 2000);
+
+    btn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      if(openMenuPos==='south') closeMenu(); else openMenu();
+    });
+  })();
+  document.addEventListener('click', closeMenu);
+
+  // ── emoticon utilities (no CPU auto-emotes, only humans can send) ──
+  function findEmote(id){
+    for(var i=0;i<EMOTES.length;i++) if(EMOTES[i].id===id) return EMOTES[i];
+    return EMOTES[0];
+  }
+  window._emoteSystem = { showForPlayer:showEmoticonForPlayer, findEmote:findEmote, EMOTES:EMOTES };
+})();
 
 </script>
 
