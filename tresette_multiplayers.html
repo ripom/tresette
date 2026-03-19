@@ -764,7 +764,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
       <div class="lobby-status" id="host-status">In attesa di giocatori...</div>
       <button class="lobby-btn primary" id="start-mp-btn" style="display:none" onclick="startMultiplayerGame()">▶ Inizia Partita</button>
     </div>
-    <button class="lobby-btn" style="margin-top:8px" onclick="cancelLobby()">Indietro</button>
+    <button class="lobby-btn" id="lobby-back-host-btn" style="margin-top:8px" onclick="cancelLobby()">Indietro</button>
   </div>
 
   <!-- JOIN ROOM SECTION -->
@@ -783,12 +783,12 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
       <div style="color:#ccc;font-size:clamp(11px,2.2vw,13px);margin-bottom:4px">Oppure inserisci il codice:</div>
       <input type="text" class="lobby-input" id="join-code-input" maxlength="6" placeholder="CODICE" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
       <div class="lobby-actions" style="margin-top:8px">
-        <button class="lobby-btn primary" onclick="joinGame()">Unisciti</button>
+        <button class="lobby-btn primary" id="join-room-btn" onclick="joinGame()">Unisciti</button>
       </div>
     </div>
     <div class="lobby-status" id="join-status"></div>
     <div class="lobby-error" id="join-error"></div>
-    <button class="lobby-btn" style="margin-top:8px" onclick="cancelLobby()">Indietro</button>
+    <button class="lobby-btn" id="lobby-back-join-btn" style="margin-top:8px" onclick="cancelLobby()">Indietro</button>
   </div>
 
   <!-- SEAT PICKER (vincere mode, shown after clicking Unisciti) -->
@@ -801,7 +801,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
     <div id="seat-pick-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
     <div id="seat-pick-error" style="color:#f66;font-size:12px;text-align:center;min-height:18px"></div>
     <button class="lobby-btn primary" id="seat-pick-confirm" onclick="confirmSeatPick()" style="display:block;margin:8px auto">▶ Conferma e Unisciti</button>
-    <button class="lobby-btn" style="margin-top:6px;display:block;margin-left:auto;margin-right:auto" onclick="cancelSeatPick()">Indietro</button>
+    <button class="lobby-btn" id="seat-pick-cancel-btn" style="margin-top:6px;display:block;margin-left:auto;margin-right:auto" onclick="cancelSeatPick()">Indietro</button>
   </div>
 
   <!-- WAITING SECTION (for client after joining) -->
@@ -846,9 +846,9 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   </div>
 
   <div class="menu-actions">
-    <button class="lobby-btn primary" type="button" style="width:min(280px,80vw)" onpointerdown="return runOverlayMenuAction(event,'single')" onclick="return runOverlayMenuAction(event,'single')">🃏 Gioca da Solo (vs CPU)</button>
-    <button class="lobby-btn primary" type="button" style="width:min(280px,80vw);background:rgba(20,80,40,0.9)" onpointerdown="return runOverlayMenuAction(event,'create')" onclick="return runOverlayMenuAction(event,'create')">🏠 Crea Stanza</button>
-    <button class="lobby-btn" type="button" style="width:min(280px,80vw)" onpointerdown="return runOverlayMenuAction(event,'join')" onclick="return runOverlayMenuAction(event,'join')">🚪 Unisciti a Stanza</button>
+    <button class="lobby-btn primary" id="overlay-single-btn" type="button" style="width:min(280px,80vw)" onpointerdown="return runOverlayMenuAction(event,'single')" onclick="return runOverlayMenuAction(event,'single')">🃏 Gioca da Solo (vs CPU)</button>
+    <button class="lobby-btn primary" id="overlay-create-btn" type="button" style="width:min(280px,80vw);background:rgba(20,80,40,0.9)" onpointerdown="return runOverlayMenuAction(event,'create')" onclick="return runOverlayMenuAction(event,'create')">🏠 Crea Stanza</button>
+    <button class="lobby-btn" id="overlay-join-btn" type="button" style="width:min(280px,80vw)" onpointerdown="return runOverlayMenuAction(event,'join')" onclick="return runOverlayMenuAction(event,'join')">🚪 Unisciti a Stanza</button>
   </div>
 </div>
 
@@ -1196,110 +1196,122 @@ const RAW_SOUNDS = {
     return out;
   })(),
 
-  // ─── Emote sounds — CARTOON STYLE (fun, exaggerated, bouncy) ───
+  // ─── Emote sounds — more expressive voice-like reactions ───
 
-  // 😄 Happy: Fun, natural infectious laugh "Hahaha-ha!"
-  // Uses vocal synthesis with pitch scoops and formant variation for naturalness and joy
+  // 😄 Happy: airy human laugh with uneven rhythm and light room bloom
   emoteHappy: (() => {
-    const dur = 1.2; const n = Math.floor(AUDIO_SR * dur);
+    const dur = 1.28; const n = Math.floor(AUDIO_SR * dur);
     const out = new Float32Array(n);
-    const seed = [345];
-
-    // 5 bursts: varying duration and spacing for natural rhythm
-    // "Ha... Ha... Hahaha!" - starts separate, then accelerates
-    const bursts = [
-      {t: 0.00, d: 0.14, p: 1.05}, // Ha
-      {t: 0.17, d: 0.12, p: 1.15}, // Ha
-      {t: 0.32, d: 0.11, p: 1.20}, // Ha
-      {t: 0.44, d: 0.10, p: 1.15}, // Ha
-      {t: 0.55, d: 0.18, p: 0.95}  // Haaaa
+    const breathSeed = [345];
+    const jitterSeed = [701];
+    const syllables = [
+      { t: 0.00, d: 0.16, f0: 258, a: 0.92 },
+      { t: 0.19, d: 0.13, f0: 272, a: 0.86 },
+      { t: 0.35, d: 0.12, f0: 284, a: 0.78 },
+      { t: 0.48, d: 0.11, f0: 291, a: 0.70 },
+      { t: 0.60, d: 0.18, f0: 248, a: 0.58 }
     ];
-
-    // Formants for a bright "Ah" / "Eh" vowel mixture (fun/smiling sound)
-    // Smile = higher F2
-    let f1 = _makeFormant(650, 80);   // Throat/Chest resonance
-    let f2 = _makeFormant(1400, 100); // Mouth cavity (smiling)
-    
-    // Pitch envelope state
+    let f1 = _makeFormant(720, 120);
+    let f2 = _makeFormant(1340, 150);
+    let f3 = _makeFormant(2480, 220);
     let phase = 0;
+    let jitter = 0;
 
     for (let i = 0; i < n; i++) {
-        const t = i / AUDIO_SR;
-        let amp = 0;
-        let f0_mod = 1;
-        let breath = 0;
-        
-        // Sum bursts
-        for (let b of bursts) {
-             if (t >= b.t && t < b.t + b.d * 1.5) {
-                 const relTime = (t - b.t) / b.d; // normalized time
-                 if (relTime < 1.5) {
-                     // Envelope: Fast attack, rounded sustain, decay
-                     // Using a sine-window approx for natural airflow amplitude
-                     const env = Math.max(0, Math.sin(relTime * Math.PI / 1.5));
-                     amp += env * Math.pow(env, 0.5); // Square root to fatten the body
-                     
-                     // Pitch scoop: Starts slightly lower, goes up, then drops at end of syllable
-                     // This creates the human "ha" articulation
-                     f0_mod = b.p * (0.9 + 0.15 * Math.sin(Math.min(1, relTime * 1.5) * Math.PI)); 
-                     
-                     // Breath at start (h) and end (aspiration)
-                     if (relTime < 0.2 || relTime > 1.2) breath += 0.5 * env;
-                 }
-             }
-        }
-        
-        if (amp > 0.001) {
-             // Base pitch ~280Hz (Joyful Tenor/Alto range) - with slight vibrato for life
-             const vib = 1 + 0.025 * Math.sin(2*Math.PI * 6.5 * t);
-             const f0 = 280 * f0_mod * vib;
-             
-             phase += f0 / AUDIO_SR;
-             
-             // Glottal source (vocal cords buzzing)
-             const glot = _glottal(phase) * 0.8;
-             
-             // Breath noise (h-sound turbulence)
-             const nz = _sndRng(seed) * 0.3 * (breath + 0.05);
+      const t = i / AUDIO_SR;
+      let amp = 0;
+      let baseF0 = 0;
+      let breath = 0;
 
-             const src = glot + nz;
-             
-             // Apply vocal tract filter
-             const v1 = _filterFormant(f1, src);
-             const v2 = _filterFormant(f2, src);
-             
-             // Mix: F1 is usually stronger, F2 gives the "smile" character
-             out[i] = (v1 + v2 * 0.5) * amp;
-        }
+      for (const s of syllables) {
+        if (t < s.t || t > s.t + s.d) continue;
+        const rel = (t - s.t) / s.d;
+        const env = Math.sin(Math.PI * Math.pow(rel, 0.72));
+        amp += env * s.a;
+        baseF0 += s.f0 * (1 - 0.11 * rel) * env;
+        breath += (rel < 0.20 ? 0.8 : 0.16) * env;
+      }
+
+      if (amp <= 0.0008) continue;
+      if ((i & 127) === 0) jitter = _sndRng(jitterSeed) * 0.018;
+
+      const vibrato = 1 + 0.011 * Math.sin(2 * Math.PI * 5.7 * t + 0.5) + jitter;
+      const chuckle = 1 + 0.025 * Math.sin(2 * Math.PI * 13.5 * t) * Math.min(1, amp);
+      const f0 = Math.max(140, baseF0 * vibrato * chuckle);
+      phase += f0 / AUDIO_SR;
+
+      const glot = _glottal(phase) * (0.78 + 0.14 * Math.sin(2 * Math.PI * 0.9 * t));
+      const aspiration = _sndRng(breathSeed) * (0.24 * breath);
+      const src = glot + aspiration;
+
+      const v1 = _filterFormant(f1, src);
+      const v2 = _filterFormant(f2, src);
+      const v3 = _filterFormant(f3, src);
+      const brightness = Math.sin(2 * Math.PI * 2100 * t) * 0.02 * amp;
+      out[i] = (v1 * 0.95 + v2 * 0.62 + v3 * 0.18 + brightness) * amp;
     }
-    
-    // Normalize and add room reverb tail simulation (decay)
-    let max = 0; for(let i=0; i<n; i++) max = Math.max(max, Math.abs(out[i]));
-    if(max>0) for(let i=0; i<n; i++) out[i] = (out[i]/max) * 0.9;
-    
+
+    const d1 = Math.floor(AUDIO_SR * 0.018);
+    const d2 = Math.floor(AUDIO_SR * 0.033);
+    for (let i = d2; i < n; i++) {
+      out[i] += out[i - d1] * 0.13;
+      out[i] += out[i - d2] * 0.06;
+    }
+
+    let max = 0;
+    for (let i = 0; i < n; i++) max = Math.max(max, Math.abs(out[i]));
+    if (max > 0) for (let i = 0; i < n; i++) out[i] = out[i] / max * 0.88;
     return out;
   })(),
 
-  // 😢 Sad: cartoon slide-whistle down + wah-wah trombone
+  // 😢 Sad: breathy sob that falls into a soft human sigh
   emoteSad: (() => {
-    const dur = 0.7; const n = Math.floor(AUDIO_SR * dur);
+    const dur = 1.18; const n = Math.floor(AUDIO_SR * dur);
     const out = new Float32Array(n);
+    const breathSeed = [909];
+    const jitterSeed = [177];
+    let f1 = _makeFormant(610, 110);
+    let f2 = _makeFormant(980, 130);
+    let f3 = _makeFormant(2280, 240);
+    let phase = 0;
+    let jitter = 0;
+
     for (let i = 0; i < n; i++) {
       const t = i / AUDIO_SR;
-      // Slide whistle going down: 800Hz → 150Hz
-      const slideF = 800 * Math.exp(-t * 3.5) + 150;
-      const slideEnv = Math.exp(-t * 2.5) * 0.3;
-      const slide = Math.sin(2*Math.PI*slideF*t) * slideEnv;
-      // Wah-wah trombone: "wah wah waaah"
-      const wahF = 180 - 50*(t/dur);
-      const wahAmt = 0.5 + 0.5 * Math.sin(2*Math.PI*3*t); // wah modulation
-      let wah = 0;
-      for (let h = 1; h <= 5; h++) {
-        wah += Math.sin(2*Math.PI*wahF*h*t) / h;
-      }
-      const wahEnv = Math.sin(Math.PI * t/dur) * 0.3 * wahAmt;
-      out[i] = Math.max(-0.9, Math.min(0.9, slide + wah * wahEnv));
+      const attack = Math.min(1, t / 0.06);
+      const decay = Math.exp(-t * 1.7);
+      const sob = Math.exp(-Math.pow((t - 0.23) / 0.075, 2));
+      const tail = t > 0.48 ? Math.exp(-(t - 0.48) * 3.0) : 0;
+      const amp = Math.min(1, attack * (0.56 * decay + 0.48 * sob + 0.30 * tail));
+      if (amp <= 0.0006) continue;
+
+      if ((i & 127) === 0) jitter = _sndRng(jitterSeed) * 0.026;
+      const vibrato = 1 + 0.018 * Math.sin(2 * Math.PI * 4.2 * t + 0.8) + jitter;
+      const sobBreak = 1 + 0.11 * sob * Math.sin(2 * Math.PI * 9.5 * t);
+      const f0 = Math.max(108, (208 - 62 * t) * vibrato * sobBreak);
+      phase += f0 / AUDIO_SR;
+
+      const glot = _glottal(phase) * (0.72 - 0.16 * sob + 0.08 * tail);
+      const breath = _sndRng(breathSeed) * (0.18 + 0.24 * sob + 0.22 * tail);
+      const source = glot + breath;
+
+      const v1 = _filterFormant(f1, source);
+      const v2 = _filterFormant(f2, source);
+      const v3 = _filterFormant(f3, source);
+      const rasp = Math.sin(2 * Math.PI * 1450 * t) * 0.022 * sob;
+      out[i] = (v1 * 1.00 + v2 * 0.50 + v3 * 0.16 + rasp) * amp;
     }
+
+    const d1 = Math.floor(AUDIO_SR * 0.024);
+    const d2 = Math.floor(AUDIO_SR * 0.051);
+    for (let i = d2; i < n; i++) {
+      out[i] += out[i - d1] * 0.10;
+      out[i] += out[i - d2] * 0.05;
+    }
+
+    let max = 0;
+    for (let i = 0; i < n; i++) max = Math.max(max, Math.abs(out[i]));
+    if (max > 0) for (let i = 0; i < n; i++) out[i] = out[i] / max * 0.84;
     return out;
   })(),
 
@@ -3226,6 +3238,38 @@ function backToOverlay() {
   document.getElementById('lobby-overlay').classList.add('hidden');
   document.getElementById('overlay').classList.remove('hidden');
 }
+
+function bindRemoteSafeUiHandlers() {
+  function bindClick(id, handler) {
+    var el = document.getElementById(id);
+    if(!el || el.dataset.boundClick === '1') return;
+    el.dataset.boundClick = '1';
+    el.addEventListener('click', handler);
+  }
+  function bindOverlayAction(id, action) {
+    var el = document.getElementById(id);
+    if(!el || el.dataset.boundOverlayAction === '1') return;
+    el.dataset.boundOverlayAction = '1';
+    var handler = function(ev) { return runOverlayMenuAction(ev, action); };
+    el.addEventListener('pointerdown', handler);
+    el.addEventListener('click', handler);
+  }
+
+  bindClick('mode-perdere', function(){ selectMode('perdere'); });
+  bindClick('mode-vincere', function(){ selectMode('vincere'); });
+  bindOverlayAction('overlay-single-btn', 'single');
+  bindOverlayAction('overlay-create-btn', 'create');
+  bindOverlayAction('overlay-join-btn', 'join');
+  bindClick('create-room-btn', hostGame);
+  bindClick('join-room-btn', joinGame);
+  bindClick('start-mp-btn', startMultiplayerGame);
+  bindClick('lobby-back-host-btn', cancelLobby);
+  bindClick('lobby-back-join-btn', cancelLobby);
+  bindClick('seat-pick-confirm', confirmSeatPick);
+  bindClick('seat-pick-cancel-btn', cancelSeatPick);
+  bindClick('fullscreen-btn', toggleFullscreen);
+}
+bindRemoteSafeUiHandlers();
 
 // No play-btn anymore — buttons are directly on overlay
 document.getElementById('retry-btn').onclick = () => {
