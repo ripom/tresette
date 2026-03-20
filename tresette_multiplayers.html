@@ -157,15 +157,33 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 #status-msg.show{opacity:1}
 #disconnect-banner{
   position:fixed;top:0;left:0;right:0;
-  z-index:30;color:#fff;font-size:clamp(12px, 3vw, 15px);font-weight:bold;
+  z-index:90;color:#fff;font-size:clamp(12px, 3vw, 15px);font-weight:bold;
   text-shadow:0 0 8px rgba(255,0,0,0.5);
-  background:rgba(180,30,30,0.92);padding:clamp(6px, 1.2vh, 10px) clamp(12px, 3vw, 24px);
+  background:linear-gradient(180deg,rgba(140,25,25,0.96),rgba(80,15,15,0.94));
+  padding:clamp(10px, 2vh, 18px) clamp(12px, 3vw, 24px);
   text-align:center;display:none;
+  backdrop-filter:blur(6px);
+  border-bottom:2px solid rgba(255,80,80,0.35);
+  box-shadow:0 4px 20px rgba(0,0,0,0.5);
+}
+#disconnect-banner .disc-title{
+  font-size:clamp(13px,3.2vw,17px);margin-bottom:4px;
+}
+#disconnect-banner .disc-steps{
+  font-size:clamp(10px,2.2vw,13px);font-weight:400;color:rgba(255,255,255,0.82);
+  margin:6px 0 4px 0;line-height:1.5;
+}
+#disconnect-banner .disc-steps .step{display:inline-block;margin:0 3px;opacity:0.5;transition:opacity .3s}
+#disconnect-banner .disc-steps .step.active{opacity:1;color:#ff8}
+#disconnect-banner .disc-steps .step.done{opacity:1;color:#8f8}
+#disconnect-banner .disc-wait{
+  font-size:clamp(10px,2vw,12px);color:rgba(255,255,255,0.65);font-weight:400;font-style:italic;
+  margin-top:4px;
 }
 #reconnect-btn{
-  display:inline-block;margin-left:12px;padding:4px 14px;font-size:clamp(11px,2.5vw,13px);
+  display:none;margin-top:6px;padding:5px 16px;font-size:clamp(11px,2.5vw,13px);
   background:#fff;color:#a00;border:none;border-radius:6px;font-weight:bold;
-  cursor:pointer;vertical-align:middle;
+  cursor:pointer;
 }
 #reconnect-btn:active{opacity:0.7}
 
@@ -899,7 +917,16 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 <div id="trick-winner-badge"></div>
 <div id="scardone-banner">SCARDONE!</div>
 <div id="status-msg"></div>
-<div id="disconnect-banner"><span id="disconnect-text"></span> <button id="reconnect-btn" onclick="forceReconnect()">Riconnetti</button></div>
+<div id="disconnect-banner">
+  <div class="disc-title" id="disconnect-text"></div>
+  <div class="disc-steps" id="disc-steps">
+    <span class="step" id="disc-s1">① Rilevamento</span>
+    <span class="step" id="disc-s2">② Migrazione</span>
+    <span class="step" id="disc-s3">③ Ripristino</span>
+  </div>
+  <div class="disc-wait" id="disc-wait">Attendi qualche secondo...</div>
+  <button id="reconnect-btn" onclick="forceReconnect()">Riconnetti manualmente</button>
+</div>
 <div id="score-panel">
   <div class="sp-header" onclick="toggleScorePanel()">
     <span class="sp-title" id="score-title">PUNTEGGIO</span>
@@ -1028,8 +1055,11 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 </div>
 
 <!-- Debug Panel -->
-<div id="dbg-panel" style="position:fixed;bottom:0;left:0;right:0;max-height:30vh;overflow-y:auto;background:rgba(0,0,0,0.85);color:#0f0;font:11px monospace;padding:4px 6px;z-index:99999;display:none;white-space:pre-wrap;word-break:break-all"></div>
-<button id="dbg-toggle" style="position:fixed;bottom:4px;right:4px;z-index:100000;background:#333;color:#0f0;border:1px solid #0f0;font:10px monospace;padding:2px 6px;opacity:0.7" onclick="var p=document.getElementById('dbg-panel');p.style.display=p.style.display==='none'?'block':'none'">DBG</button>
+<div id="dbg-wrapper" style="position:fixed;bottom:0;left:0;right:0;max-height:30vh;z-index:99999;display:none;flex-direction:column;background:rgba(0,0,0,0.85)">
+  <div id="host-info" style="flex:0 0 auto;background:rgba(10,10,10,0.98);border-bottom:1px solid rgba(255,255,255,0.15);padding:3px 8px;font:10px/1.4 monospace;color:#aaa;text-align:right">👑 <span id="hi-host">—</span></div>
+  <div id="dbg-panel" style="flex:1 1 auto;overflow-y:auto;color:#0f0;font:11px monospace;padding:4px 6px;white-space:pre-wrap;word-break:break-all"></div>
+</div>
+<button id="dbg-toggle" style="position:fixed;bottom:4px;right:4px;z-index:100000;background:#333;color:#0f0;border:1px solid #0f0;font:10px monospace;padding:2px 6px;opacity:0.7" onclick="var w=document.getElementById('dbg-wrapper');w.style.display=w.style.display==='none'?'flex':'none'">DBG</button>
 
 <!-- Multiplayer Lobby -->
 <div id="lobby-overlay" class="hidden">
@@ -1776,7 +1806,7 @@ var BUONGIOCO_DISPLAY_MS = 10000;
 
 function showBuongiocoNotification(declarations) {
   if (!isVincereMode() || !game) return;
-  var rot = (mpMode && !isHost) ? mySeat : 0;
+  var rot = mpMode ? (mySeat >= 0 ? mySeat : 0) : 0;
 
   // Group declarations by playerIdx
   var byPlayer = {};
@@ -2200,7 +2230,7 @@ function renderTournament() {
 
   if (isVincereMode()) {
     // Team-based tournament for "a vincere" — +1 per hand won, first to 7
-    var myIdx = (mpMode && !isHost) ? mySeat : 0;
+    var myIdx = mpMode ? (mySeat >= 0 ? mySeat : 0) : 0;
     var myTeam = getPlayerTeam(myIdx);
     var limit = VINCERE_LIMIT;
     var teams = tournamentScores.map(function(s, i) { return { idx: i, score: s, name: getTeamName(i) }; });
@@ -2215,7 +2245,7 @@ function renderTournament() {
       container.appendChild(row);
     });
   } else {
-    var myIdx = (mpMode && !isHost) ? mySeat : 0;
+    var myIdx = mpMode ? (mySeat >= 0 ? mySeat : 0) : 0;
     var minScore = Math.min(...tournamentScores);
     var maxScore = Math.max(...tournamentScores);
     // Sort by tournament score ascending (best first)
@@ -2393,7 +2423,11 @@ function renderPlayerHand() {
   const container = document.getElementById('player-hand');
   container.innerHTML = '';
   // In multiplayer, show MY seat's hand (host=0, client=1)
-  const myIdx = (mpMode && !isHost) ? mySeat : 0;
+  const myIdx = mpMode ? (mySeat >= 0 ? mySeat : 0) : 0;
+  if(myIdx < 0 || myIdx > 3 || !game.hands[myIdx]) {
+    dbg('[RENDER] renderPlayerHand SKIP: myIdx='+myIdx+' mySeat='+mySeat+' isHost='+isHost);
+    return;
+  }
   const hand = game.hands[myIdx];
   const total = hand.length;
   const { cw, ch } = getCardSize();
@@ -2428,10 +2462,14 @@ function renderPlayerHand() {
             el.style.opacity = '0.5';
             document.querySelectorAll('#player-hand .playable').forEach(function(c){ c.onclick=null; });
             mpSend({t:'play', cardId: card.id});
-            // Safety: if no response in 5s, re-render hand to restore clickability
+            // Safety: if no response in 5s, show connection issue and retry
             setTimeout(function(){
               if(game && game.currentPlayer === myIdx && game.phase === 'playing'){
-                dbg('CLIENT: play timeout, re-rendering hand');
+                _discPlayRetryCount++;
+                dbg('CLIENT: play timeout #'+_discPlayRetryCount+', re-rendering hand');
+                if(_discPlayRetryCount >= 2) {
+                  _showDiscBanner('⚠️ Nessuna risposta dall\'host', 1, 'Verifica connessione in corso...');
+                }
                 renderPlayerHand();
               }
             }, 5000);
@@ -2459,7 +2497,7 @@ function renderOpponentHands() {
   // Seat mapping: in MP client mode, remap who goes where visually
   // Host (or single-player): south=0 east=1 north=2 west=3
   // Client: south=1 east=2 north=3 west=0  (rotate by 1)
-  const rot = (mpMode && !isHost) ? mySeat : 0;
+  const rot = mpMode ? (mySeat >= 0 ? mySeat : 0) : 0;
   const seatAt = function(pos) { return (pos + rot) % 4; };
   // Opponents are east(1), north(2), west(3) in visual positions
   const eastSeat = seatAt(1);
@@ -2527,7 +2565,7 @@ function renderTrick() {
   const tw = Math.round(cw * trickScale);
   const th = Math.round(ch * trickScale);
   // Remap visual positions for client
-  const rot = (mpMode && !isHost) ? mySeat : 0;
+  const rot = mpMode ? (mySeat >= 0 ? mySeat : 0) : 0;
   game.trick.forEach(({ playerIdx, card }) => {
     const el = createCardElement(card, true);
     const visualIdx = (playerIdx - rot + 4) % 4;
@@ -2560,7 +2598,7 @@ function renderTrick() {
         }
       });
       const currentWinner = game.trick[bestIdx].playerIdx;
-      const myIdx = (mpMode && !isHost) ? mySeat : 0;
+      const myIdx = mpMode ? (mySeat >= 0 ? mySeat : 0) : 0;
       let currentPts = 0;
       game.trick.forEach(({ card }) => { currentPts += RANK_POINTS[card.rank]; });
       // Add last trick bonus if this is trick 10 and all 4 cards are played
@@ -2584,7 +2622,7 @@ function renderScores() {
   const isPerdere = gameMode === 'perdere';
   // Show game mode in score panel title
   document.getElementById('score-title').textContent = isPerdere ? '🔻 A PERDERE' : '🔺 A VINCERE (coppie)';
-  const myIdx = (mpMode && !isHost) ? mySeat : 0;
+  const myIdx = mpMode ? (mySeat >= 0 ? mySeat : 0) : 0;
 
   if (!isPerdere) {
     // ── A VINCERE: show team scores ──
@@ -2689,7 +2727,7 @@ function stopTurnTimer() {
 }
 
 function updateTurnCountdown(playerIdx, sec) {
-  var rot = (mpMode && !isHost) ? mySeat : 0;
+  var rot = mpMode ? (mySeat >= 0 ? mySeat : 0) : 0;
   var visualIdx = (playerIdx - rot + 4) % 4;
   var label = document.getElementById('label-' + PLAYER_POS[visualIdx]);
   if(!label) return;
@@ -2700,7 +2738,7 @@ function updateTurnCountdown(playerIdx, sec) {
 }
 
 function renderLabels() {
-  const rot = (mpMode && !isHost) ? mySeat : 0;
+  const rot = mpMode ? (mySeat >= 0 ? mySeat : 0) : 0;
   for (let v = 0; v < 4; v++) {
     const actual = (v + rot) % 4;
     const label = document.getElementById('label-' + PLAYER_POS[v]);
@@ -3584,20 +3622,23 @@ function quitGame() {
   _clearSession();
   game.phase = 'done';
   document.getElementById('quit-btn').style.display = 'none';
-  document.getElementById('disconnect-banner').style.display = 'none';
+  _hideDiscBanner();
+  var wasHost = isHost;
+  var oldRoom = mpRoom;
   stopHostHeartbeat();
   if(_mpPingTimer){ clearInterval(_mpPingTimer); _mpPingTimer=null; }
   if(mpMode){
-    if(isHost) mpSend({t:'quit'});
+    if(wasHost) mpSend({t:'quit'});
     mpMode = false;
     _fbCleanup();
-    if(_fbDb && mpRoom){
-      if(isHost){
-        _fbDb.ref('lobby/'+mpRoom).remove();
-        _fbDb.ref('rooms/'+mpRoom+'/state').remove();
-        _fbDb.ref('rooms/'+mpRoom+'/seats').remove();
+    if(_fbDb && oldRoom){
+      if(wasHost){
+        _fbDb.ref('lobby/'+oldRoom).remove();
+        _fbDb.ref('rooms/'+oldRoom+'/state').remove();
+        _fbDb.ref('rooms/'+oldRoom+'/seats').remove();
+        _fbDb.ref('rooms/'+oldRoom+'/meta').remove();
       } else if(MY_ID){
-        _fbDb.ref('rooms/'+mpRoom+'/seats/'+MY_ID).remove();
+        _fbDb.ref('rooms/'+oldRoom+'/seats/'+MY_ID).remove();
       }
     }
   }
@@ -3704,27 +3745,33 @@ const MY_ID = (function(){
 var _fbReady = false;
 var _fbDb = null;
 
-// Session persistence helpers for auto-rejoin
+// Session persistence helpers for auto-rejoin (localStorage survives browser close)
 function _saveSession(room, name, hosting) {
   try {
-    sessionStorage.setItem('tresette_room', room);
-    sessionStorage.setItem('tresette_name', name);
-    sessionStorage.setItem('tresette_host', hosting ? '1' : '0');
+    localStorage.setItem('tresette_room', room);
+    localStorage.setItem('tresette_name', name);
+    localStorage.setItem('tresette_host', hosting ? '1' : '0');
+    localStorage.setItem('tresette_sess_ts', Date.now().toString());
   } catch(e){}
 }
 function _clearSession() {
   try {
-    sessionStorage.removeItem('tresette_room');
-    sessionStorage.removeItem('tresette_name');
-    sessionStorage.removeItem('tresette_host');
+    localStorage.removeItem('tresette_room');
+    localStorage.removeItem('tresette_name');
+    localStorage.removeItem('tresette_host');
+    localStorage.removeItem('tresette_sess_ts');
   } catch(e){}
 }
 function _getSession() {
   try {
-    var room = sessionStorage.getItem('tresette_room');
-    var name = sessionStorage.getItem('tresette_name');
-    var hosting = sessionStorage.getItem('tresette_host') === '1';
-    if(room && name) return {room:room, name:name, hosting:hosting};
+    var room = localStorage.getItem('tresette_room');
+    var name = localStorage.getItem('tresette_name');
+    var hosting = localStorage.getItem('tresette_host') === '1';
+    var ts = parseInt(localStorage.getItem('tresette_sess_ts') || '0');
+    // Expire after 2 hours to avoid stale sessions from old games
+    if(room && name && ts && (Date.now() - ts) < 7200000) return {room:room, name:name, hosting:hosting};
+    // Clean up stale
+    if(ts && (Date.now() - ts) >= 7200000) _clearSession();
   } catch(e){}
   return null;
 }
@@ -3749,6 +3796,15 @@ function _getSession() {
       _fbDb = firebase.database();
       _fbReady = true;
       dbg('Firebase ready!');
+      // Listen for connectivity changes to handle host migration on reconnect
+      _fbDb.ref('.info/connected').on('value', function(snap) {
+        if(snap.val() === true && mpMode && mpRoom) {
+          dbg('[FIREBASE] Connectivity restored — scheduling meta check in 500ms (isHost='+isHost+' room='+mpRoom+')');
+          setTimeout(function(){ _checkMetaOnReconnect(); }, 500);
+        } else if(snap.val() === false && mpMode) {
+          dbg('[FIREBASE] Connection LOST (isHost='+isHost+' room='+mpRoom+')');
+        }
+      });
     };
     document.head.appendChild(s2);
   };
@@ -3759,12 +3815,50 @@ function _getSession() {
 var _dbgLines = [];
 function dbg(msg) {
   var ts = new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  var line = '['+ts+'] '+msg;
-  console.log('%c[MP] '+msg,'color:#0f0');
+  var role = isHost ? 'HOST' : 'CLI';
+  var seatTag = mySeat >= 0 ? 's'+mySeat : 's?';
+  var line = '['+ts+'] ['+role+'/'+seatTag+'] '+msg;
+  console.log('%c[MP:'+role+'/'+seatTag+'] '+msg,'color:#0f0');
   _dbgLines.push(line);
   if(_dbgLines.length > 200) _dbgLines.shift();
   var el = document.getElementById('dbg-panel');
   if(el){ el.textContent = _dbgLines.join('\n'); el.scrollTop = el.scrollHeight; }
+  _updateHostInfo();
+}
+function _updateHostInfo() {
+  var el = document.getElementById('hi-host');
+  if(!el) return;
+  if(!mpMode) { el.textContent = '—'; return; }
+  var name = _currentHostName || '?';
+  el.innerHTML = '<span style="color:#fa4;font-weight:bold">' + name + '</span>'
+    + ' <span style="color:#666">e' + _lastSeenEpoch + ' ' + mpRoom + '</span>';
+}
+function _resolveHostName(hostId) {
+  if(!hostId) return;
+  if(hostId === MY_ID) {
+    _currentHostName = _getMyName ? (_getMyName() || PLAYER_NAMES[mySeat >= 0 ? mySeat : 0] || 'Me') : 'Me';
+    return;
+  }
+  // Look up in _humanSeats
+  for(var s in _humanSeats) {
+    if(_humanSeats[s].id === hostId) { _currentHostName = _humanSeats[s].name; return; }
+  }
+  // Try seats in Firebase
+  if(_fbDb && mpRoom) {
+    _fbDb.ref('rooms/'+mpRoom+'/seats').once('value', function(snap) {
+      var seats = snap.val() || {};
+      for(var pid in seats) {
+        if(pid === hostId) {
+          var seatIdx = seats[pid];
+          _currentHostName = PLAYER_NAMES[seatIdx] || ('Seat '+seatIdx);
+          _updateHostInfo();
+          return;
+        }
+      }
+      _currentHostName = hostId.substring(0,6)+'...';
+      _updateHostInfo();
+    });
+  }
 }
 dbg('MY_ID='+MY_ID);
 
@@ -3780,6 +3874,8 @@ function showLobbySection(id) {
   if(id === 'lobby-menu') startLobbyBrowser(); else stopLobbyBrowser();
 }
 function cancelLobby() {
+  // Remove lobby entry if we were hosting
+  if(isHost && mpRoom) _removeLobbyEntry();
   _fbCleanup();
   stopHostHeartbeat();
   document.getElementById('lobby-overlay').classList.add('hidden');
@@ -3799,6 +3895,9 @@ function _fbCleanup(){
   _stateSeq = 0;
   if(_hostWatchdogTimer){ clearInterval(_hostWatchdogTimer); _hostWatchdogTimer = null; }
   if(_clientWatchdogTimer){ clearInterval(_clientWatchdogTimer); _clientWatchdogTimer = null; }
+  // Clean up host migration timers
+  _stopHostLease();
+  _stopMetaWatch();
   // Clean up seat info listener if active
   if(_seatInfoRef){ try{_seatInfoRef.off();}catch(e){} _seatInfoRef = null; }
 }
@@ -3849,6 +3948,361 @@ function mpListen(handler) {
   dbg('Listening on rooms/'+mpRoom);
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  HOST MIGRATION — Epoch-based lease, atomic promotion, return-to-original
+// ═══════════════════════════════════════════════════════════════
+var _hostEpoch = 0;          // current epoch on this client
+var _lastSeenEpoch = 0;      // highest epoch observed from state
+var _originalHostId = '';     // the ID of the player who created the room
+var _currentHostName = '';    // display name of the current host (updated from meta + state)
+var _metaRef = null;          // Firebase ref for rooms/{code}/meta
+var _metaLeaseTimer = null;   // host writes lease every 10s
+var _metaWatchTimer = null;   // clients check for expired lease
+var HOST_LEASE_INTERVAL = 10000;  // host writes lease every 10s
+var HOST_LEASE_TIMEOUT  = 35000;  // lease considered expired after 35s
+var _hostSelfCheckTimer = null;   // periodic split-brain self-check
+
+// Write meta node (host calls this)
+function _writeHostMeta() {
+  if(!_fbDb || !mpRoom || !isHost) { dbg('[META] _writeHostMeta SKIP: db='+!!_fbDb+' room='+mpRoom+' isHost='+isHost); return; }
+  dbg('[META] Writing meta: hostId='+MY_ID+' epoch='+_hostEpoch+' originalHost='+(_originalHostId||MY_ID)+' roomLabel='+_roomLabel);
+  _fbDb.ref('rooms/'+mpRoom+'/meta').set({
+    hostId: MY_ID,
+    hostEpoch: _hostEpoch,
+    originalHostId: _originalHostId || MY_ID,
+    roomLabel: _roomLabel || '',
+    hostLease: firebase.database.ServerValue.TIMESTAMP
+  }).then(function(){ dbg('[META] Meta written OK'); }).catch(function(e){ dbg('[META] WRITE ERR: '+e); });
+}
+
+// Start the host lease heartbeat (host only) + split-brain self-check
+function _startHostLease() {
+  _stopHostLease();
+  dbg('[LEASE] Starting host lease heartbeat, epoch='+_hostEpoch+' interval='+HOST_LEASE_INTERVAL+'ms');
+  _writeHostMeta();
+  _metaLeaseTimer = setInterval(function() {
+    if(!isHost || !mpMode) { dbg('[LEASE] Stopping lease: isHost='+isHost+' mpMode='+mpMode); _stopHostLease(); return; }
+    dbg('[LEASE] Renewing lease, epoch='+_hostEpoch);
+    _fbDb.ref('rooms/'+mpRoom+'/meta/hostLease').set(
+      firebase.database.ServerValue.TIMESTAMP
+    ).catch(function(e){ dbg('[LEASE] Renew ERR: '+e); });
+  }, HOST_LEASE_INTERVAL);
+
+  // Split-brain self-check: verify we are still the rightful host every 12s
+  _stopHostSelfCheck();
+  _hostSelfCheckTimer = setInterval(function() {
+    if(!isHost || !mpMode || !_fbDb || !mpRoom) return;
+    _fbDb.ref('rooms/'+mpRoom+'/meta').once('value', function(snap) {
+      var meta = snap.val();
+      if(!meta) return;
+      if(meta.hostId !== MY_ID) {
+        dbg('[SPLIT-BRAIN] *** DETECTED *** Meta says hostId='+meta.hostId+' but I ('+MY_ID+') think I am host! metaEpoch='+meta.hostEpoch+' myEpoch='+_hostEpoch);
+        if(meta.hostEpoch > _hostEpoch) {
+          dbg('[SPLIT-BRAIN] Other host has higher epoch ('+meta.hostEpoch+' > '+_hostEpoch+') — I must demote');
+          _hostEpoch = meta.hostEpoch;
+          _lastSeenEpoch = meta.hostEpoch;
+          _demoteToClient();
+          showStatus('Conflitto risolto: sei ora client', 2500);
+        } else if(meta.hostEpoch === _hostEpoch) {
+          dbg('[SPLIT-BRAIN] Same epoch — comparing IDs to break tie: mine='+MY_ID+' theirs='+meta.hostId);
+          // Deterministic tie-break: lower ID wins
+          if(MY_ID > meta.hostId) {
+            dbg('[SPLIT-BRAIN] My ID is higher — I demote');
+            _demoteToClient();
+            showStatus('Conflitto risolto: sei ora client', 2500);
+          } else {
+            dbg('[SPLIT-BRAIN] My ID is lower — I stay host, rewriting meta');
+            _hostEpoch++;
+            _lastSeenEpoch = _hostEpoch;
+            _writeHostMeta();
+          }
+        } else {
+          dbg('[SPLIT-BRAIN] I have higher epoch ('+_hostEpoch+' > '+meta.hostEpoch+') — rewriting meta to assert');
+          _writeHostMeta();
+        }
+      }
+    });
+  }, 12000);
+}
+function _stopHostSelfCheck() {
+  if(_hostSelfCheckTimer){ clearInterval(_hostSelfCheckTimer); _hostSelfCheckTimer = null; }
+}
+function _stopHostLease() {
+  if(_metaLeaseTimer){ dbg('[LEASE] Stopping host lease timer'); clearInterval(_metaLeaseTimer); _metaLeaseTimer = null; }
+  _stopHostSelfCheck();
+}
+
+// Start watching the meta node for lease expiry (client only)
+function _startMetaWatch() {
+  _stopMetaWatch();
+  if(!_fbDb || !mpRoom || isHost) { dbg('[WATCH] _startMetaWatch SKIP: db='+!!_fbDb+' room='+mpRoom+' isHost='+isHost); return; }
+  dbg('[WATCH] Starting meta watch for room='+mpRoom+' myId='+MY_ID+' mySeat='+mySeat);
+  // Listen to meta changes
+  _metaRef = _fbDb.ref('rooms/'+mpRoom+'/meta');
+  _metaRef.on('value', function(snap) {
+    var meta = snap.val();
+    if(!meta) { dbg('[WATCH] Meta snap is null'); return; }
+    var prevEpoch = _lastSeenEpoch;
+    _lastSeenEpoch = Math.max(_lastSeenEpoch, meta.hostEpoch || 0);
+    _originalHostId = meta.originalHostId || '';
+    // Preserve room label from meta so heartbeat uses the correct name
+    if(meta.roomLabel) _roomLabel = meta.roomLabel;
+    // Track host name for debug display
+    _resolveHostName(meta.hostId);
+    if(meta.hostEpoch !== prevEpoch) {
+      dbg('[WATCH] Meta changed: hostId='+meta.hostId+' epoch='+meta.hostEpoch+' origHost='+_originalHostId+' (prev epoch='+prevEpoch+')');
+    }
+  });
+  _fbListeners.push(_metaRef);
+  // Periodic check for lease expiry
+  _metaWatchTimer = setInterval(function() {
+    if(!mpMode || !game || isHost) return;
+    _fbDb.ref('rooms/'+mpRoom+'/meta').once('value', function(snap) {
+      var meta = snap.val();
+      if(!meta || !meta.hostLease) return;
+      var age = Date.now() - meta.hostLease;
+      dbg('[WATCH] Lease check: hostId='+meta.hostId+' epoch='+meta.hostEpoch+' age='+age+'ms timeout='+HOST_LEASE_TIMEOUT+'ms');
+      if(age > HOST_LEASE_TIMEOUT) {
+        dbg('[WATCH] HOST LEASE EXPIRED (age='+age+'ms) — attempting promotion');
+        _attemptPromotion(meta);
+      }
+    });
+  }, 8000);
+}
+function _stopMetaWatch() {
+  if(_metaWatchTimer){ dbg('[WATCH] Stopping meta watch timer'); clearInterval(_metaWatchTimer); _metaWatchTimer = null; }
+  if(_metaRef){ dbg('[WATCH] Detaching meta listener'); try{_metaRef.off();}catch(e){} _metaRef = null; }
+}
+
+// Atomic promotion via Firebase transaction
+function _attemptPromotion(metaSnapshot) {
+  if(isHost || !_fbDb || !mpRoom || !mpMode || !game) {
+    dbg('[PROMOTE] SKIP: isHost='+isHost+' db='+!!_fbDb+' room='+mpRoom+' mpMode='+mpMode+' game='+!!game);
+    return;
+  }
+  var expectedEpoch = metaSnapshot.hostEpoch || 0;
+  dbg('[PROMOTE] *** ATTEMPTING PROMOTION *** expectedEpoch='+expectedEpoch+' myId='+MY_ID+' mySeat='+mySeat+' currentHostId='+metaSnapshot.hostId);
+
+  _fbDb.ref('rooms/'+mpRoom+'/meta').transaction(function(current) {
+    if(!current) { dbg('[PROMOTE] Transaction: current is null, aborting'); return; }
+    dbg('[PROMOTE] Transaction read: hostId='+current.hostId+' epoch='+current.hostEpoch+' lease='+current.hostLease);
+    if(current.hostEpoch !== expectedEpoch) {
+      dbg('[PROMOTE] Transaction ABORT: epoch changed (expected='+expectedEpoch+' actual='+current.hostEpoch+')');
+      return;
+    }
+    var age = Date.now() - (current.hostLease || 0);
+    dbg('[PROMOTE] Transaction: lease age='+age+'ms threshold='+(HOST_LEASE_TIMEOUT-5000)+'ms');
+    if(age < HOST_LEASE_TIMEOUT - 5000) {
+      dbg('[PROMOTE] Transaction ABORT: host lease still fresh (age='+age+'ms)');
+      return;
+    }
+    dbg('[PROMOTE] Transaction COMMITTING: new hostId='+MY_ID+' new epoch='+(current.hostEpoch+1));
+    return {
+      hostId: MY_ID,
+      hostEpoch: current.hostEpoch + 1,
+      originalHostId: current.originalHostId || '',
+      roomLabel: current.roomLabel || '',
+      hostLease: firebase.database.ServerValue.TIMESTAMP
+    };
+  }, function(error, committed, snapshot) {
+    if(error) { dbg('[PROMOTE] Transaction ERROR: '+error); return; }
+    if(!committed) { dbg('[PROMOTE] Transaction NOT COMMITTED (someone else won or host returned)'); return; }
+    var newMeta = snapshot.val();
+    _hostEpoch = newMeta.hostEpoch;
+    _lastSeenEpoch = _hostEpoch;
+    _originalHostId = newMeta.originalHostId || '';
+    dbg('[PROMOTE] *** PROMOTION WON *** I am now host! epoch='+_hostEpoch+' originalHost='+_originalHostId);
+    _showDiscBanner('🔄 Ripristino partita...', 3, 'Sincronizzazione stato di gioco...');
+    _becomeHost();
+  }, false);
+}
+
+// Transition from client to host
+function _becomeHost() {
+  dbg('[BECOME] *** _becomeHost called *** mySeat='+mySeat+' epoch='+_hostEpoch+' room='+mpRoom);
+  isHost = true;
+  _resolveHostName(MY_ID);
+  _stopMetaWatch();
+  _startHostLease();
+
+  // Read room label from meta so heartbeat preserves the room name
+  _fbDb.ref('rooms/'+mpRoom+'/meta/roomLabel').once('value', function(snap){
+    var label = snap.val();
+    if(label) { _roomLabel = label; dbg('[BECOME] Restored roomLabel from meta: '+_roomLabel); }
+  });
+
+  // Rebuild _humanSeats from Firebase seats data
+  dbg('[BECOME] Reading seats from Firebase...');
+  _fbDb.ref('rooms/'+mpRoom+'/seats').once('value', function(snap) {
+    var seats = snap.val() || {};
+    dbg('[BECOME] Raw seats data: '+JSON.stringify(seats));
+    _humanSeats = {};
+    _humanSeatSet = new Set([mySeat]);
+    for(var playerId in seats) {
+      var seatIdx = seats[playerId];
+      if(playerId === MY_ID) { dbg('[BECOME] Skipping myself: seat='+seatIdx); continue; }
+      // Force original host to seat 0 regardless of what Firebase says
+      if(playerId === _originalHostId && seatIdx !== 0) {
+        dbg('[BECOME] Correcting original host seat from '+seatIdx+' to 0');
+        seatIdx = 0;
+        _fbDb.ref('rooms/'+mpRoom+'/seats/'+playerId).set(0);
+      }
+      // Don't let anyone else occupy MY seat
+      if(seatIdx === mySeat) {
+        dbg('[BECOME] Conflict: player '+playerId+' has my seat '+mySeat+', skipping');
+        continue;
+      }
+      var pName = PLAYER_NAMES[seatIdx] || ('Giocatore '+(seatIdx+1));
+      _humanSeats[seatIdx] = { name: pName, id: playerId, lastPing: Date.now() };
+      _humanSeatSet.add(seatIdx);
+      dbg('[BECOME] Restored seat '+seatIdx+': name='+pName+' id='+playerId);
+    }
+    if(!_humanSeatSet.has(0)) _humanSeatSet.add(0);
+    dbg('[BECOME] Final humanSeats: '+JSON.stringify(Object.keys(_humanSeats))+' humanSeatSet: ['+Array.from(_humanSeatSet).join(',')+']');
+  });
+
+  // Start listening for messages as host
+  dbg('[BECOME] Attaching migrated host message handler');
+  function _migratedHostHandler(data) {
+    if(data.t === 'ping') {
+      for(var hp in _humanSeats) {
+        if(_humanSeats[hp].id === data._from) { _humanSeats[hp].lastPing = Date.now(); break; }
+      }
+      return;
+    }
+    dbg('[MIG-HOST] Received t='+data.t+' from='+data._from+(data.name?' name='+data.name:''));
+    if(data.t === 'join') {
+      var existingSeat = -1;
+      for(var k in _humanSeats) { if(_humanSeats[k].id === data._from) { existingSeat = parseInt(k); break; } }
+      if(existingSeat < 0 && data.name) {
+        for(var kn in _humanSeats) {
+          if(_humanSeats[kn].name === data.name && (Date.now() - _humanSeats[kn].lastPing) > 10000) {
+            existingSeat = parseInt(kn); _humanSeats[existingSeat].id = data._from;
+            dbg('[MIG-HOST] Matched by name: seat='+existingSeat);
+            break;
+          }
+        }
+      }
+      // Original host ALWAYS gets seat 0, fix any corruption
+      var isOrig = (data._from === _originalHostId && data._from !== MY_ID);
+      if(isOrig && existingSeat >= 0 && existingSeat !== 0) {
+        dbg('[MIG-HOST] Original host was at seat='+existingSeat+' — forcing to seat 0');
+        delete _humanSeats[existingSeat];
+        existingSeat = 0;
+      }
+      if(existingSeat >= 0) {
+        _humanSeats[existingSeat] = _humanSeats[existingSeat] || {};
+        _humanSeats[existingSeat].id = data._from;
+        _humanSeats[existingSeat].name = _humanSeats[existingSeat].name || data.name || PLAYER_NAMES[existingSeat] || 'Host';
+        _humanSeats[existingSeat].lastPing = Date.now();
+        _humanSeatSet.add(existingSeat);
+        dbg('[MIG-HOST] Player REJOINED seat='+existingSeat+' name='+_humanSeats[existingSeat].name+' id='+data._from);
+        showStatus(_humanSeats[existingSeat].name+' riconnesso!', 2000);
+        bcastGSNow();
+        _fbDb.ref('rooms/'+mpRoom+'/seats/'+data._from).set(existingSeat);
+        return;
+      }
+      // Original host not in _humanSeats at all — add at seat 0
+      if(isOrig) {
+        dbg('[MIG-HOST] Original host rejoined as regular client — adding to seat 0');
+        _humanSeats[0] = { name: data.name || PLAYER_NAMES[0] || 'Host', id: data._from, lastPing: Date.now() };
+        _humanSeatSet.add(0);
+        bcastGSNow();
+        _fbDb.ref('rooms/'+mpRoom+'/seats/'+data._from).set(0);
+        return;
+      }
+      dbg('[MIG-HOST] Join from unknown player, ignoring (game in progress)');
+      return;
+    }
+    if(data.t === 'play' && mpMode && game) {
+      var playSeat = -1;
+      for(var k2 in _humanSeats) { if(_humanSeats[k2].id === data._from) { playSeat = parseInt(k2); break; } }
+      // Original host always plays at seat 0
+      if(playSeat < 0 && data._from === _originalHostId) {
+        dbg('[MIG-HOST] Original host play not in _humanSeats, forcing seat 0');
+        playSeat = 0;
+      }
+      if(playSeat < 0) { dbg('[MIG-HOST] Play from unknown player, ignoring'); return; }
+      _humanSeats[playSeat].lastPing = Date.now();
+      dbg('[MIG-HOST] Play: seat='+playSeat+' cardId='+data.cardId+' currentPlayer='+game.currentPlayer);
+      if(game.currentPlayer !== playSeat) { dbg('[MIG-HOST] Not this player\'s turn, ignoring'); return; }
+      var card = game.hands[playSeat].find(function(c) { return c.id === data.cardId; });
+      if(!card || !isCardPlayable(playSeat, card)) { dbg('[MIG-HOST] Card not found or not playable'); return; }
+      dbg('[MIG-HOST] Executing play for seat='+playSeat);
+      _origPlayCard(playSeat, card).catch(function(e) { dbg('[MIG-HOST] playCard ERR: '+e); });
+    }
+    if(data.t === 'emote' && data.eid && typeof data.pidx === 'number') {
+      try { var es = window._emoteSystem; if(es) { var em = es.findEmote(data.eid); if(em) es.showForPlayer(data.pidx, em); } } catch(e) {}
+    }
+  }
+  mpListen(_migratedHostHandler);
+  startHostHeartbeat();
+
+  // Hide disconnect banner with success message
+  _showDiscSuccess('✅ Sei diventato il nuovo host!');
+  showStatus('Sei diventato il nuovo host!', 3000);
+  dbg('[BECOME] Syncing state as new host...');
+  syncState();
+
+  // Explicit render to make sure UI is up to date
+  if(game) {
+    dbg('[BECOME] Forcing renderAll after becoming host');
+    renderAll();
+  }
+
+  // If it's a CPU turn, kick the AI
+  var cpuNeeded = (game && game.phase === 'playing' && !isHumanSeat(game.currentPlayer));
+  dbg('[BECOME] CPU turn needed? '+cpuNeeded+' currentPlayer='+( game?game.currentPlayer:'n/a')+' phase='+(game?game.phase:'n/a'));
+  if(cpuNeeded) {
+    setTimeout(function() { dbg('[BECOME] Kicking CPU turn after promotion'); cpuTurn(); }, 600);
+  }
+  dbg('[BECOME] *** Host migration complete ***');
+}
+
+// Demote from host to client
+function _demoteToClient() {
+  dbg('[DEMOTE] *** Demoting to client *** mySeat='+mySeat+' epoch='+_hostEpoch+' lastSeenEpoch='+_lastSeenEpoch);
+  isHost = false;
+  _stopHostLease();
+  stopHostHeartbeat();
+  if(_hostWatchdogTimer) { dbg('[DEMOTE] Clearing host watchdog'); clearInterval(_hostWatchdogTimer); _hostWatchdogTimer = null; }
+  // Reset seq tracking so we accept state from the new host
+  _latestAppliedStateSeq = 0;
+  _stateSeq = 0;
+  dbg('[DEMOTE] Reset seq tracking: _latestAppliedStateSeq=0 _stateSeq=0');
+  dbg('[DEMOTE] Starting meta watch as client');
+  _startMetaWatch();
+  // Force a fresh state pull so UI updates immediately
+  dbg('[DEMOTE] Pulling latest state from new host');
+  pullLatestState(0, 3);
+  dbg('[DEMOTE] Demotion complete, now a client');
+}
+
+// Check meta on reconnect (called when Firebase .info/connected fires or on forceReconnect)
+function _checkMetaOnReconnect() {
+  if(!_fbDb || !mpRoom || !mpMode) { dbg('[RECONN] SKIP: db='+!!_fbDb+' room='+mpRoom+' mpMode='+mpMode); return; }
+  dbg('[RECONN] Checking meta on reconnect... isHost='+isHost+' myId='+MY_ID+' epoch='+_hostEpoch);
+  _fbDb.ref('rooms/'+mpRoom+'/meta').once('value', function(snap) {
+    var meta = snap.val();
+    if(!meta) { dbg('[RECONN] Meta is null, room may be gone'); return; }
+    dbg('[RECONN] Meta: hostId='+meta.hostId+' epoch='+meta.hostEpoch+' origHost='+meta.originalHostId+' lease='+meta.hostLease);
+    if(isHost && meta.hostId !== MY_ID && meta.hostEpoch > _hostEpoch) {
+      dbg('[RECONN] *** SOMEONE ELSE IS HOST *** (their epoch='+meta.hostEpoch+' mine='+_hostEpoch+') — demoting');
+      _hostEpoch = meta.hostEpoch;
+      _lastSeenEpoch = meta.hostEpoch;
+      _demoteToClient();
+      showStatus('Un altro giocatore è diventato host', 2000);
+    } else if(!isHost && meta.hostId === MY_ID && meta.hostEpoch >= _lastSeenEpoch) {
+      dbg('[RECONN] *** I AM THE DESIGNATED HOST *** epoch='+meta.hostEpoch+' — becoming host');
+      _hostEpoch = meta.hostEpoch;
+      _lastSeenEpoch = meta.hostEpoch;
+      _becomeHost();
+    } else {
+      dbg('[RECONN] No role change needed. isHost='+isHost+' metaHost='+meta.hostId+' metaEpoch='+meta.hostEpoch);
+    }
+  });
+}
+
 // ─── State sync: host writes full state to DB, client listens ───
 var _stateRef = null;
 var _stateSeq = 0;
@@ -3870,6 +4324,7 @@ function makeStateSnapshot(seq) {
     names: PLAYER_NAMES.slice(),
     hs: Array.from(_humanSeatSet),
     seq: seq,
+    _epoch: _hostEpoch,
     tsc: tournamentScores.slice(),
     tact: tournamentActive,
     tov: tournamentOver,
@@ -3879,6 +4334,12 @@ function makeStateSnapshot(seq) {
 
 function syncState() {
   if(!mpMode || !isHost || !_fbDb || !mpRoom) return;
+  // Split-brain guard: don't write if we know a higher epoch exists
+  if(_lastSeenEpoch > _hostEpoch) {
+    dbg('[SYNC-GUARD] Blocked state write: lastSeenEpoch='+_lastSeenEpoch+' > myEpoch='+_hostEpoch+' — demoting');
+    _demoteToClient();
+    return;
+  }
   _stateSeq++;
   var state = makeStateSnapshot(_stateSeq);
   _fbDb.ref('rooms/'+mpRoom+'/state').set(state)
@@ -3950,10 +4411,32 @@ function _listenState() {
     var data = snap.val();
     if(!data || data.seq == null) return;  // seq always present in valid states
     var seq = data.seq || 0;
+    var stateEpoch = data._epoch || 0;
+
+    // Epoch guard: ignore state from a stale host
+    if(stateEpoch < _lastSeenEpoch) {
+      dbg('[STATE-EPOCH] IGNORED stale state: epoch='+stateEpoch+' < lastSeen='+_lastSeenEpoch+' seq='+seq);
+      return;
+    }
+    if(stateEpoch > _lastSeenEpoch) {
+      dbg('[STATE-EPOCH] New epoch detected: '+stateEpoch+' > '+_lastSeenEpoch+' — resetting seq tracking');
+      _lastSeenEpoch = stateEpoch;
+      // Reset seq tracking so new host's state is accepted regardless of seq number
+      _prevSeq = 0;
+      _latestAppliedStateSeq = 0;
+      if(isHost && stateEpoch > _hostEpoch) {
+        dbg('[STATE-EPOCH] Higher epoch than mine ('+_hostEpoch+') — demoting to client');
+        _demoteToClient();
+      }
+    }
+
+    // Host listens only for epoch changes — never apply own state writes back
+    if(isHost) return;
+
     var seenSeq = Math.max(_prevSeq, _latestAppliedStateSeq);
     if(seq <= seenSeq && !_firstSnap) return;
     _prevSeq = seq;
-    dbg('STATE seq='+seq+' cp='+data.cp+' tr='+(data.tr?data.tr.length:0)+' tn='+data.tn);
+    dbg('STATE seq='+seq+' epoch='+stateEpoch+' cp='+data.cp+' tr='+(data.tr?data.tr.length:0)+' tn='+data.tn);
 
     if(!game) game = {hands:[[],[],[],[]],trick:[],trickNum:0,leadPlayer:0,currentPlayer:0,leadSuit:null,scores:[0,0,0,0],trickCards:[],phase:'playing',animating:false};
     if(!mpMode){
@@ -3970,7 +4453,6 @@ function _listenState() {
       document.getElementById('game-over').classList.remove('show');
     }
     document.getElementById('quit-btn').style.display = '';
-    isHost = false;
     // mySeat is set by the dedicated seats listener — do NOT overwrite it here
     if(data.names) for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
     if(data.gm) gameMode = data.gm;
@@ -4096,6 +4578,12 @@ function startHostHeartbeat() {
 function stopHostHeartbeat() {
   if(_heartbeatTimer){ clearInterval(_heartbeatTimer); _heartbeatTimer=null; }
 }
+function _removeLobbyEntry() {
+  if(_fbDb && mpRoom) {
+    dbg('[LOBBY] Removing lobby entry for room='+mpRoom);
+    _fbDb.ref('lobby/'+mpRoom).remove().catch(function(e){ dbg('[LOBBY] Remove ERR: '+e); });
+  }
+}
 
 // ─── Invite / Copy ───
 var GAME_BASE_URL = 'https://htmlpreview.github.io/?https://github.com/ripom/ssp-test-ric/blob/main/tresette_multiplayers.html';
@@ -4180,11 +4668,24 @@ function hostGame() {
   if(!myName){ hostNameEl.style.border='2px solid #f44'; hostNameEl.focus(); return; }
   hostNameEl.style.border='';
   if(!_fbReady){ alert('Firebase non pronto. Riprova.'); return; }
+  // Clean up any previous room's lobby entry before creating a new one
+  if(mpRoom && _fbDb) {
+    dbg('[HOST-INIT] Cleaning up previous room lobby entry: '+mpRoom);
+    _fbDb.ref('lobby/'+mpRoom).remove();
+  }
+  stopHostHeartbeat();
   PLAYER_NAMES[0] = myName;
   mpRoom = genCode(); isHost = true; mySeat = 0;
   _saveSession(mpRoom, myName, true);
   _humanSeats = {};
   _humanSeatSet = new Set([0]);
+  // Write host's own seat to Firebase so migrated hosts can find us
+  if(_fbDb) _fbDb.ref('rooms/'+mpRoom+'/seats/'+MY_ID).set(0);
+  // Initialize host migration epoch
+  _hostEpoch = 1;
+  _lastSeenEpoch = 1;
+  _originalHostId = MY_ID;
+  dbg('[HOST-INIT] Epoch initialized: epoch='+_hostEpoch+' originalHostId='+_originalHostId+' myId='+MY_ID);
   dbg('HOST room='+mpRoom+' label='+roomLabel);
   document.getElementById('room-code').textContent = mpRoom;
   document.getElementById('create-room-btn').style.display = 'none';
@@ -4194,6 +4695,11 @@ function hostGame() {
   _roomLabel = roomLabel;
   _updateSeatUI();
   startHostHeartbeat();
+  // Write initial host meta for migration system
+  dbg('[HOST-INIT] Starting host lease + state listener for room='+mpRoom);
+  _startHostLease();
+  // Listen to state (needed so we can detect epoch changes if we get demoted)
+  _listenState();
 
   var _clientLastPing = Date.now();
   var _clientDisconnected = false;
@@ -4202,9 +4708,7 @@ function hostGame() {
     _clientLastPing = Date.now();
     if(_clientDisconnected){
       _clientDisconnected = false;
-      document.getElementById('disconnect-text').textContent = '✅ Giocatore riconnesso!';
-      document.getElementById('reconnect-btn').style.display = 'none';
-      setTimeout(function(){ document.getElementById('disconnect-banner').style.display='none'; }, 1500);
+      _showDiscSuccess('✅ Giocatore riconnesso!');
     }
     if(data.t==='ping'){
       for(var hp in _humanSeats){
@@ -4296,9 +4800,7 @@ function hostGame() {
     }
     if(anyDisc && !_clientDisconnected){
       _clientDisconnected = true;
-      document.getElementById('disconnect-text').textContent = '⚠️ Un giocatore disconnesso...';
-      document.getElementById('reconnect-btn').style.display = 'inline-block';
-      document.getElementById('disconnect-banner').style.display = 'block';
+      _showDiscBanner('⚠️ Un giocatore disconnesso...', 0, 'In attesa di riconnessione...');
       startHostHeartbeat();
     }
   }, 5000);
@@ -4497,9 +4999,15 @@ function _doActualJoin(myName, code, prefSeat) {
   _seatRef.on('value', function(snap){
     var val = snap.val();
     if(val !== null && val !== undefined){
+      var prevSeat = mySeat;
       mySeat = val;
-      dbg('CLIENT seat assigned via DB: mySeat='+mySeat);
+      dbg('[SEAT] Seat assigned via DB: mySeat='+mySeat+' (was '+prevSeat+')');
       document.getElementById('wait-status').textContent='Posto '+(mySeat+1)+' assegnato! In attesa dell\'host...';
+      // Re-render if game is active so cards appear immediately
+      if(game && mpMode && game.phase !== 'done') {
+        dbg('[SEAT] Game active, triggering renderAll after seat assignment');
+        renderAll();
+      }
     }
   });
   _fbListeners.push(_seatRef);
@@ -4510,10 +5018,10 @@ function _doActualJoin(myName, code, prefSeat) {
     _hostLastPing = Date.now();
     if(_hostDisconnected){
       _hostDisconnected = false;
-      document.getElementById('disconnect-text').textContent = '✅ Riconnesso!';
-      document.getElementById('reconnect-btn').style.display = 'none';
-      setTimeout(function(){ document.getElementById('disconnect-banner').style.display='none'; }, 1500);
+      _showDiscSuccess('✅ Connessione ripristinata!');
     }
+    // Reset play retry counter on any host response
+    _discPlayRetryCount = 0;
     if(data.t==='ping') return;
     if(data.t==='final'){
       dbg('CLIENT final seq='+(data.seq||0)+' hasState='+(data.state ? 'yes' : 'no')+' ph='+(data.state&&data.state.ph));
@@ -4562,16 +5070,28 @@ function _doActualJoin(myName, code, prefSeat) {
   }
   mpListen(clientHandler);
 
+  // Start meta watch for host migration
+  _startMetaWatch();
+
   // Watchdog
   if(_clientWatchdogTimer) clearInterval(_clientWatchdogTimer);
   _clientWatchdogTimer = setInterval(function(){
-    if(!mpMode || !game || game.phase==='done') return;
+    if(!mpMode || !game || game.phase==='done' || isHost) return;
     if(Date.now() - _hostLastPing > 30000 && !_hostDisconnected){
       _hostDisconnected = true;
-      document.getElementById('disconnect-text').textContent = '⚠️ Host disconnesso...';
-      document.getElementById('reconnect-btn').style.display = 'inline-block';
-      document.getElementById('disconnect-banner').style.display = 'block';
-      mpSend({t:'join', name:myName});
+      dbg('[CLIENT-WD] Host ping timeout (>30s) — showing banner and attempting promotion');
+      _showDiscBanner('⚠️ Connessione con l\'host persa', 1, 'Rilevamento disconnessione...');
+      // After a short delay, move to step 2 and attempt promotion
+      setTimeout(function(){
+        if(!isHost && _hostDisconnected) {
+          _showDiscBanner('🔄 Migrazione host in corso...', 2, 'Trasferimento del controllo della partita...');
+          _fbDb.ref('rooms/'+mpRoom+'/meta').once('value', function(snap){
+            var meta = snap.val();
+            dbg('[CLIENT-WD] Meta read for promotion: '+(meta ? 'hostId='+meta.hostId+' epoch='+meta.hostEpoch+' lease='+meta.hostLease : 'null'));
+            if(meta) _attemptPromotion(meta);
+          });
+        }
+      }, 3000);
     }
   }, 5000);
 
@@ -4611,36 +5131,205 @@ function _doActualJoin(myName, code, prefSeat) {
     },200);
     return; // URL code takes priority over session
   }
-  // Auto-rejoin from session (page refresh)
+  // Auto-rejoin from session (page refresh / browser reopen)
   var sess = _getSession();
-  if(sess && !sess.hosting){
-    var iv2=setInterval(function(){
+  if(sess){
+    var iv3=setInterval(function(){
       if(_fbReady){
-        clearInterval(iv2);
-        dbg('Auto-rejoin from session: room='+sess.room+' name='+sess.name);
-        document.getElementById('overlay').classList.add('hidden');
-        document.getElementById('lobby-overlay').classList.remove('hidden');
-        document.getElementById('join-name-input').value = sess.name;
-        document.getElementById('join-code-input').value = sess.room;
-        // Read the room's mode from lobby data before joining
-        _fbDb.ref('lobby/'+sess.room).once('value', function(snap){
-          var roomData = snap.val();
-          if (roomData && roomData.mode) {
-            selectMode(roomData.mode);
-            document.getElementById('lobby-mode-sub').textContent = roomData.mode === 'vincere' ? 'A VINCERE' : 'A PERDERE';
+        clearInterval(iv3);
+        dbg('[AUTO-REJOIN] Session found: room='+sess.room+' name='+sess.name+' hosting='+sess.hosting);
+        // First verify the room is alive by checking meta and state
+        _fbDb.ref('rooms/'+sess.room+'/meta').once('value', function(metaSnap){
+          var meta = metaSnap.val();
+          if(!meta) {
+            dbg('[AUTO-REJOIN] Room '+sess.room+' is gone (no meta) — clearing session');
+            _clearSession();
+            return; // stay on main menu
           }
-          showLobbySection('lobby-join');
-          // Auto-trigger join after a short delay
-          setTimeout(function(){ joinGame(); }, 500);
+          // Check if host lease is fresh (< 60s old = someone is actively hosting)
+          var leaseAge = Date.now() - (meta.hostLease || 0);
+          var roomAlive = leaseAge < 60000;
+          dbg('[AUTO-REJOIN] Room '+sess.room+' meta: hostId='+meta.hostId+' epoch='+meta.hostEpoch+' leaseAge='+leaseAge+'ms alive='+roomAlive);
+
+          if(!roomAlive) {
+            // Room is stale — check if there's at least a valid state (game data exists)
+            _fbDb.ref('rooms/'+sess.room+'/state').once('value', function(stateSnap){
+              var stateData = stateSnap.val();
+              if(!stateData || stateData.seq == null) {
+                dbg('[AUTO-REJOIN] Room '+sess.room+' has no state either — orphaned, clearing');
+                _clearSession();
+                // Clean up the orphaned room
+                _fbDb.ref('rooms/'+sess.room).remove();
+                _fbDb.ref('lobby/'+sess.room).remove();
+                return;
+              }
+              // State exists but host lease expired — show confirmation
+              dbg('[AUTO-REJOIN] Room '+sess.room+' has state but stale lease — asking user');
+              _showRejoinPrompt(sess, meta, stateData);
+            });
+            return;
+          }
+
+          // Room is alive — proceed based on role
+          if(sess.hosting) {
+            _doHostAutoRejoin(sess, meta);
+          } else {
+            _doClientAutoRejoin(sess);
+          }
         });
       }
     },200);
   }
 })();
 
+// ─── Rejoin confirmation prompt ───
+function _showRejoinPrompt(sess, meta, stateData) {
+  var names = stateData.names || [];
+  var phase = stateData.ph || '?';
+  var hostName = meta.hostId ? (names[0]||'?') : '?';
+  var leaseAge = Math.round((Date.now() - (meta.hostLease||0)) / 1000);
+
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('lobby-overlay').classList.remove('hidden');
+  // Use the waiting section to show the prompt
+  showLobbySection('lobby-waiting');
+  var waitEl = document.getElementById('wait-status');
+  waitEl.innerHTML = 
+    '<div style="text-align:center;margin-bottom:12px">'
+    + '<div style="font-size:clamp(13px,3vw,16px);color:#fa4;font-weight:bold;margin-bottom:8px">Partita precedente trovata</div>'
+    + '<div style="color:#ccc;font-size:clamp(10px,2.2vw,13px);margin-bottom:4px">Stanza: <b style="color:#5af;letter-spacing:2px">'+sess.room+'</b></div>'
+    + '<div style="color:#aaa;font-size:clamp(9px,2vw,11px)">Giocatori: '+names.join(', ')+'</div>'
+    + '<div style="color:#'+(leaseAge < 90 ? 'ff8' : 'f66')+';font-size:clamp(9px,2vw,11px);margin-top:4px">'
+    + (leaseAge < 90 ? '⚠️ Host inattivo da '+leaseAge+'s' : '❌ Host disconnesso da '+leaseAge+'s')
+    + '</div>'
+    + '</div>'
+    + '<div style="display:flex;flex-direction:column;gap:8px;align-items:center;margin-top:12px">'
+    + '<button class="lobby-btn primary" onclick="_confirmRejoin()" style="min-width:180px">▶ Riconnettiti alla partita</button>'
+    + '<button class="lobby-btn" onclick="_cancelRejoin()" style="min-width:180px">✕ Nuova partita</button>'
+    + '</div>';
+}
+
+function _confirmRejoin() {
+  var sess = _getSession();
+  if(!sess) { _cancelRejoin(); return; }
+  dbg('[AUTO-REJOIN] User confirmed rejoin to room='+sess.room);
+  document.getElementById('wait-status').innerHTML = '<div style="color:#aaa">Riconnessione in corso...</div>';
+
+  _fbDb.ref('rooms/'+sess.room+'/meta').once('value', function(snap){
+    var meta = snap.val();
+    if(!meta) { dbg('[AUTO-REJOIN] Room gone after confirm'); _clearSession(); _cancelRejoin(); return; }
+    if(sess.hosting) {
+      _doHostAutoRejoin(sess, meta);
+    } else {
+      _doClientAutoRejoin(sess);
+    }
+  });
+}
+
+function _cancelRejoin() {
+  dbg('[AUTO-REJOIN] User chose new game — clearing session');
+  _clearSession();
+  document.getElementById('lobby-overlay').classList.add('hidden');
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+// ─── Host auto-rejoin logic (extracted) ───
+function _doHostAutoRejoin(sess, meta) {
+  dbg('[AUTO-REJOIN] Host auto-rejoin: room='+sess.room);
+  mpRoom = sess.room;
+  mySeat = 0;
+  PLAYER_NAMES[0] = sess.name;
+  _originalHostId = meta.originalHostId || MY_ID;
+
+  _fbDb.ref('rooms/'+mpRoom+'/state').once('value', function(statSnap){
+    var stateData = statSnap.val();
+    if(!stateData || stateData.seq == null) {
+      dbg('[AUTO-REJOIN] No valid state — clearing');
+      _clearSession();
+      document.getElementById('lobby-overlay').classList.add('hidden');
+      document.getElementById('overlay').classList.remove('hidden');
+      return;
+    }
+    dbg('[AUTO-REJOIN] State found: seq='+stateData.seq+' phase='+stateData.ph+' cp='+stateData.cp);
+    if(!game) game = {hands:[[],[],[],[]],trick:[],trickNum:0,leadPlayer:0,currentPlayer:0,leadSuit:null,scores:[0,0,0,0],trickCards:[],phase:'playing',animating:false};
+    mpMode = true;
+    if(stateData.gm) gameMode = stateData.gm;
+    if(stateData.names) for(var i=0;i<4;i++) PLAYER_NAMES[i]=stateData.names[i];
+    if(stateData.hs) _humanSeatSet = new Set(stateData.hs);
+    applyRemoteState(stateData);
+    _latestAppliedStateSeq = stateData.seq || 0;
+    _stateSeq = stateData.seq || 0;
+    if(meta.hostId === MY_ID) {
+      dbg('[AUTO-REJOIN] I am still the current host, resuming');
+      _hostEpoch = (meta.hostEpoch || 0) + 1;
+      _lastSeenEpoch = _hostEpoch;
+      isHost = true;
+      _listenState();
+      _becomeHost();
+      document.getElementById('lobby-overlay').classList.add('hidden');
+      document.getElementById('overlay').classList.add('hidden');
+      document.getElementById('quit-btn').style.display = '';
+      initAudio();
+      showStatus('Riconnesso come host!', 2500);
+    } else {
+      dbg('[AUTO-REJOIN] Someone else is host ('+meta.hostId+'), joining as client via _doActualJoin');
+      _lastSeenEpoch = meta.hostEpoch || 0;
+      isHost = false;
+      document.getElementById('join-name-input').value = sess.name;
+      document.getElementById('join-code-input').value = sess.room;
+      _doActualJoin(sess.name, sess.room, undefined);
+    }
+    if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 15000);
+  });
+}
+
+// ─── Client auto-rejoin logic (extracted) ───
+function _doClientAutoRejoin(sess) {
+  dbg('[AUTO-REJOIN] Client auto-rejoin: room='+sess.room+' name='+sess.name);
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('lobby-overlay').classList.remove('hidden');
+  document.getElementById('join-name-input').value = sess.name;
+  document.getElementById('join-code-input').value = sess.room;
+  _fbDb.ref('lobby/'+sess.room).once('value', function(snap){
+    var roomData = snap.val();
+    if(roomData && roomData.mode) {
+      selectMode(roomData.mode);
+      document.getElementById('lobby-mode-sub').textContent = roomData.mode === 'vincere' ? 'A VINCERE' : 'A PERDERE';
+    }
+    showLobbySection('lobby-join');
+    setTimeout(function(){ joinGame(); }, 500);
+  });
+}
+
 // ─── Patched functions ───
 var _origPlayCard = playCard;
 function isHumanSeat(s){if(!mpMode)return s===0; return _humanSeatSet.has(s);}
+
+// ─── Migration progress UI ───
+var _discPlayRetryCount = 0;
+function _showDiscBanner(title, step, waitMsg) {
+  document.getElementById('disconnect-text').textContent = title;
+  var s1 = document.getElementById('disc-s1');
+  var s2 = document.getElementById('disc-s2');
+  var s3 = document.getElementById('disc-s3');
+  s1.className = 'step' + (step >= 1 ? (step > 1 ? ' done' : ' active') : '');
+  s2.className = 'step' + (step >= 2 ? (step > 2 ? ' done' : ' active') : '');
+  s3.className = 'step' + (step >= 3 ? (step > 3 ? ' done' : ' active') : '');
+  document.getElementById('disc-wait').textContent = waitMsg || '';
+  document.getElementById('disc-steps').style.display = step > 0 ? '' : 'none';
+  document.getElementById('reconnect-btn').style.display = step >= 2 ? 'inline-block' : 'none';
+  document.getElementById('disconnect-banner').style.display = 'block';
+}
+function _hideDiscBanner() {
+  document.getElementById('disconnect-banner').style.display = 'none';
+  _discPlayRetryCount = 0;
+}
+function _showDiscSuccess(msg) {
+  _showDiscBanner(msg, 4, '');
+  document.getElementById('disc-steps').style.display = 'none';
+  document.getElementById('reconnect-btn').style.display = 'none';
+  setTimeout(_hideDiscBanner, 2000);
+}
 
 function bcastGS(){
   if(!mpMode||!isHost) return;
@@ -4674,11 +5363,18 @@ cpuTurn=async function(){
 var _oSGO=showGameOver; showGameOver=function(){_oSGO();};
 
 function forceReconnect() {
-  document.getElementById('disconnect-text').textContent = '🔄 Riconnessione...';
-  document.getElementById('reconnect-btn').style.display = 'none';
-  if(!isHost && game){ game.animating=false; if(game.phase!=='done')game.phase='playing'; mpSend({t:'join',name:_getMyName()||'Amico'}); renderAll(); }
-  else if(isHost && game && mpMode) bcastGSNow();
-  setTimeout(function(){ document.getElementById('disconnect-banner').style.display='none'; }, 2000);
+  dbg('[FORCE-RECONN] Button pressed. isHost='+isHost+' mpMode='+mpMode+' room='+mpRoom+' mySeat='+mySeat);
+  _showDiscBanner('🔄 Riconnessione in corso...', 2, 'Tentativo di ripristino...');
+  _checkMetaOnReconnect();
+  if(!isHost && game){ 
+    dbg('[FORCE-RECONN] As client: resetting animating, sending join');
+    game.animating=false; if(game.phase!=='done')game.phase='playing'; mpSend({t:'join',name:_getMyName()||'Amico'}); renderAll(); 
+  }
+  else if(isHost && game && mpMode) { 
+    dbg('[FORCE-RECONN] As host: refreshing meta + broadcasting state');
+    _writeHostMeta(); bcastGSNow(); 
+  }
+  setTimeout(_hideDiscBanner, 3000);
 }
 
 document.getElementById('retry-btn').onclick = handleRetryGame;
