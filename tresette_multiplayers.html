@@ -491,33 +491,335 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 
 /* ════════ Emoticon System ════════ */
 .emoticon-bubble{
-  position:fixed;pointer-events:none;z-index:30;
-  font-size:clamp(28px,7vw,48px);opacity:0;
-  transition:opacity .3s;
-  filter:drop-shadow(0 0 6px rgba(255,200,0,0.6));
-  animation:emote-bounce 0.6s ease-in-out infinite alternate;
+  position:fixed;pointer-events:none;z-index:30;opacity:0;
+  transition:opacity .22s ease;
 }
 .emoticon-bubble.show{opacity:1}
-@keyframes emote-bounce{
-  0%{transform:scale(1)}
-  100%{transform:scale(1.18)}
+.emote-chip{
+  display:inline-flex;align-items:center;gap:10px;
+  min-width:clamp(124px,28vw,170px);max-width:min(44vw,220px);
+  padding:10px 14px;border-radius:18px;
+  background:linear-gradient(145deg,rgba(26,34,26,0.95),rgba(10,16,11,0.92));
+  border:1px solid rgba(255,255,255,0.14);
+  box-shadow:0 14px 32px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.10);
+  backdrop-filter:blur(10px);
+  transform-origin:center center;
+  animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-chip-float 2.15s ease-in-out infinite;
+}
+.emote-chip-emoji,.emote-btn-emoji{
+  position:relative;display:flex;align-items:center;justify-content:center;
+  line-height:1;flex:0 0 auto;
+}
+.emote-avatar{
+  position:relative;display:block;overflow:visible;
+  width:clamp(34px,7vw,46px);height:clamp(34px,7vw,46px);
+  filter:drop-shadow(0 6px 10px rgba(0,0,0,0.26));
+}
+.emote-btn-emoji .emote-avatar{
+  width:clamp(30px,6vw,40px);height:clamp(30px,6vw,40px);
+}
+.emote-face{
+  position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 30% 28%,#fff0a8 0%,#ffd364 24%,#ff9d4a 58%,#d96a3d 100%);
+  box-shadow:inset 0 2px 5px rgba(255,255,255,0.35), inset 0 -4px 7px rgba(110,44,12,0.18);
+}
+.emote-eye{
+  position:absolute;top:34%;width:18%;height:18%;border-radius:50%;
+  background:#3a2418;transform-origin:center center;
+}
+.emote-eye.left{left:23%}
+.emote-eye.right{right:23%}
+.emote-eye::after{
+  content:'';position:absolute;left:18%;top:12%;width:36%;height:36%;border-radius:50%;
+  background:rgba(255,255,255,0.78);
+}
+.emote-mouth{
+  position:absolute;left:50%;bottom:20%;transform:translateX(-50%);
+  width:40%;height:18%;border-radius:0 0 16px 16px;
+  border:3px solid #6c2b20;border-top:0;background:transparent;
+}
+.emote-mouth::after{content:'';position:absolute;inset:auto 18% 8% 18%;height:45%;border-radius:8px;background:rgba(255,120,120,0)}
+.emote-hand,.emote-mark,.emote-clap-burst{
+  position:absolute;display:block;pointer-events:none;
+}
+.emote-native-icon{
+  display:inline-block;font-size:clamp(28px,6.5vw,40px);line-height:1;
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,0.28));
+  transform-origin:center center;
+}
+.emote-btn-emoji .emote-native-icon{
+  font-size:clamp(24px,5.5vw,34px);
+}
+.emoticon-bubble[data-emote="thumbsUp"] .emote-native-icon{animation:native-thumbup 1.3s ease-in-out infinite}
+.emote-btn[data-emote="thumbsUp"] .emote-native-icon{animation:native-thumbup 1.3s ease-in-out infinite}
+.emoticon-bubble[data-emote="thumbsDown"] .emote-native-icon{animation:native-thumbdown 1.4s ease-in-out infinite}
+.emote-btn[data-emote="thumbsDown"] .emote-native-icon{animation:native-thumbdown 1.4s ease-in-out infinite}
+.emoticon-bubble[data-emote="applause"] .emote-native-icon{animation:native-clap .85s ease-in-out infinite}
+.emote-btn[data-emote="applause"] .emote-native-icon{animation:native-clap .85s ease-in-out infinite}
+@keyframes native-thumbup{
+  0%,100%{transform:rotate(-8deg) scale(1)}
+  30%{transform:rotate(6deg) scale(1.12) translateY(-3px)}
+  60%{transform:rotate(-4deg) scale(1.04)}
+}
+@keyframes native-thumbdown{
+  0%,100%{transform:rotate(6deg) scale(1)}
+  35%{transform:rotate(-6deg) scale(1.08) translateY(3px)}
+  65%{transform:rotate(8deg) scale(.98)}
+}
+@keyframes native-clap{
+  0%,100%{transform:scale(1) rotate(0)}
+  25%{transform:scale(1.15) rotate(4deg)}
+  50%{transform:scale(.92) rotate(-2deg)}
+  75%{transform:scale(1.12) rotate(3deg)}
+}
+.emote-hand{
+  width:26%;height:26%;border-radius:14px 14px 8px 8px;
+  background:linear-gradient(180deg,#ffe0bd,#ffbe92 66%,#e18b58 100%);
+  box-shadow:inset 0 1px 2px rgba(255,255,255,0.28),0 2px 6px rgba(0,0,0,0.18);
+}
+.emote-mark{font-size:clamp(11px,2.6vw,15px);line-height:1}
+.emote-clap-burst{
+  left:50%;top:6%;width:48%;height:48%;transform:translateX(-50%);
+}
+.emote-clap-burst::before,.emote-clap-burst::after{
+  content:'';position:absolute;inset:0;border-radius:50%;border:2px solid rgba(255,228,148,0);
+}
+.emote-chip-text{display:flex;flex-direction:column;min-width:0}
+.emote-chip-title{
+  color:#f3efe4;font-size:clamp(11px,2.1vw,14px);font-weight:700;letter-spacing:.03em;
+}
+.emote-chip-sub{
+  color:rgba(255,255,255,0.68);font-size:clamp(9px,1.8vw,11px);line-height:1.15;
+}
+.emoticon-bubble[data-emote="happy"] .emote-chip,
+.emoticon-bubble[data-emote="laugh"] .emote-chip{
+  border-color:rgba(255,190,90,0.28);
+  box-shadow:0 14px 34px rgba(255,162,66,0.20), inset 0 1px 0 rgba(255,240,200,0.11);
+}
+.emoticon-bubble[data-emote="sad"] .emote-chip,
+.emoticon-bubble[data-emote="bored"] .emote-chip{
+  border-color:rgba(120,180,255,0.18);
+  box-shadow:0 14px 34px rgba(60,110,170,0.18), inset 0 1px 0 rgba(255,255,255,0.07);
+}
+.emoticon-bubble[data-emote="thumbsUp"] .emote-chip,
+.emoticon-bubble[data-emote="applause"] .emote-chip{
+  border-color:rgba(140,255,160,0.18);
+}
+.emoticon-bubble[data-emote="thumbsDown"] .emote-chip{
+  border-color:rgba(255,120,120,0.20);
+}
+.emoticon-bubble[data-emote="happy"] .emote-face,
+.emote-btn[data-emote="happy"] .emote-face{
+  background:radial-gradient(circle at 30% 28%,#fff7b7 0%,#ffe27d 20%,#ffb854 58%,#f28943 100%);
+}
+.emoticon-bubble[data-emote="happy"] .emote-mouth,
+.emote-btn[data-emote="happy"] .emote-mouth{
+  width:42%;height:19%;border-color:#7a2b1d;border-top:0;
+}
+.emoticon-bubble[data-emote="happy"] .emote-avatar,
+.emote-btn[data-emote="happy"] .emote-avatar{animation:avatar-bob 1.7s ease-in-out infinite}
+.emoticon-bubble[data-emote="laugh"] .emote-face,
+.emote-btn[data-emote="laugh"] .emote-face{
+  background:radial-gradient(circle at 32% 26%,#fff4ae 0%,#ffd766 22%,#ffb447 58%,#ea7d37 100%);
+}
+.emoticon-bubble[data-emote="laugh"] .emote-eye,
+.emote-btn[data-emote="laugh"] .emote-eye{
+  width:22%;height:10%;top:34%;background:transparent;border-top:3px solid #6b2d1f;border-radius:50%;
+}
+.emoticon-bubble[data-emote="laugh"] .emote-eye::after,
+.emote-btn[data-emote="laugh"] .emote-eye::after{display:none}
+.emoticon-bubble[data-emote="laugh"] .emote-mouth,
+.emote-btn[data-emote="laugh"] .emote-mouth{
+  width:48%;height:28%;bottom:18%;background:#7b231a;border:0;border-radius:0 0 16px 16px;
+}
+.emoticon-bubble[data-emote="laugh"] .emote-mouth::after,
+.emote-btn[data-emote="laugh"] .emote-mouth::after{background:#ff7f97}
+.emoticon-bubble[data-emote="laugh"] .emote-avatar,
+.emote-btn[data-emote="laugh"] .emote-avatar{animation:avatar-laugh .82s ease-in-out infinite}
+.emoticon-bubble[data-emote="sad"] .emote-face,
+.emote-btn[data-emote="sad"] .emote-face{
+  background:radial-gradient(circle at 30% 28%,#f4f6ff 0%,#bfd6ff 24%,#8fb0eb 60%,#6480c6 100%);
+}
+.emoticon-bubble[data-emote="sad"] .emote-mouth,
+.emote-btn[data-emote="sad"] .emote-mouth{
+  bottom:16%;width:34%;height:14%;border-radius:16px 16px 0 0;border:3px solid #49618f;border-bottom:0;
+}
+.emoticon-bubble[data-emote="sad"] .emote-mark,
+.emote-btn[data-emote="sad"] .emote-mark{
+  right:6%;top:40%;width:10%;height:18%;border-radius:999px;background:linear-gradient(180deg,rgba(186,232,255,0.95),rgba(95,160,255,0.2));
+  transform:rotate(10deg);animation:tear-drop 1.6s ease-in-out infinite;
+}
+.emoticon-bubble[data-emote="sad"] .emote-avatar,
+.emote-btn[data-emote="sad"] .emote-avatar{animation:avatar-sad 2.3s ease-in-out infinite}
+.emoticon-bubble[data-emote="thumbsUp"] .emote-chip,
+.emote-btn[data-emote="thumbsUp"]{border-color:rgba(140,255,160,0.24)}
+.emoticon-bubble[data-emote="thumbsDown"] .emote-chip,
+.emote-btn[data-emote="thumbsDown"]{border-color:rgba(255,120,120,0.24)}
+.emoticon-bubble[data-emote="applause"] .emote-chip,
+.emote-btn[data-emote="applause"]{border-color:rgba(255,220,120,0.26)}
+.emoticon-bubble[data-emote="applause"] .emote-clap-burst::before,
+.emote-btn[data-emote="applause"] .emote-clap-burst::before{animation:clap-burst 1.1s ease-out infinite}
+.emoticon-bubble[data-emote="applause"] .emote-clap-burst::after,
+.emote-btn[data-emote="applause"] .emote-clap-burst::after{animation:clap-burst 1.1s ease-out .22s infinite}
+.emoticon-bubble[data-emote="bored"] .emote-face,
+.emote-btn[data-emote="bored"] .emote-face{
+  background:radial-gradient(circle at 30% 28%,#fbf1c7 0%,#e2cf8c 24%,#b59f68 60%,#88734b 100%);
+}
+.emoticon-bubble[data-emote="bored"] .emote-eye,
+.emote-btn[data-emote="bored"] .emote-eye{top:38%;height:8%;border-radius:999px}
+.emoticon-bubble[data-emote="bored"] .emote-mouth,
+.emote-btn[data-emote="bored"] .emote-mouth{
+  width:24%;height:24%;bottom:12%;border:3px solid #6a5834;border-radius:50%;background:rgba(70,45,20,0.08);
+}
+.emoticon-bubble[data-emote="bored"] .emote-mouth::after,
+.emote-btn[data-emote="bored"] .emote-mouth::after{display:none}
+.emoticon-bubble[data-emote="bored"] .emote-mark,
+.emote-btn[data-emote="bored"] .emote-mark{
+  right:-2%;top:8%;width:18%;height:18%;border-radius:50%;background:rgba(255,255,255,0.18);animation:yawn-puff 2.2s ease-out infinite;
+}
+.emoticon-bubble[data-emote="bored"] .emote-avatar,
+.emote-btn[data-emote="bored"] .emote-avatar{animation:avatar-bored 2.2s ease-in-out infinite}
+.emoticon-bubble[data-emote="happy"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-sway 1.9s ease-in-out infinite}
+.emoticon-bubble[data-emote="laugh"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-laugh-bob .95s ease-in-out infinite}
+.emoticon-bubble[data-emote="sad"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-drift 2.6s ease-in-out infinite}
+.emoticon-bubble[data-emote="thumbsUp"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-nod 1.4s ease-in-out infinite}
+.emoticon-bubble[data-emote="thumbsDown"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-shrug 1.5s ease-in-out infinite}
+.emoticon-bubble[data-emote="applause"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-clap 1.0s ease-in-out infinite}
+.emoticon-bubble[data-emote="bored"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-droop 2.3s ease-in-out infinite}
+@keyframes emote-chip-in{
+  0%{transform:translateY(12px) scale(.82);opacity:0}
+  100%{transform:translateY(0) scale(1);opacity:1}
+}
+@keyframes emote-chip-float{
+  0%,100%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-5px) scale(1.01)}
+}
+@keyframes emote-sway{
+  0%,100%{transform:translateY(0) rotate(-2deg) scale(1)}
+  50%{transform:translateY(-4px) rotate(2deg) scale(1.02)}
+}
+@keyframes emote-laugh-bob{
+  0%,100%{transform:translateY(0) rotate(-1deg) scale(1)}
+  25%{transform:translateY(-3px) rotate(2deg) scale(1.03)}
+  50%{transform:translateY(1px) rotate(-2deg) scale(.99)}
+  75%{transform:translateY(-5px) rotate(3deg) scale(1.04)}
+}
+@keyframes emote-drift{
+  0%,100%{transform:translateY(0) rotate(0) scale(1)}
+  50%{transform:translateY(6px) rotate(-2deg) scale(.99)}
+}
+@keyframes emote-nod{
+  0%,100%{transform:translateY(0) scale(1)}
+  35%{transform:translateY(-3px) scale(1.03)}
+  55%{transform:translateY(2px) scale(.99)}
+}
+@keyframes emote-shrug{
+  0%,100%{transform:translateX(0) rotate(0) scale(1)}
+  30%{transform:translateX(-2px) rotate(-2deg) scale(.995)}
+  70%{transform:translateX(2px) rotate(2deg) scale(1.01)}
+}
+@keyframes emote-clap{
+  0%,100%{transform:translateY(0) scale(1)}
+  30%{transform:translateY(-4px) scale(1.06)}
+  60%{transform:translateY(0) scale(.98)}
+}
+@keyframes emote-droop{
+  0%,100%{transform:translateY(0) rotate(0) scale(1)}
+  50%{transform:translateY(5px) rotate(-3deg) scale(.985)}
+}
+@keyframes avatar-bob{
+  0%,100%{transform:translateY(0) rotate(-3deg)}
+  50%{transform:translateY(-2px) rotate(3deg)}
+}
+@keyframes avatar-laugh{
+  0%,100%{transform:translateY(0) rotate(0)}
+  25%{transform:translateY(-2px) rotate(4deg)}
+  50%{transform:translateY(1px) rotate(-4deg)}
+  75%{transform:translateY(-3px) rotate(5deg)}
+}
+@keyframes avatar-sad{
+  0%,100%{transform:translateY(0) rotate(0)}
+  50%{transform:translateY(3px) rotate(-5deg)}
+}
+@keyframes avatar-pop{
+  0%,100%{transform:translateY(0) scale(1)}
+  40%{transform:translateY(-3px) scale(1.08)}
+  70%{transform:translateY(1px) scale(.98)}
+}
+@keyframes avatar-nope{
+  0%,100%{transform:translateX(0) rotate(0)}
+  30%{transform:translateX(-2px) rotate(-6deg)}
+  70%{transform:translateX(2px) rotate(6deg)}
+}
+@keyframes avatar-clap{
+  0%,100%{transform:translateY(0) scale(1)}
+  35%{transform:translateY(-2px) scale(1.04)}
+  60%{transform:translateY(1px) scale(.98)}
+}
+@keyframes gesture-yes{
+  0%,100%{transform:translateY(0) rotate(-4deg) scale(1)}
+  45%{transform:translateY(-3px) rotate(2deg) scale(1.05)}
+  70%{transform:translateY(1px) rotate(-2deg) scale(.98)}
+}
+@keyframes gesture-nope{
+  0%,100%{transform:translateY(0) rotate(4deg) scale(1)}
+  30%{transform:translateX(-2px) rotate(-8deg)}
+  70%{transform:translateX(2px) rotate(8deg)}
+}
+@keyframes gesture-clap-body{
+  0%,100%{transform:translateY(0) scale(1)}
+  45%{transform:translateY(-2px) scale(1.03)}
+  70%{transform:translateY(1px) scale(.99)}
+}
+@keyframes clap-left{
+  0%,100%{transform:rotate(16deg) translateX(0)}
+  45%{transform:rotate(6deg) translateX(4px)}
+  60%{transform:rotate(3deg) translateX(5px)}
+}
+@keyframes clap-right{
+  0%,100%{transform:rotate(-16deg) translateX(0)}
+  45%{transform:rotate(-6deg) translateX(-4px)}
+  60%{transform:rotate(-3deg) translateX(-5px)}
+}
+@keyframes avatar-bored{
+  0%,100%{transform:translateY(0) rotate(0)}
+  50%{transform:translateY(4px) rotate(-4deg)}
+}
+@keyframes tear-drop{
+  0%,100%{transform:translateY(0) scale(.9);opacity:.7}
+  50%{transform:translateY(5px) scale(1);opacity:1}
+}
+@keyframes yawn-puff{
+  0%{transform:translate(0,0) scale(.4);opacity:0}
+  20%{opacity:.32}
+  100%{transform:translate(6px,-7px) scale(1.2);opacity:0}
+}
+@keyframes clap-burst{
+  0%{transform:scale(.4);opacity:0;border-color:rgba(255,228,148,0)}
+  35%{opacity:.5;border-color:rgba(255,228,148,0.7)}
+  100%{transform:scale(1.3);opacity:0;border-color:rgba(255,228,148,0)}
 }
 .emote-menu{
   position:fixed;z-index:50;
-  background:rgba(0,0,0,0.88);border:1px solid rgba(255,255,255,0.25);
-  border-radius:10px;padding:6px 4px;
-  display:none;flex-wrap:wrap;gap:2px;justify-content:center;
-  min-width:clamp(130px,36vw,200px);
-  box-shadow:0 4px 20px rgba(0,0,0,0.7);
+  background:rgba(8,12,10,0.92);border:1px solid rgba(255,255,255,0.18);
+  border-radius:18px;padding:8px;
+  display:none;flex-direction:column;gap:6px;justify-content:center;
+  min-width:clamp(168px,42vw,236px);
+  box-shadow:0 10px 28px rgba(0,0,0,0.52);
+  backdrop-filter:blur(14px);
   touch-action:manipulation;
 }
 .emote-menu.show{display:flex}
 .emote-btn{
-  font-size:clamp(24px,6vw,36px);cursor:pointer;background:none;border:none;
-  padding:4px 6px;border-radius:6px;transition:background .15s,transform .15s;
-  line-height:1;-webkit-tap-highlight-color:transparent;
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  cursor:pointer;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+  padding:8px 10px;border-radius:12px;transition:background .15s,transform .15s,border-color .15s;
+  line-height:1;-webkit-tap-highlight-color:transparent;color:#ece7dc;
 }
-.emote-btn:hover,.emote-btn:active{background:rgba(255,255,255,0.15);transform:scale(1.15)}
+.emote-btn:hover,.emote-btn:active{background:rgba(255,255,255,0.10);border-color:rgba(255,190,90,0.18);transform:translateY(-1px) scale(1.01)}
+.emote-btn-label{display:flex;flex-direction:column;gap:3px;min-width:0}
+.emote-btn-title{font-size:clamp(11px,2vw,13px);font-weight:700;color:#f4efe3}
+.emote-btn-sub{font-size:clamp(9px,1.7vw,11px);color:rgba(255,255,255,0.62)}
 #emote-trigger-btn{
   position:fixed;z-index:20;
   background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.18);
@@ -573,7 +875,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   <div id="trick-area"></div>
 
   <div class="player-label south" id="label-south">Tu <span class="lb-pts"></span></div>
-  <button id="emote-trigger-btn" title="Emoticon">😀 Emoticons</button>
+  <button id="emote-trigger-btn" title="Emozioni">🙂 Emozioni</button>
   <div class="player-label north" id="label-north">Riccardo <span class="lb-pts"></span></div>
   <div class="player-label west"  id="label-west">Zio Checco <span class="lb-pts"></span></div>
   <div class="player-label east"  id="label-east">Giuseppe <span class="lb-pts"></span></div>
@@ -997,7 +1299,62 @@ function _filterFormant(f, x) {
 }
 function _sndRng(seed) { seed[0] = (seed[0] * 16807 + 7) % 2147483647; return (seed[0] / 2147483647) * 2 - 1; }
 
-// Pre-generate realistic sound samples
+function _mixSampleLayers(layers) {
+  let total = 0;
+  for (let i = 0; i < layers.length; i++) total = Math.max(total, layers[i].offset + layers[i].samples.length);
+  const out = new Float32Array(total || 1);
+  for (let i = 0; i < layers.length; i++) {
+    const layer = layers[i];
+    for (let j = 0; j < layer.samples.length; j++) out[layer.offset + j] += layer.samples[j];
+  }
+  let peak = 0;
+  for (let i = 0; i < out.length; i++) peak = Math.max(peak, Math.abs(out[i]));
+  if (peak > 0.98) for (let i = 0; i < out.length; i++) out[i] /= peak / 0.98;
+  return out;
+}
+
+function _makeEmoteDing(cfg) {
+  const dur = cfg.dur || 0.33;
+  const n = Math.floor(AUDIO_SR * dur);
+  const out = new Float32Array(n);
+  const seed = [cfg.seed || 1];
+  const base = cfg.freq || 900;
+  const partialA = cfg.partialA || 2.06;
+  const partialB = cfg.partialB || 3.22;
+  const air = cfg.air || 0.05;
+  const bend = cfg.bend || 0.06;
+  const sparkle = cfg.sparkle || 2300;
+  const warmth = cfg.warmth || 0.15;
+  let lp = 0;
+
+  for (let i = 0; i < n; i++) {
+    const t = i / AUDIO_SR;
+    const attack = Math.min(1, t / 0.004);
+    const env = attack * Math.exp(-t * (cfg.decay || 11.5));
+    const freq = base * (1 + bend * Math.exp(-t * 16));
+    const main = Math.sin(2 * Math.PI * freq * t);
+    const overtone1 = Math.sin(2 * Math.PI * freq * partialA * t) * Math.exp(-t * 13);
+    const overtone2 = Math.sin(2 * Math.PI * freq * partialB * t) * Math.exp(-t * 18);
+    lp += 0.18 * (_sndRng(seed) - lp);
+    const hit = lp * air * Math.exp(-t * 42);
+    const sheen = Math.sin(2 * Math.PI * sparkle * t) * 0.04 * Math.exp(-t * 24);
+    out[i] = (main * 0.80 + overtone1 * 0.28 + overtone2 * 0.14 + hit + sheen + Math.sin(2 * Math.PI * (freq * 0.5) * t) * warmth) * env;
+  }
+
+  const d1 = Math.floor(AUDIO_SR * (cfg.ref1 || 0.016));
+  const d2 = Math.floor(AUDIO_SR * (cfg.ref2 || 0.031));
+  for (let i = d2; i < n; i++) {
+    out[i] += out[i - d1] * (cfg.refGain1 || 0.16);
+    out[i] += out[i - d2] * (cfg.refGain2 || 0.08);
+  }
+
+  let peak = 0;
+  for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(out[i]));
+  if (peak > 0) for (let i = 0; i < n; i++) out[i] = out[i] / peak * (cfg.gain || 0.82);
+  return out;
+}
+
+// Pre-generate sound samples
 const RAW_SOUNDS = {
   // ─── Card slapped on table: short sharp THWACK ───
   // A real card slap is ~50-80ms total: instant attack, broadband noise snap,
@@ -1056,8 +1413,7 @@ const RAW_SOUNDS = {
     const rng = (s) => { s[0] = (s[0] * 48271 + 3) % 2147483647; return (s[0] / 2147483647) * 2 - 1; };
     for (let i = 0; i < n; i++) {
       const t = i / AUDIO_SR;
-      const env = Math.sin(Math.PI * t / dur) * 0.35; // bell-shaped envelope
-      // Filtered noise with sweeping cutoff
+      const env = Math.sin(Math.PI * t / dur) * 0.35;
       const cutoff = 0.05 + 0.15 * (t / dur);
       lp += cutoff * (rng(seed) - lp);
       out[i] = lp * env;
@@ -1071,19 +1427,18 @@ const RAW_SOUNDS = {
     const n = Math.floor(AUDIO_SR * dur);
     const out = new Float32Array(n);
     const notes = [
-      {freq: 523.25, start: 0, vol: 0.4},     // C5
-      {freq: 659.25, start: 0.12, vol: 0.38},  // E5
+      {freq: 523.25, start: 0.00, vol: 0.40},
+      {freq: 659.25, start: 0.12, vol: 0.38}
     ];
     for (const note of notes) {
       const off = Math.floor(note.start * AUDIO_SR);
       for (let i = 0; i + off < n; i++) {
         const t = i / AUDIO_SR;
         const env = Math.exp(-t * 5) * note.vol;
-        // Bell-like: fundamental + inharmonic partials
         const w = Math.sin(2*Math.PI*note.freq*t)
-                + 0.5 * Math.sin(2*Math.PI*note.freq*2.02*t) * Math.exp(-t*8)
-                + 0.25 * Math.sin(2*Math.PI*note.freq*3.01*t) * Math.exp(-t*12)
-                + 0.12 * Math.sin(2*Math.PI*note.freq*4.97*t) * Math.exp(-t*16);
+          + 0.5 * Math.sin(2*Math.PI*note.freq*2.02*t) * Math.exp(-t*8)
+          + 0.25 * Math.sin(2*Math.PI*note.freq*3.01*t) * Math.exp(-t*12)
+          + 0.12 * Math.sin(2*Math.PI*note.freq*4.97*t) * Math.exp(-t*16);
         out[i + off] += w * env;
       }
     }
@@ -1097,20 +1452,20 @@ const RAW_SOUNDS = {
     const n = Math.floor(AUDIO_SR * dur);
     const out = new Float32Array(n);
     const notes = [
-      {freq: 261.63, start: 0, dur: 0.3, vol: 0.35},     // C4
-      {freq: 329.63, start: 0.15, dur: 0.3, vol: 0.35},   // E4
-      {freq: 392.00, start: 0.30, dur: 0.3, vol: 0.35},   // G4
-      {freq: 523.25, start: 0.45, dur: 0.5, vol: 0.4},    // C5
+      {freq: 261.63, start: 0.00, dur: 0.30, vol: 0.35},
+      {freq: 329.63, start: 0.15, dur: 0.30, vol: 0.35},
+      {freq: 392.00, start: 0.30, dur: 0.30, vol: 0.35},
+      {freq: 523.25, start: 0.45, dur: 0.50, vol: 0.40}
     ];
     for (const note of notes) {
       const off = Math.floor(note.start * AUDIO_SR);
       const len = Math.floor(note.dur * AUDIO_SR);
       for (let i = 0; i < len && i + off < n; i++) {
         const t = i / AUDIO_SR;
-        const env = note.vol * Math.sin(Math.PI * t / note.dur); // smooth bell
+        const env = note.vol * Math.sin(Math.PI * t / note.dur);
         const w = Math.sin(2*Math.PI*note.freq*t)
-                + 0.4 * Math.sin(2*Math.PI*note.freq*2*t) * Math.exp(-t*4)
-                + 0.15 * Math.sin(2*Math.PI*note.freq*3*t) * Math.exp(-t*6);
+          + 0.4 * Math.sin(2*Math.PI*note.freq*2*t) * Math.exp(-t*4)
+          + 0.15 * Math.sin(2*Math.PI*note.freq*3*t) * Math.exp(-t*6);
         out[i + off] += w * env;
       }
     }
@@ -1124,9 +1479,9 @@ const RAW_SOUNDS = {
     const n = Math.floor(AUDIO_SR * dur);
     const out = new Float32Array(n);
     const notes = [
-      {freq: 392.00, start: 0, dur: 0.35, vol: 0.35},     // G4
-      {freq: 311.13, start: 0.20, dur: 0.35, vol: 0.33},   // Eb4
-      {freq: 261.63, start: 0.40, dur: 0.45, vol: 0.35},   // C4
+      {freq: 392.00, start: 0.00, dur: 0.35, vol: 0.35},
+      {freq: 311.13, start: 0.20, dur: 0.35, vol: 0.33},
+      {freq: 261.63, start: 0.40, dur: 0.45, vol: 0.35}
     ];
     for (const note of notes) {
       const off = Math.floor(note.start * AUDIO_SR);
@@ -1135,7 +1490,7 @@ const RAW_SOUNDS = {
         const t = i / AUDIO_SR;
         const env = note.vol * Math.exp(-t * 3.5);
         const w = Math.sin(2*Math.PI*note.freq*t)
-                + 0.3 * Math.sin(2*Math.PI*note.freq*2*t) * Math.exp(-t*5);
+          + 0.3 * Math.sin(2*Math.PI*note.freq*2*t) * Math.exp(-t*5);
         out[i + off] += w * env;
       }
     }
@@ -1149,9 +1504,9 @@ const RAW_SOUNDS = {
     const n = Math.floor(AUDIO_SR * dur);
     const out = new Float32Array(n);
     const notes = [
-      {freq: 329.63, start: 0, dur: 0.15, vol: 0.35},     // E4
-      {freq: 392.00, start: 0.12, dur: 0.15, vol: 0.35},   // G4
-      {freq: 493.88, start: 0.24, dur: 0.25, vol: 0.4},    // B4
+      {freq: 329.63, start: 0.00, dur: 0.15, vol: 0.35},
+      {freq: 392.00, start: 0.12, dur: 0.15, vol: 0.35},
+      {freq: 493.88, start: 0.24, dur: 0.25, vol: 0.40}
     ];
     for (const note of notes) {
       const off = Math.floor(note.start * AUDIO_SR);
@@ -1160,8 +1515,8 @@ const RAW_SOUNDS = {
         const t = i / AUDIO_SR;
         const env = note.vol * Math.exp(-t * 4);
         const w = Math.sin(2*Math.PI*note.freq*t)
-                + 0.35 * Math.sin(2*Math.PI*note.freq*2*t) * Math.exp(-t*6)
-                + 0.15 * Math.sin(2*Math.PI*note.freq*3*t) * Math.exp(-t*10);
+          + 0.35 * Math.sin(2*Math.PI*note.freq*2*t) * Math.exp(-t*6)
+          + 0.15 * Math.sin(2*Math.PI*note.freq*3*t) * Math.exp(-t*10);
         out[i + off] += w * env;
       }
     }
@@ -1174,20 +1529,13 @@ const RAW_SOUNDS = {
     const dur = 1.0;
     const n = Math.floor(AUDIO_SR * dur);
     const out = new Float32Array(n);
-    // Dramatic descending glissando with rich harmonics
     for (let i = 0; i < n; i++) {
       const t = i / AUDIO_SR;
-      // Frequency sweeps from ~300Hz down to ~80Hz
       const freq = 300 * Math.exp(-t * 1.8) + 80;
       const env = Math.min(1, t / 0.02) * Math.exp(-t * 1.5) * 0.55;
-      // Tremolo (vibrato volume)
       const trem = 1 + 0.15 * Math.sin(2 * Math.PI * 6 * t);
-      // Rich sawtooth-ish waveform (sum of harmonics)
       let w = 0;
-      for (let h = 1; h <= 6; h++) {
-        w += Math.sin(2 * Math.PI * freq * h * t) / h * Math.exp(-t * h * 0.8);
-      }
-      // Add some noise for brass "buzz"
+      for (let h = 1; h <= 6; h++) w += Math.sin(2 * Math.PI * freq * h * t) / h * Math.exp(-t * h * 0.8);
       const buzzSeed = Math.sin(t * 12345.6789) * 43758.5453;
       const buzz = (buzzSeed - Math.floor(buzzSeed)) * 2 - 1;
       out[i] = (w * 0.7 + buzz * 0.08) * env * trem;
@@ -1196,251 +1544,24 @@ const RAW_SOUNDS = {
     return out;
   })(),
 
-  // ─── Emote sounds — more expressive voice-like reactions ───
-
-  // 😄 Happy: airy human laugh with uneven rhythm and light room bloom
-  emoteHappy: (() => {
-    const dur = 1.28; const n = Math.floor(AUDIO_SR * dur);
-    const out = new Float32Array(n);
-    const breathSeed = [345];
-    const jitterSeed = [701];
-    const syllables = [
-      { t: 0.00, d: 0.16, f0: 258, a: 0.92 },
-      { t: 0.19, d: 0.13, f0: 272, a: 0.86 },
-      { t: 0.35, d: 0.12, f0: 284, a: 0.78 },
-      { t: 0.48, d: 0.11, f0: 291, a: 0.70 },
-      { t: 0.60, d: 0.18, f0: 248, a: 0.58 }
-    ];
-    let f1 = _makeFormant(720, 120);
-    let f2 = _makeFormant(1340, 150);
-    let f3 = _makeFormant(2480, 220);
-    let phase = 0;
-    let jitter = 0;
-
-    for (let i = 0; i < n; i++) {
-      const t = i / AUDIO_SR;
-      let amp = 0;
-      let baseF0 = 0;
-      let breath = 0;
-
-      for (const s of syllables) {
-        if (t < s.t || t > s.t + s.d) continue;
-        const rel = (t - s.t) / s.d;
-        const env = Math.sin(Math.PI * Math.pow(rel, 0.72));
-        amp += env * s.a;
-        baseF0 += s.f0 * (1 - 0.11 * rel) * env;
-        breath += (rel < 0.20 ? 0.8 : 0.16) * env;
-      }
-
-      if (amp <= 0.0008) continue;
-      if ((i & 127) === 0) jitter = _sndRng(jitterSeed) * 0.018;
-
-      const vibrato = 1 + 0.011 * Math.sin(2 * Math.PI * 5.7 * t + 0.5) + jitter;
-      const chuckle = 1 + 0.025 * Math.sin(2 * Math.PI * 13.5 * t) * Math.min(1, amp);
-      const f0 = Math.max(140, baseF0 * vibrato * chuckle);
-      phase += f0 / AUDIO_SR;
-
-      const glot = _glottal(phase) * (0.78 + 0.14 * Math.sin(2 * Math.PI * 0.9 * t));
-      const aspiration = _sndRng(breathSeed) * (0.24 * breath);
-      const src = glot + aspiration;
-
-      const v1 = _filterFormant(f1, src);
-      const v2 = _filterFormant(f2, src);
-      const v3 = _filterFormant(f3, src);
-      const brightness = Math.sin(2 * Math.PI * 2100 * t) * 0.02 * amp;
-      out[i] = (v1 * 0.95 + v2 * 0.62 + v3 * 0.18 + brightness) * amp;
-    }
-
-    const d1 = Math.floor(AUDIO_SR * 0.018);
-    const d2 = Math.floor(AUDIO_SR * 0.033);
-    for (let i = d2; i < n; i++) {
-      out[i] += out[i - d1] * 0.13;
-      out[i] += out[i - d2] * 0.06;
-    }
-
-    let max = 0;
-    for (let i = 0; i < n; i++) max = Math.max(max, Math.abs(out[i]));
-    if (max > 0) for (let i = 0; i < n; i++) out[i] = out[i] / max * 0.88;
-    return out;
-  })(),
-
-  // 😢 Sad: breathy sob that falls into a soft human sigh
-  emoteSad: (() => {
-    const dur = 1.18; const n = Math.floor(AUDIO_SR * dur);
-    const out = new Float32Array(n);
-    const breathSeed = [909];
-    const jitterSeed = [177];
-    let f1 = _makeFormant(610, 110);
-    let f2 = _makeFormant(980, 130);
-    let f3 = _makeFormant(2280, 240);
-    let phase = 0;
-    let jitter = 0;
-
-    for (let i = 0; i < n; i++) {
-      const t = i / AUDIO_SR;
-      const attack = Math.min(1, t / 0.06);
-      const decay = Math.exp(-t * 1.7);
-      const sob = Math.exp(-Math.pow((t - 0.23) / 0.075, 2));
-      const tail = t > 0.48 ? Math.exp(-(t - 0.48) * 3.0) : 0;
-      const amp = Math.min(1, attack * (0.56 * decay + 0.48 * sob + 0.30 * tail));
-      if (amp <= 0.0006) continue;
-
-      if ((i & 127) === 0) jitter = _sndRng(jitterSeed) * 0.026;
-      const vibrato = 1 + 0.018 * Math.sin(2 * Math.PI * 4.2 * t + 0.8) + jitter;
-      const sobBreak = 1 + 0.11 * sob * Math.sin(2 * Math.PI * 9.5 * t);
-      const f0 = Math.max(108, (208 - 62 * t) * vibrato * sobBreak);
-      phase += f0 / AUDIO_SR;
-
-      const glot = _glottal(phase) * (0.72 - 0.16 * sob + 0.08 * tail);
-      const breath = _sndRng(breathSeed) * (0.18 + 0.24 * sob + 0.22 * tail);
-      const source = glot + breath;
-
-      const v1 = _filterFormant(f1, source);
-      const v2 = _filterFormant(f2, source);
-      const v3 = _filterFormant(f3, source);
-      const rasp = Math.sin(2 * Math.PI * 1450 * t) * 0.022 * sob;
-      out[i] = (v1 * 1.00 + v2 * 0.50 + v3 * 0.16 + rasp) * amp;
-    }
-
-    const d1 = Math.floor(AUDIO_SR * 0.024);
-    const d2 = Math.floor(AUDIO_SR * 0.051);
-    for (let i = d2; i < n; i++) {
-      out[i] += out[i - d1] * 0.10;
-      out[i] += out[i - d2] * 0.05;
-    }
-
-    let max = 0;
-    for (let i = 0; i < n; i++) max = Math.max(max, Math.abs(out[i]));
-    if (max > 0) for (let i = 0; i < n; i++) out[i] = out[i] / max * 0.84;
-    return out;
-  })(),
-
-  // 💪 Ready: cartoon punch/pow — big impact with comic spring
-  emoteReady: (() => {
-    const dur = 0.3; const n = Math.floor(AUDIO_SR * dur);
-    const out = new Float32Array(n);
-    const seed = [77];
-    for (let i = 0; i < n; i++) {
-      const t = i / AUDIO_SR;
-      // MASSIVE punchy impact
-      const att = Math.min(1, t / 0.001);
-      // Deep boom
-      const boom = Math.sin(2*Math.PI*60*t) * Math.exp(-t * 15) * 0.6;
-      // Mid crack
-      const crack = Math.sin(2*Math.PI*250*t) * Math.exp(-t * 35) * 0.4;
-      // Noise burst
-      const nz = _sndRng(seed) * Math.exp(-t * 50) * 0.5;
-      // Comic spring after hit (boing!)
-      const springT = t - 0.05;
-      let spring = 0;
-      if (springT > 0) {
-        const sf = 600 * Math.exp(-springT * 8);
-        spring = Math.sin(2*Math.PI*sf*springT) * Math.exp(-springT * 12) * 0.25;
-      }
-      out[i] = Math.max(-0.9, Math.min(0.9, (boom + crack + nz) * att + spring));
-    }
-    return out;
-  })(),
-
-  // ⏳ Waiting: cartoon clock ticking that speeds up impatiently
-  emoteWaiting: (() => {
-    const dur = 0.6; const n = Math.floor(AUDIO_SR * dur);
-    const out = new Float32Array(n);
-    const seed = [131];
-    // Ticks that get faster and more agitated
-    const ticks = [0, 0.12, 0.22, 0.30, 0.36, 0.41, 0.45, 0.48];
-    for (let ti = 0; ti < ticks.length; ti++) {
-      const clickStart = Math.floor(ticks[ti] * AUDIO_SR);
-      // Pitch rises with impatience
-      const clickF = 1200 + ti * 200;
-      const vol = 0.3 + ti * 0.04;
-      for (let i = 0; i < Math.floor(0.015 * AUDIO_SR); i++) {
-        const idx = clickStart + i;
-        if (idx >= n) break;
-        const t = i / AUDIO_SR;
-        const env = Math.exp(-t * 400) * vol;
-        out[idx] += (Math.sin(2*Math.PI*clickF*t) * 0.5 + _sndRng(seed) * 0.3) * env;
-      }
-    }
-    // Exasperated final "boing" at the end
-    const boingStart = Math.floor(0.50 * AUDIO_SR);
-    for (let i = 0; i < Math.floor(0.1 * AUDIO_SR); i++) {
-      const idx = boingStart + i;
-      if (idx >= n) break;
-      const t = i / AUDIO_SR;
-      const f = 500 * (1 + Math.exp(-t*15) * Math.sin(2*Math.PI*20*t));
-      out[idx] += Math.sin(2*Math.PI*f*t) * Math.exp(-t*15) * 0.3;
-    }
-    return out;
-  })(),
-
-  // 😲 Surprised: cartoon "ZOINK!" — fast ascending slide + pop
-  emoteSurprised: (() => {
-    const dur = 0.35; const n = Math.floor(AUDIO_SR * dur);
-    const out = new Float32Array(n);
-    const seed = [211];
-    for (let i = 0; i < n; i++) {
-      const t = i / AUDIO_SR;
-      // Ultra-fast ascending slide whistle: 200Hz → 2000Hz in 100ms
-      if (t < 0.12) {
-        const f = 200 + 1800 * Math.pow(t / 0.12, 0.6);
-        const env = Math.min(1, t/0.003) * (1 - t/0.12) * 0.55;
-        out[i] += Math.sin(2*Math.PI*f*t) * env;
-      }
-      // Pop at the top (like a bubble)
-      if (t >= 0.10 && t < 0.16) {
-        const pt = t - 0.10;
-        const popEnv = Math.exp(-pt * 80) * 0.5;
-        out[i] += _sndRng(seed) * popEnv;
-        out[i] += Math.sin(2*Math.PI*2500*pt) * Math.exp(-pt*120) * 0.3;
-      }
-      // Wobble ring-out
-      if (t >= 0.14) {
-        const wt = t - 0.14;
-        const wf = 1200 + 300 * Math.sin(2*Math.PI*12*wt);
-        out[i] += Math.sin(2*Math.PI*wf*wt) * Math.exp(-wt * 15) * 0.15;
-      }
-      out[i] = Math.max(-0.9, Math.min(0.9, out[i]));
-    }
-    return out;
-  })(),
-
-  // 😜 Teasing: cartoon raspberry/pernacchia + "nah nah" melody
-  emoteTeasing: (() => {
-    const dur = 0.7; const n = Math.floor(AUDIO_SR * dur);
-    const out = new Float32Array(n);
-    const seed = [257];
-    // Raspberry/pernacchia sound first (0-0.25s)
-    for (let i = 0; i < Math.floor(0.25 * AUDIO_SR); i++) {
-      const t = i / AUDIO_SR;
-      const env = Math.sin(Math.PI * t / 0.25) * 0.4;
-      // Low buzzy vibration (lips flapping ~50Hz modulated)
-      const buzz = Math.sin(2*Math.PI*85*t);
-      const mod = 0.5 + 0.5 * Math.sin(2*Math.PI*50*t); // flutter
-      // Add noise for spit texture
-      const spit = _sndRng(seed) * 0.3;
-      // Low harmonics for fatness
-      const low = Math.sin(2*Math.PI*170*t) * 0.3 + Math.sin(2*Math.PI*255*t) * 0.15;
-      out[i] = (buzz * mod + low + spit * 0.2) * env;
-    }
-    // Then "nah nah" taunting melody (cartoon style, 0.30s+)
-    const melody = [{t:0.30,d:0.08,f:520},{t:0.40,d:0.08,f:420},{t:0.50,d:0.12,f:340}];
-    for (const note of melody) {
-      for (let i = 0; i < Math.floor(note.d * AUDIO_SR); i++) {
-        const idx = Math.floor(note.t * AUDIO_SR) + i;
-        if (idx >= n) break;
-        const nt = i / AUDIO_SR;
-        const env = Math.sin(Math.PI * nt / note.d) * 0.35;
-        // Cartoon-nasal square-ish wave
-        const phase = ((note.f * nt) % 1 + 1) % 1;
-        const v = (phase < 0.4 ? 1 : -1) * 0.5 
-                + Math.sin(2*Math.PI*note.f*3*nt) * 0.12;
-        out[idx] += v * env;
-      }
-    }
-    for (let i = 0; i < n; i++) out[i] = Math.max(-0.9, Math.min(0.9, out[i]));
-    return out;
-  })(),
+  // ─── Emote sounds — short bell dings with soft 3D depth ───
+  emoteHappy: _makeEmoteDing({ freq: 930, sparkle: 2550, bend: 0.08, decay: 12.2, refGain1: 0.18, refGain2: 0.09, seed: 11, gain: 0.82 }),
+  emoteLaugh: _mixSampleLayers([
+    { offset: 0, samples: _makeEmoteDing({ freq: 820, sparkle: 2400, bend: 0.06, decay: 12.0, seed: 21, gain: 0.76 }) },
+    { offset: Math.floor(AUDIO_SR * 0.09), samples: _makeEmoteDing({ freq: 980, sparkle: 2600, bend: 0.05, decay: 12.5, seed: 23, gain: 0.64 }) }
+  ]),
+  emoteSad: _makeEmoteDing({ freq: 620, sparkle: 1650, bend: -0.04, decay: 9.8, ref1: 0.020, ref2: 0.041, refGain1: 0.12, refGain2: 0.06, warmth: 0.22, air: 0.035, seed: 31, gain: 0.78 }),
+  emoteThumbsUp: _makeEmoteDing({ freq: 880, sparkle: 2250, bend: 0.04, decay: 11.0, refGain1: 0.14, refGain2: 0.08, warmth: 0.18, seed: 41, gain: 0.80 }),
+  emoteThumbsDown: _makeEmoteDing({ freq: 560, sparkle: 1500, bend: -0.06, decay: 9.2, refGain1: 0.11, refGain2: 0.05, warmth: 0.26, air: 0.03, seed: 51, gain: 0.79 }),
+  emoteApplause: _mixSampleLayers([
+    { offset: 0, samples: _makeEmoteDing({ freq: 860, sparkle: 2300, bend: 0.05, decay: 10.8, seed: 61, gain: 0.64 }) },
+    { offset: Math.floor(AUDIO_SR * 0.08), samples: _makeEmoteDing({ freq: 980, sparkle: 2550, bend: 0.04, decay: 11.4, seed: 63, gain: 0.58 }) },
+    { offset: Math.floor(AUDIO_SR * 0.16), samples: _makeEmoteDing({ freq: 1120, sparkle: 2750, bend: 0.03, decay: 12.0, seed: 65, gain: 0.52 }) }
+  ]),
+  emoteBored: _mixSampleLayers([
+    { offset: 0, samples: _makeEmoteDing({ freq: 610, sparkle: 1600, bend: -0.05, decay: 9.0, refGain1: 0.10, refGain2: 0.05, warmth: 0.25, air: 0.028, seed: 71, gain: 0.72 }) },
+    { offset: Math.floor(AUDIO_SR * 0.11), samples: _makeEmoteDing({ freq: 500, sparkle: 1450, bend: -0.06, decay: 8.4, refGain1: 0.08, refGain2: 0.04, warmth: 0.28, air: 0.025, seed: 73, gain: 0.58 }) }
+  ]),
 };
 
 
@@ -4622,16 +4743,33 @@ document.addEventListener('webkitfullscreenchange',_updateFsBtn);
 // ═══════════════════════════════════════════════════════════════
 (function initEmoticons(){
   var EMOTES = [
-    {id:'happy',   emoji:'\uD83D\uDE04', label:'Felice',    snd:'emoteHappy'},
-    {id:'sad',     emoji:'\uD83D\uDE22', label:'Triste',    snd:'emoteSad'},
-    {id:'ready',   emoji:'\uD83D\uDCAA', label:'Pronto',    snd:'emoteReady'},
-    {id:'waiting', emoji:'\u23F3',        label:'Aspetto',   snd:'emoteWaiting'},
-    {id:'surprised',emoji:'\uD83D\uDE32', label:'Sorpreso', snd:'emoteSurprised'},
-    {id:'teasing', emoji:'\uD83D\uDE1C', label:'Provocare', snd:'emoteTeasing'}
+    {id:'happy',      emoji:'🙂', label:'Che bello',   sub:'mi piace proprio',   snd:'emoteHappy'},
+    {id:'laugh',      emoji:'😂', label:'Ah ah',       sub:'questa era bella',   snd:'emoteLaugh'},
+    {id:'sad',        emoji:'😔', label:'Mi spiace',   sub:'questa fa male',     snd:'emoteSad'},
+    {id:'thumbsUp',   emoji:'👍', label:'Thumbs Up',   sub:'ottima mossa',       snd:'emoteThumbsUp'},
+    {id:'thumbsDown', emoji:'👎', label:'Thumbs Down', sub:'non ci siamo',       snd:'emoteThumbsDown'},
+    {id:'applause',   emoji:'👏', label:'Applauso',    sub:'bella giocata',      snd:'emoteApplause'},
+    {id:'bored',      emoji:'🥱', label:'Annoiato',    sub:'muoviamoci un po\'', snd:'emoteBored'}
   ];
   var POSITIONS = ['south','east','north','west'];
   var emoteTimers = {};
   var openMenuPos = null;
+
+  function renderEmoteAvatar(emote, wrapperClass){
+    if(emote.id === 'thumbsUp' || emote.id === 'thumbsDown' || emote.id === 'applause') {
+      return '<span class="' + wrapperClass + '"><span class="emote-native-icon">' + emote.emoji + '</span></span>';
+    }
+    var extra = '';
+    if(emote.id === 'sad') extra = '<span class="emote-mark"></span>';
+    else if(emote.id === 'bored') extra = '<span class="emote-mark"></span>';
+    return '<span class="' + wrapperClass + '"><span class="emote-avatar">'
+      + '<span class="emote-face"></span>'
+      + '<span class="emote-eye left"></span>'
+      + '<span class="emote-eye right"></span>'
+      + '<span class="emote-mouth"></span>'
+      + extra
+      + '</span></span>';
+  }
 
   // Dynamically create a single reusable menu
   var menuEl = document.createElement('div');
@@ -4640,8 +4778,10 @@ document.addEventListener('webkitfullscreenchange',_updateFsBtn);
   EMOTES.forEach(function(e){
     var btn = document.createElement('button');
     btn.className = 'emote-btn';
-    btn.textContent = e.emoji;
+    btn.dataset.emote = e.id;
     btn.title = e.label;
+    btn.innerHTML = renderEmoteAvatar(e, 'emote-btn-emoji')
+      + '<span class="emote-btn-label"><span class="emote-btn-title">' + e.label + '</span><span class="emote-btn-sub">' + e.sub + '</span></span>';
     btn.addEventListener('click', function(ev){
       ev.stopPropagation();
       if(openMenuPos) onEmoteSelect(openMenuPos, e);
@@ -4711,7 +4851,11 @@ document.addEventListener('webkitfullscreenchange',_updateFsBtn);
   function showEmoticon(pos, emote){
     var bubble = document.getElementById('emote-'+pos);
     if(!bubble) return;
-    bubble.textContent = emote.emoji;
+    bubble.dataset.emote = emote.id;
+    bubble.innerHTML = '<div class="emote-chip">'
+      + renderEmoteAvatar(emote, 'emote-chip-emoji')
+      + '<span class="emote-chip-text"><span class="emote-chip-title">' + emote.label + '</span><span class="emote-chip-sub">' + emote.sub + '</span></span>'
+      + '</div>';
     // Play emote sound
     if(emote.snd) playBuffer(emote.snd);
     // Show on the player's card area for ALL players
@@ -4720,7 +4864,7 @@ document.addEventListener('webkitfullscreenchange',_updateFsBtn);
     if(emoteTimers[pos]) clearTimeout(emoteTimers[pos]);
     emoteTimers[pos] = setTimeout(function(){
       bubble.classList.remove('show');
-    }, 5000);
+    }, 3200);
   }
   function showEmoticonForPlayer(idx,emote){ showEmoticon(getVisualPos(idx),emote); }
 
