@@ -1150,7 +1150,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 <div id="overlay">
   <h1>TRESETTE</h1>
   <div class="sub" id="overlay-sub">A PERDERE</div>
-  <div class="sub2">con le carte napoletane</div>
+  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v1.0.1</span></div>
 
   <div class="mode-selector">
     <button class="mode-btn selected" id="mode-perdere" onclick="selectMode('perdere')">🔻 A Perdere</button>
@@ -1181,6 +1181,10 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
     <button class="lobby-btn primary" id="overlay-single-btn" type="button" style="width:min(280px,80vw)" onpointerdown="return runOverlayMenuAction(event,'single')" onclick="return runOverlayMenuAction(event,'single')">🃏 Gioca da Solo (vs CPU)</button>
     <button class="lobby-btn primary" id="overlay-create-btn" type="button" style="width:min(280px,80vw);background:rgba(20,80,40,0.9)" onpointerdown="return runOverlayMenuAction(event,'create')" onclick="return runOverlayMenuAction(event,'create')">🏠 Crea Stanza</button>
     <button class="lobby-btn" id="overlay-join-btn" type="button" style="width:min(280px,80vw)" onpointerdown="return runOverlayMenuAction(event,'join')" onclick="return runOverlayMenuAction(event,'join')">🚪 Unisciti a Stanza</button>
+  </div>
+
+  <div style="margin-top: 15px; margin-bottom: 15px; font-size: 10px; color: #888; text-align: center; max-width: 400px;">
+    Questo gioco è un esperimento open source e non ha fini di lucro. Nessun dato personale viene salvato oltre allo stretto necessario per la partita.
   </div>
 </div>
 
@@ -3364,6 +3368,7 @@ function startSinglePlayerFromOverlay() {
   }
   mpMode = false; isHost = false;
   document.getElementById('overlay').classList.add('hidden');
+  logGameStats('CPU', null);
   startGame();
 }
 function showCreateRoom() {
@@ -3730,6 +3735,8 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
+const GAME_VERSION = "1.0.1";
+
 // Persistent ID: survives page refresh so reconnection works
 const MY_ID = (function(){
   var stored = null;
@@ -3808,6 +3815,21 @@ function _getSession() {
   document.head.appendChild(s1);
 })();
 
+  // ─── Statistiche ──────────────────────────────────────────
+function logGameStats(gameType, playerRole) {
+  if (typeof firebase !== 'undefined' && firebase.database) {
+    try {
+      var statsRef = firebase.database().ref('statistics/games').push();
+      statsRef.set({
+        type: gameType,
+        role: playerRole,
+        version: typeof GAME_VERSION !== 'undefined' ? GAME_VERSION : 'unknown',
+        timestamp: firebase.database.ServerValue.TIMESTAMP 
+      });
+    } catch(e) { console.error('Errore salvataggio stat', e); }
+  }
+}
+
 // ─── Debug logger ──────────────────────────────────────────
 var _dbgLines = [];
 function dbg(msg) {
@@ -3825,10 +3847,10 @@ function dbg(msg) {
 function _updateHostInfo() {
   var el = document.getElementById('hi-host');
   if(!el) return;
-  if(!mpMode) { el.textContent = '—'; return; }
+  if(!mpMode) { el.textContent = '— (v' + (typeof GAME_VERSION !== 'undefined' ? GAME_VERSION : '1.0.1') + ')'; return; }
   var name = _currentHostName || '?';
   el.innerHTML = '<span style="color:#fa4;font-weight:bold">' + name + '</span>'
-    + ' <span style="color:#666">e' + _lastSeenEpoch + ' ' + mpRoom + '</span>';
+    + ' <span style="color:#666">e' + _lastSeenEpoch + ' ' + mpRoom + ' (v' + (typeof GAME_VERSION !== 'undefined' ? GAME_VERSION : '1.0.1') + ')</span>';
 }
 function _resolveHostName(hostId) {
   if(!hostId) return;
@@ -4684,6 +4706,7 @@ function hostGame() {
   _originalHostId = MY_ID;
   dbg('[HOST-INIT] Epoch initialized: epoch='+_hostEpoch+' originalHostId='+_originalHostId+' myId='+MY_ID);
   dbg('HOST room='+mpRoom+' label='+roomLabel);
+  logGameStats('Multiplayer', 'Host');
   document.getElementById('room-code').textContent = mpRoom;
   document.getElementById('create-room-btn').style.display = 'none';
   document.getElementById('host-seats-area').style.display = '';
@@ -4982,6 +5005,7 @@ function _doActualJoin(myName, code, prefSeat) {
   
   isHost = false; mySeat = -1; mpRoom = code;
   _saveSession(mpRoom, myName, false);
+  logGameStats('Multiplayer', 'Client');
   dbg('CLIENT joining room='+mpRoom + (prefSeat != null ? ' prefSeat='+prefSeat : ''));
   document.getElementById('join-status').textContent='Connessione...';
   document.getElementById('join-error').textContent='';
