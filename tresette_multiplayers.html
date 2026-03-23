@@ -1272,14 +1272,14 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   <div style="margin-top: 20px; font-size: 10px; color: #888; text-align: center; max-width: 400px;">
     Questo gioco è un esperimento open source e non ha fini di lucro. Nessun dato personale viene salvato oltre allo stretto necessario per la partita.
   </div>
-  <div style="margin-top:8px;font-size:9px;color:#555;text-align:center">v<span id="auth-version">2.1.0</span></div>
+  <div style="margin-top:8px;font-size:9px;color:#555;text-align:center">v<span id="auth-version">2.2.0</span></div>
 </div>
 
 <!-- ═══════ Start Screen ═══════ -->
 <div id="overlay" class="hidden">
   <h1>TRESETTE</h1>
   <div class="sub" id="overlay-sub">A PERDERE</div>
-  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.1.0</span></div>
+  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.2.0</span></div>
 
   <div class="mode-selector">
     <button class="mode-btn selected" id="mode-perdere" onclick="selectMode('perdere')">🔻 A Perdere</button>
@@ -2482,6 +2482,10 @@ function initGame(startPlayer) {
   }
   _lastGameStarter = sp;
 
+  // Reset duration timer
+  _gameStartedAt = Date.now();
+  _gameElapsedMs = 0;
+
   game = {
     hands,
     trick: [],
@@ -3457,6 +3461,11 @@ function delay(ms) {
 
 // ─── Game Over ────────────────────────────────────────────────
 function showGameOver() {
+  // Log completed game stats
+  var _goType = mpMode ? 'Multiplayer' : 'CPU';
+  var _goRole = mpMode ? (isHost ? 'Host' : 'Client') : null;
+  logGameStats(_goType, _goRole, true);
+
   const el = document.getElementById('game-over');
   el.classList.add('show');
 
@@ -3779,7 +3788,6 @@ function startSinglePlayerFromOverlay() {
   }
   mpMode = false; isHost = false;
   document.getElementById('overlay').classList.add('hidden');
-  logGameStats('CPU', null);
   startGame();
 }
 function showCreateRoom() {
@@ -4033,6 +4041,12 @@ function copyInviteLink() {
 
 function quitGame() {
   dbg('[QUIT] quitGame called');
+  // Log abandoned game stats
+  if(game && game.phase === 'playing') {
+    var _qType = mpMode ? 'Multiplayer' : 'CPU';
+    var _qRole = mpMode ? (isHost ? 'Host' : 'Client') : null;
+    logGameStats(_qType, _qRole, false);
+  }
   _clearSession();
   if(game) game.phase = 'done';
   document.getElementById('quit-btn').style.display = 'none';
@@ -4150,7 +4164,11 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "2.1.0";
+const GAME_VERSION = "2.2.0";
+
+// ─── Game Duration Tracking ───
+var _gameStartedAt = 0;   // Date.now() when play started/resumed
+var _gameElapsedMs = 0;   // accumulated play time (paused during disconnects)
 
 // Persistent ID: survives page refresh so reconnection works
 const MY_ID = (function(){
@@ -4223,9 +4241,16 @@ function _getSession() {
         dbg('[FIREBASE] .info/connected = ' + snap.val());
         if(snap.val() === true && mpMode && mpRoom) {
           dbg('[FIREBASE] Connectivity restored — scheduling meta check in 500ms (isHost='+isHost+' room='+mpRoom+')');
+          // Resume duration timer
+          if(game && game.phase === 'playing') { _gameStartedAt = Date.now(); }
           setTimeout(function(){ _checkMetaOnReconnect(); }, 500);
         } else if(snap.val() === false && mpMode) {
           dbg('[FIREBASE] Connection LOST (isHost='+isHost+' room='+mpRoom+')');
+          // Pause duration timer
+          if(game && game.phase === 'playing' && _gameStartedAt > 0) {
+            _gameElapsedMs += Date.now() - _gameStartedAt;
+            _gameStartedAt = 0;
+          }
         }
       });
       // Check if user is already logged in
@@ -4468,15 +4493,25 @@ function _authErrorMsg(e) {
 }
 
   // ─── Statistiche ──────────────────────────────────────────
-function logGameStats(gameType, playerRole) {
+function _getGameDuration() {
+  var elapsed = _gameElapsedMs;
+  if (_gameStartedAt > 0) elapsed += Date.now() - _gameStartedAt;
+  return elapsed;
+}
+
+function logGameStats(gameType, playerRole, completed) {
   if (typeof firebase !== 'undefined' && firebase.database) {
     try {
+      var durationMs = _getGameDuration();
       var statData = {
         type: gameType,
         role: playerRole,
         difficulty: cpuDifficulty || 'medio',
         version: typeof GAME_VERSION !== 'undefined' ? GAME_VERSION : 'unknown',
-        timestamp: firebase.database.ServerValue.TIMESTAMP 
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        durationMs: durationMs,
+        tricksPlayed: (game && game.trickNum) ? game.trickNum : 0,
+        completed: !!completed
       };
       var statsRef = firebase.database().ref('statistics/games').push();
       statsRef.set(statData);
@@ -5406,7 +5441,6 @@ function hostGame() {
   _originalHostId = MY_ID;
   dbg('[HOST-INIT] Epoch initialized: epoch='+_hostEpoch+' originalHostId='+_originalHostId+' myId='+MY_ID);
   dbg('HOST room='+mpRoom+' label='+roomLabel);
-  logGameStats('Multiplayer', 'Host');
   document.getElementById('room-code').textContent = mpRoom;
   document.getElementById('create-room-btn').style.display = 'none';
   document.getElementById('host-seats-area').style.display = '';
@@ -5705,7 +5739,6 @@ function _doActualJoin(myName, code, prefSeat) {
   
   isHost = false; mySeat = -1; mpRoom = code;
   _saveSession(mpRoom, myName, false);
-  logGameStats('Multiplayer', 'Client');
   dbg('CLIENT joining room='+mpRoom + (prefSeat != null ? ' prefSeat='+prefSeat : ''));
   document.getElementById('join-status').textContent='Connessione...';
   document.getElementById('join-error').textContent='';
