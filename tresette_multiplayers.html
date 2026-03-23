@@ -189,21 +189,21 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 
 /* ════════ Rules Button ════════ */
 #rules-btn{
-  position:fixed;top:clamp(4px, 1vh, 10px);left:clamp(4px, 1vw, 10px);z-index:20;
+  position:fixed;top:clamp(32px, 4vh, 40px);left:clamp(4px, 1vw, 10px);z-index:20;
   background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);
   color:#ddd;padding:clamp(4px, 1vw, 6px) clamp(8px, 2vw, 14px);border-radius:6px;cursor:pointer;font-size:clamp(10px, 2.2vw, 12px);
   touch-action:manipulation;min-height:36px;
 }
 #rules-btn:hover{background:rgba(0,0,0,0.7)}
 #quit-btn{
-  position:fixed;top:clamp(42px, 5.5vh, 52px);left:clamp(4px, 1vw, 10px);z-index:20;
+  position:fixed;top:clamp(70px, 8.5vh, 82px);left:clamp(4px, 1vw, 10px);z-index:20;
   background:rgba(120,30,30,0.7);border:1px solid rgba(255,100,100,0.3);
   color:#faa;padding:clamp(4px, 1vw, 6px) clamp(8px, 2vw, 14px);border-radius:6px;cursor:pointer;
   font-size:clamp(10px, 2.2vw, 12px);touch-action:manipulation;min-height:36px;
 }
 #quit-btn:hover{background:rgba(160,40,40,0.8)}
 #fullscreen-btn{
-  position:fixed;top:clamp(80px, 10vh, 94px);left:clamp(4px, 1vw, 10px);z-index:60;
+  position:fixed;top:clamp(108px, 13vh, 124px);left:clamp(4px, 1vw, 10px);z-index:60;
   background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);
   color:#ddd;padding:clamp(4px, 1vw, 6px) clamp(8px, 2vw, 14px);border-radius:6px;cursor:pointer;
   font-size:clamp(10px, 2.2vw, 12px);touch-action:manipulation;min-height:36px;
@@ -229,6 +229,17 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   border:none;color:#fff;border-radius:6px;cursor:pointer;font-size:14px;
 }
 #rules-panel .rp-close:hover{background:#4a8a4a}
+
+/* ════════ Auth Overlay ════════ */
+#auth-overlay{
+  position:fixed;inset:0;z-index:42;
+  background:radial-gradient(ellipse at center,#1a3a1a 0%,#0a1a0a 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:20px 12px;touch-action:auto;
+}
+#auth-overlay.hidden{display:none}
+.auth-error{color:#f66;font-size:12px;min-height:18px;margin-bottom:6px;text-align:center}
 
 /* ════════ Start Overlay ════════ */
 #overlay{
@@ -410,8 +421,8 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   #score-panel{top:auto;bottom:clamp(100px, 28vw, 140px);right:auto;left:clamp(2px, 0.5vw, 4px);width:clamp(72px, 34vw, 136px)}
   #tournament-panel{top:auto;bottom:clamp(100px, 28vw, 140px);left:auto;right:clamp(2px, 0.5vw, 4px);width:clamp(72px, 34vw, 136px)}
   /* Banners: top-left area, below fullscreen button */
-  #lead-suit-badge{top:clamp(124px, 30vw, 170px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
-  #trick-winner-badge{top:clamp(152px, 36vw, 200px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
+  #lead-suit-badge{top:clamp(148px, 35vw, 195px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
+  #trick-winner-badge{top:clamp(176px, 41vw, 225px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
   #overlay{padding-top:calc(env(safe-area-inset-top, 12px) + 14px);padding-bottom:calc(96px + env(safe-area-inset-bottom, 12px))}
   #overlay::before,#overlay::after{display:none}
 }
@@ -861,6 +872,19 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 }
 #emote-trigger-btn:hover,#emote-trigger-btn:active{background:rgba(255,170,68,0.35);color:#fff;transform:scale(1.05)}
 
+/* ════════ User Badge ════════ */
+#user-badge{
+  position:fixed;top:clamp(4px,1vh,10px);left:clamp(4px,1vw,10px);
+  z-index:91;background:rgba(0,0,0,0.65);backdrop-filter:blur(5px);
+  border:1px solid rgba(255,255,255,0.25);border-radius:12px;
+  color:#ddd;font-size:clamp(10px,2vw,12px);padding:clamp(4px,0.6vh,6px) clamp(8px,1.5vw,12px);
+  display:none;white-space:nowrap;
+  cursor:default;touch-action:manipulation;transition:background .2s;
+  align-items:center;gap:4px;
+}
+#user-badge:hover{background:rgba(0,0,0,0.7)}
+#user-badge .ub-icon{margin-right:4px}
+
 /* ════════ Audio Toggle ════════ */
 #vol-toggle {
   position:fixed;
@@ -951,6 +975,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 <button id="rules-btn">📜 Regole</button>
 <button id="quit-btn" style="display:none">❌ Fine Partita</button>
 <button id="fullscreen-btn" onclick="toggleFullscreen()">⛶ Schermo intero</button>
+<div id="user-badge" title="Profilo utente"><span class="ub-icon">👤</span><span id="ub-name">Ospite</span><button id="ub-auth-btn" onclick="_onAuthBtnClick(event)" style="margin-left:6px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#ccc;font-size:clamp(8px,1.6vw,10px);padding:2px 6px;border-radius:4px;cursor:pointer;touch-action:manipulation">🔑</button></div>
 
 <div id="tournament-panel" style="display:none">
   <div class="tp-header" onclick="toggleTournament()">
@@ -1061,6 +1086,14 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
       • <b>Ultima presa:</b> Clicca sull'area in basso a destra per vedere le carte dell'ultima presa.
     </p>
 
+    <h3 style="color:#fa4;margin-top:16px">🔐 Account e Accesso</h3>
+    <p>All'avvio puoi scegliere tra due modalità:</p>
+    <p>
+      • <b>🎭 Gioca come Ospite:</b> Nessuna registrazione richiesta. Entra subito e gioca con un nome casuale.<br>
+      • <b>🔑 Accedi / 📝 Registrati:</b> Crea un account con email e password per salvare le tue statistiche personali.
+    </p>
+    <p>Gli utenti registrati possono visualizzare le proprie statistiche (partite giocate, CPU vs Multiplayer) nella pagina <b>Statistiche</b>. Gli amministratori hanno accesso a statistiche globali, gestione utenti e strumenti di manutenzione.</p>
+
     <button class="rp-close" onclick="document.getElementById('rules-panel').classList.remove('show')">Chiudi</button>
   </div>
 </div>
@@ -1157,11 +1190,96 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   <div id="lobby-menu" class="lobby-section" style="display:none"></div>
 </div>
 
+<!-- ═══════ Auth Screen ═══════ -->
+<div id="auth-overlay">
+  <h1 style="font-size:clamp(22px,6vw,42px);font-weight:900;letter-spacing:clamp(1px,0.5vw,4px);color:#fa4;text-shadow:0 2px 20px rgba(255,150,0,0.3);margin-bottom:4px">TRESETTE</h1>
+  <div style="color:#888;font-size:clamp(10px,2.5vw,13px);letter-spacing:2px;margin-bottom:clamp(12px,3vh,28px)">con le carte napoletane</div>
+
+  <!-- Auth choice buttons -->
+  <div id="auth-choice" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+    <!-- Sezione Ospite -->
+    <div style="border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:14px 18px;width:min(280px,80vw);text-align:center;background:rgba(255,255,255,0.03)">
+      <div style="color:#888;font-size:clamp(9px,2vw,11px);margin-bottom:8px">Nessuna registrazione richiesta</div>
+      <button class="lobby-btn primary" style="width:100%" onclick="authAsGuest()">🎭 Gioca come Ospite</button>
+    </div>
+    <!-- Sezione Account -->
+    <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 18px;width:min(280px,80vw);text-align:center;background:rgba(255,255,255,0.02)">
+      <div style="color:#888;font-size:clamp(9px,2vw,11px);margin-bottom:8px">Registrazione richiesta</div>
+      <button class="lobby-btn" style="width:100%;margin-bottom:8px" onclick="showAuthForm('login')">🔑 Accedi</button>
+      <button class="lobby-btn" style="width:100%;opacity:0.8" onclick="showAuthForm('register')">📝 Registrati</button>
+    </div>
+  </div>
+
+  <!-- Login form -->
+  <div id="auth-login" style="display:none;max-width:300px;width:90vw">
+    <h3 style="color:#fa4;margin-bottom:10px;text-align:center">🔑 Accedi</h3>
+    <div class="auth-error" id="login-err"></div>
+    <div style="margin-bottom:8px"><input type="email" class="lobby-input" id="auth-login-email" placeholder="Email" style="width:100%;max-width:100%;letter-spacing:normal;text-align:left;font-size:14px"></div>
+    <div style="margin-bottom:8px"><input type="password" class="lobby-input" id="auth-login-pwd" placeholder="Password" style="width:100%;max-width:100%;letter-spacing:normal;text-align:left;font-size:14px"></div>
+    <button class="lobby-btn primary" style="width:100%" onclick="doLogin()">Accedi</button>
+    <div style="margin-top:8px;display:flex;gap:8px;justify-content:center">
+      <button class="lobby-btn" style="font-size:11px;padding:4px 10px" onclick="showAuthForm('register')">Registrati</button>
+      <button class="lobby-btn" style="font-size:11px;padding:4px 10px" onclick="showAuthForm('resetpwd')">Password dimenticata?</button>
+    </div>
+    <div style="margin-top:10px;text-align:center"><a href="#" style="color:#888;font-size:11px" onclick="showAuthForm('choice');return false">← Indietro</a></div>
+  </div>
+
+  <!-- Register form -->
+  <div id="auth-register" style="display:none;max-width:300px;width:90vw">
+    <h3 style="color:#fa4;margin-bottom:10px;text-align:center">📝 Registrati</h3>
+    <div class="auth-error" id="register-err"></div>
+    <div style="margin-bottom:8px"><input type="text" class="lobby-input" id="auth-reg-name" placeholder="Nome giocatore" maxlength="12" style="width:100%;max-width:100%;letter-spacing:normal;text-align:left;font-size:14px"></div>
+    <div style="margin-bottom:8px"><input type="email" class="lobby-input" id="auth-reg-email" placeholder="Email" style="width:100%;max-width:100%;letter-spacing:normal;text-align:left;font-size:14px"></div>
+    <div style="margin-bottom:8px"><input type="password" class="lobby-input" id="auth-reg-pwd" placeholder="Password (min 6 caratteri)" style="width:100%;max-width:100%;letter-spacing:normal;text-align:left;font-size:14px"></div>
+    <div style="margin-bottom:8px"><input type="password" class="lobby-input" id="auth-reg-pwd2" placeholder="Conferma password" style="width:100%;max-width:100%;letter-spacing:normal;text-align:left;font-size:14px"></div>
+    <button class="lobby-btn primary" style="width:100%" onclick="doRegister()">Crea Account</button>
+    <div style="margin-top:10px;text-align:center"><a href="#" style="color:#888;font-size:11px" onclick="showAuthForm('choice');return false">← Indietro</a></div>
+  </div>
+
+  <!-- Reset password form -->
+  <div id="auth-resetpwd" style="display:none;max-width:300px;width:90vw">
+    <h3 style="color:#fa4;margin-bottom:10px;text-align:center">🔄 Recupera Password</h3>
+    <div class="auth-error" id="resetpwd-err"></div>
+    <p style="color:#aaa;font-size:12px;margin-bottom:10px;text-align:center">Inserisci la tua email. Riceverai un link per reimpostare la password.</p>
+    <div style="margin-bottom:8px"><input type="email" class="lobby-input" id="auth-reset-email" placeholder="Email" style="width:100%;max-width:100%;letter-spacing:normal;text-align:left;font-size:14px"></div>
+    <button class="lobby-btn primary" style="width:100%" onclick="doResetPassword()">Invia Email di Recupero</button>
+    <div style="margin-top:10px;text-align:center"><a href="#" style="color:#888;font-size:11px" onclick="showAuthForm('login');return false">← Torna al Login</a></div>
+  </div>
+
+  <!-- Logged-in info (shown briefly when auto-logged in) -->
+  <div id="auth-logged" style="display:none;text-align:center;max-width:300px;width:90vw">
+    <div style="color:#4f4;font-size:14px;margin-bottom:6px">✅ Bentornato!</div>
+    <div style="color:#ccc;font-size:13px;margin-bottom:4px" id="auth-logged-name"></div>
+    <div style="color:#888;font-size:11px;margin-bottom:12px" id="auth-logged-email"></div>
+    <button class="lobby-btn primary" style="width:100%;margin-bottom:8px" onclick="proceedToGame()">▶ Continua</button>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button class="lobby-btn" style="font-size:11px;padding:4px 10px" onclick="showAuthForm('changepwd')">Cambia Password</button>
+      <button class="lobby-btn" style="font-size:11px;padding:4px 10px;color:#f88" onclick="doLogout()">Esci</button>
+    </div>
+  </div>
+
+  <!-- Change password form (for logged-in users) -->
+  <div id="auth-changepwd" style="display:none;max-width:300px;width:90vw">
+    <h3 style="color:#fa4;margin-bottom:10px;text-align:center">🔒 Cambia Password</h3>
+    <div class="auth-error" id="changepwd-err"></div>
+    <div style="margin-bottom:8px"><input type="password" class="lobby-input" id="auth-old-pwd" placeholder="Password attuale" style="width:100%"></div>
+    <div style="margin-bottom:8px"><input type="password" class="lobby-input" id="auth-new-pwd" placeholder="Nuova password (min 6 caratteri)" style="width:100%"></div>
+    <div style="margin-bottom:8px"><input type="password" class="lobby-input" id="auth-new-pwd2" placeholder="Conferma nuova password" style="width:100%"></div>
+    <button class="lobby-btn primary" style="width:100%" onclick="doChangePassword()">Aggiorna Password</button>
+    <div style="margin-top:10px;text-align:center"><a href="#" style="color:#888;font-size:11px" onclick="showAuthForm('logged');return false">← Indietro</a></div>
+  </div>
+
+  <div style="margin-top: 20px; font-size: 10px; color: #888; text-align: center; max-width: 400px;">
+    Questo gioco è un esperimento open source e non ha fini di lucro. Nessun dato personale viene salvato oltre allo stretto necessario per la partita.
+  </div>
+  <div style="margin-top:8px;font-size:9px;color:#555;text-align:center">v<span id="auth-version">2.0.0</span></div>
+</div>
+
 <!-- ═══════ Start Screen ═══════ -->
-<div id="overlay">
+<div id="overlay" class="hidden">
   <h1>TRESETTE</h1>
   <div class="sub" id="overlay-sub">A PERDERE</div>
-  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v1.2.0</span></div>
+  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.0.0</span></div>
 
   <div class="mode-selector">
     <button class="mode-btn selected" id="mode-perdere" onclick="selectMode('perdere')">🔻 A Perdere</button>
@@ -1655,6 +1773,7 @@ function initAudio() {
 
 function playBuffer(name) {
   if (!audioCtx || !audioBuffers[name] || muted) return;
+  if (game && game.phase === 'done') return;
   try {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const src = audioCtx.createBufferSource();
@@ -3913,10 +4032,14 @@ function copyInviteLink() {
 })();
 
 function quitGame() {
+  dbg('[QUIT] quitGame called');
   _clearSession();
-  game.phase = 'done';
+  if(game) game.phase = 'done';
   document.getElementById('quit-btn').style.display = 'none';
+  document.getElementById('game-over').classList.remove('show');
   _hideDiscBanner();
+  stopTurnTimer();
+  hideBuongiocoBanners();
   var wasHost = isHost;
   var oldRoom = mpRoom;
   stopHostHeartbeat();
@@ -4027,7 +4150,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "1.2.0";
+const GAME_VERSION = "2.0.0";
 
 // Persistent ID: survives page refresh so reconnection works
 const MY_ID = (function(){
@@ -4080,6 +4203,9 @@ function _getSession() {
     var s2 = document.createElement('script');
     s2.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js';
     s2.onload = function(){
+      var s3 = document.createElement('script');
+      s3.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js';
+      s3.onload = function(){
       firebase.initializeApp({
         apiKey: "AIzaSyDftiPN3z_W1Q1J8sX3gjbChKbemlqpuUw",
         authDomain: "tresette-game.firebaseapp.com",
@@ -4091,9 +4217,10 @@ function _getSession() {
       });
       _fbDb = firebase.database();
       _fbReady = true;
-      dbg('Firebase ready!');
-      // Listen for connectivity changes to handle host migration on reconnect
+      dbg('Firebase ready! DB URL: ' + _fbDb.app.options.databaseURL);
+      // Listen for connectivity changes
       _fbDb.ref('.info/connected').on('value', function(snap) {
+        dbg('[FIREBASE] .info/connected = ' + snap.val());
         if(snap.val() === true && mpMode && mpRoom) {
           dbg('[FIREBASE] Connectivity restored — scheduling meta check in 500ms (isHost='+isHost+' room='+mpRoom+')');
           setTimeout(function(){ _checkMetaOnReconnect(); }, 500);
@@ -4101,24 +4228,259 @@ function _getSession() {
           dbg('[FIREBASE] Connection LOST (isHost='+isHost+' room='+mpRoom+')');
         }
       });
+      // Check if user is already logged in
+      _checkAuthState();
+      };
+      document.head.appendChild(s3);
     };
     document.head.appendChild(s2);
   };
   document.head.appendChild(s1);
 })();
 
+// ═══════════════════════════════════════════════════════════════
+//  AUTH SYSTEM — Guest / Login / Register / Change Password
+// ═══════════════════════════════════════════════════════════════
+var _authUser = null; // firebase.User or null
+var _isGuest = false;
+
+function showAuthForm(which) {
+  var sections = ['auth-choice','auth-login','auth-register','auth-resetpwd','auth-logged','auth-changepwd'];
+  sections.forEach(function(id){ document.getElementById(id).style.display = 'none'; });
+  // Clear errors
+  document.querySelectorAll('.auth-error').forEach(function(el){ el.textContent = ''; });
+  if (which === 'choice') document.getElementById('auth-choice').style.display = 'flex';
+  else if (which === 'login') document.getElementById('auth-login').style.display = 'block';
+  else if (which === 'register') document.getElementById('auth-register').style.display = 'block';
+  else if (which === 'resetpwd') document.getElementById('auth-resetpwd').style.display = 'block';
+  else if (which === 'logged') document.getElementById('auth-logged').style.display = 'block';
+  else if (which === 'changepwd') document.getElementById('auth-changepwd').style.display = 'block';
+}
+
+function _checkAuthState() {
+  var auth = firebase.auth();
+  auth.onAuthStateChanged(function(user) {
+    if (user) {
+      _authUser = user;
+      _isGuest = false;
+      dbg('[AUTH] Auto-login rilevato: ' + (user.displayName || user.email));
+      document.getElementById('auth-logged-name').textContent = user.displayName || 'Giocatore';
+      document.getElementById('auth-logged-email').textContent = user.email || '';
+      _updateUserBadge();
+      _syncNameFromAuth();
+      showAuthForm('logged');
+      // Pre-fill game name
+      var nameInput = document.getElementById('my-name-input');
+      if (nameInput) nameInput.value = user.displayName || '';
+      // Register user in DB for admin visibility
+      _registerUserInDb(user);
+    } else {
+      _authUser = null;
+      showAuthForm('choice');
+    }
+  });
+}
+
+function authAsGuest() {
+  _isGuest = true;
+  _authUser = null;
+  dbg('[AUTH] Accesso come ospite');
+  _updateUserBadge();
+  proceedToGame();
+}
+
+function proceedToGame() {
+  document.getElementById('auth-overlay').classList.add('hidden');
+  document.getElementById('overlay').classList.remove('hidden');
+  _updateUserBadge();
+  _syncNameFromAuth();
+}
+
+function doLogin() {
+  var email = document.getElementById('auth-login-email').value.trim();
+  var pwd = document.getElementById('auth-login-pwd').value;
+  var errEl = document.getElementById('login-err');
+  errEl.textContent = '';
+  if (!email || !pwd) { errEl.textContent = 'Inserisci email e password.'; return; }
+  if (typeof firebase === 'undefined' || !firebase.auth) { errEl.textContent = 'Firebase non ancora pronto. Riprova tra un momento.'; return; }
+  dbg('[AUTH] Tentativo login: ' + email);
+  firebase.auth().signInWithEmailAndPassword(email, pwd)
+    .then(function(cred) {
+      dbg('[AUTH] Login riuscito: ' + (cred.user.displayName || cred.user.email));
+    })
+    .catch(function(e) { dbg('[AUTH] Login fallito: ' + e.code); errEl.textContent = _authErrorMsg(e); });
+}
+
+function doRegister() {
+  var name = document.getElementById('auth-reg-name').value.trim();
+  var email = document.getElementById('auth-reg-email').value.trim();
+  var pwd = document.getElementById('auth-reg-pwd').value;
+  var pwd2 = document.getElementById('auth-reg-pwd2').value;
+  var errEl = document.getElementById('register-err');
+  errEl.textContent = '';
+  if (!name) { errEl.textContent = 'Inserisci il tuo nome.'; return; }
+  if (!email) { errEl.textContent = 'Inserisci la tua email.'; return; }
+  if (pwd.length < 6) { errEl.textContent = 'La password deve avere almeno 6 caratteri.'; return; }
+  if (pwd !== pwd2) { errEl.textContent = 'Le password non corrispondono.'; return; }
+  firebase.auth().createUserWithEmailAndPassword(email, pwd)
+    .then(function(cred) {
+      return cred.user.updateProfile({ displayName: name });
+    })
+    .then(function() {
+      // Force state refresh
+      _authUser = firebase.auth().currentUser;
+      dbg('[AUTH] Registrazione riuscita: ' + name + ' (' + email + ')');
+      document.getElementById('auth-logged-name').textContent = name;
+      document.getElementById('auth-logged-email').textContent = email;
+      showAuthForm('logged');
+    })
+    .catch(function(e) { errEl.textContent = _authErrorMsg(e); });
+}
+
+function doResetPassword() {
+  var email = document.getElementById('auth-reset-email').value.trim();
+  var errEl = document.getElementById('resetpwd-err');
+  errEl.textContent = '';
+  if (!email) { errEl.textContent = 'Inserisci la tua email.'; return; }
+  firebase.auth().sendPasswordResetEmail(email)
+    .then(function() {
+      errEl.style.color = '#4f4';
+      errEl.textContent = '✅ Email di recupero inviata! Controlla la tua casella.';
+    })
+    .catch(function(e) { errEl.style.color = '#f66'; errEl.textContent = _authErrorMsg(e); });
+}
+
+function doChangePassword() {
+  var oldPwd = document.getElementById('auth-old-pwd').value;
+  var newPwd = document.getElementById('auth-new-pwd').value;
+  var newPwd2 = document.getElementById('auth-new-pwd2').value;
+  var errEl = document.getElementById('changepwd-err');
+  errEl.textContent = '';
+  if (!oldPwd) { errEl.textContent = 'Inserisci la password attuale.'; return; }
+  if (newPwd.length < 6) { errEl.textContent = 'La nuova password deve avere almeno 6 caratteri.'; return; }
+  if (newPwd !== newPwd2) { errEl.textContent = 'Le nuove password non corrispondono.'; return; }
+  var user = firebase.auth().currentUser;
+  if (!user || !user.email) { errEl.textContent = 'Devi essere loggato.'; return; }
+  // Re-authenticate first
+  var credential = firebase.auth.EmailAuthProvider.credential(user.email, oldPwd);
+  user.reauthenticateWithCredential(credential)
+    .then(function() { return user.updatePassword(newPwd); })
+    .then(function() {
+      errEl.style.color = '#4f4';
+      errEl.textContent = '✅ Password aggiornata con successo!';
+      document.getElementById('auth-old-pwd').value = '';
+      document.getElementById('auth-new-pwd').value = '';
+      document.getElementById('auth-new-pwd2').value = '';
+    })
+    .catch(function(e) { errEl.style.color = '#f66'; errEl.textContent = _authErrorMsg(e); });
+}
+
+function doLogout() {
+  dbg('[AUTH] Logout eseguito: ' + (_authUser ? (_authUser.displayName || _authUser.email) : 'guest'));
+  // Stop any running game first
+  if (game && game.phase === 'playing') {
+    dbg('[AUTH] Arresto gioco in corso prima del logout');
+    quitGame();
+  }
+  firebase.auth().signOut().then(function() {
+    _authUser = null;
+    _isGuest = false;
+    _updateUserBadge();
+    _syncNameFromAuth();
+    showAuthForm('choice');
+    // Show auth overlay again
+    document.getElementById('overlay').classList.add('hidden');
+    document.getElementById('auth-overlay').classList.remove('hidden');
+  });
+}
+
+function _updateUserBadge() {
+  var badge = document.getElementById('user-badge');
+  var nameEl = document.getElementById('ub-name');
+  var authBtn = document.getElementById('ub-auth-btn');
+  if (!badge || !nameEl) return;
+  if (_authUser) {
+    nameEl.textContent = _authUser.displayName || _authUser.email || 'Utente';
+    badge.querySelector('.ub-icon').textContent = '👤';
+    badge.style.display = 'flex';
+    if (authBtn) { authBtn.textContent = '🚪 Esci'; authBtn.title = 'Logout'; }
+  } else if (_isGuest) {
+    nameEl.textContent = 'Ospite';
+    badge.querySelector('.ub-icon').textContent = '🎭';
+    badge.style.display = 'flex';
+    if (authBtn) { authBtn.textContent = '🔑 Accedi'; authBtn.title = 'Login'; }
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function _syncNameFromAuth() {
+  var nameInput = document.getElementById('my-name-input');
+  if (!nameInput) return;
+  if (_authUser && _authUser.displayName) {
+    nameInput.value = _authUser.displayName;
+    nameInput.readOnly = true;
+    nameInput.style.opacity = '0.7';
+    nameInput.title = 'Nome dal tuo account';
+  } else {
+    nameInput.readOnly = false;
+    nameInput.style.opacity = '1';
+    nameInput.title = '';
+    if (_isGuest && !nameInput.value) nameInput.value = '';
+  }
+}
+
+function _onAuthBtnClick(e) {
+  if (e) { e.stopPropagation(); }
+  if (_authUser) {
+    // Logged in → logout
+    doLogout();
+  } else {
+    // Guest → show choice screen (guest/login/register)
+    dbg('[AUTH] Richiesta login da badge');
+    document.getElementById('auth-overlay').classList.remove('hidden');
+    showAuthForm('choice');
+  }
+}
+
+function _registerUserInDb(user) {
+  if (!_fbDb || !user || !user.uid) return;
+  _fbDb.ref('users/' + user.uid).set({
+    email: user.email || '',
+    displayName: user.displayName || '',
+    lastLogin: firebase.database.ServerValue.TIMESTAMP
+  }).catch(function(e) { dbg('[AUTH] Errore registrazione utente nel DB: ' + e.message); });
+}
+
+function _authErrorMsg(e) {
+  var code = e.code || '';
+  if (code === 'auth/user-not-found') return 'Utente non trovato.';
+  if (code === 'auth/wrong-password') return 'Password errata.';
+  if (code === 'auth/invalid-email') return 'Email non valida.';
+  if (code === 'auth/email-already-in-use') return 'Email già registrata.';
+  if (code === 'auth/weak-password') return 'Password troppo debole (min 6 caratteri).';
+  if (code === 'auth/too-many-requests') return 'Troppi tentativi. Riprova più tardi.';
+  if (code === 'auth/invalid-credential') return 'Credenziali non valide. Controlla email e password.';
+  return e.message || 'Errore sconosciuto.';
+}
+
   // ─── Statistiche ──────────────────────────────────────────
 function logGameStats(gameType, playerRole) {
   if (typeof firebase !== 'undefined' && firebase.database) {
     try {
-      var statsRef = firebase.database().ref('statistics/games').push();
-      statsRef.set({
+      var statData = {
         type: gameType,
         role: playerRole,
         difficulty: cpuDifficulty || 'medio',
         version: typeof GAME_VERSION !== 'undefined' ? GAME_VERSION : 'unknown',
         timestamp: firebase.database.ServerValue.TIMESTAMP 
-      });
+      };
+      var statsRef = firebase.database().ref('statistics/games').push();
+      statsRef.set(statData);
+      // Also save per-user stats if logged in
+      if (_authUser && _authUser.uid) {
+        firebase.database().ref('users/' + _authUser.uid + '/gameStats').push().set(statData);
+      }
     } catch(e) { console.error('Errore salvataggio stat', e); }
   }
 }
@@ -4811,26 +5173,52 @@ var _lobbyRef = null;
 function startLobbyBrowser() {
   stopLobbyBrowser();
   if(!_fbDb) {
-    document.getElementById('room-list-status').textContent = 'Connessione...';
-    setTimeout(function(){ if(_fbReady) startLobbyBrowser(); }, 1000);
+    document.getElementById('room-list-status').textContent = 'Connessione a Firebase...';
+    dbg('[LOBBY] _fbDb non pronto, retry in 500ms (_fbReady='+_fbReady+')');
+    setTimeout(function(){ startLobbyBrowser(); }, 500);
     return;
   }
   _lobbyRooms = {};
   renderRoomList();
   document.getElementById('room-list-status').textContent = 'Cercando partite...';
-  dbg('LOBBY browser start');
+  dbg('LOBBY browser start — _fbDb='+!!_fbDb+' _fbReady='+_fbReady);
   _lobbyRef = _fbDb.ref('lobby');
+  // Timeout: if no data after 5s, something is wrong
+  var _lobbyTimeout = setTimeout(function(){
+    dbg('[LOBBY] TIMEOUT: nessun dato ricevuto dopo 5s. Possibili cause: regole Firebase bloccanti o connessione persa.');
+    document.getElementById('room-list-status').textContent = 'Impossibile caricare le stanze. Controlla la connessione.';
+    // Try a one-time read as fallback
+    _fbDb.ref('lobby').once('value').then(function(snap){
+      dbg('[LOBBY] Fallback once() riuscito: ' + JSON.stringify(snap.val()));
+    }).catch(function(e){
+      dbg('[LOBBY] Fallback once() ERRORE: ' + e.message);
+    });
+  }, 5000);
   _lobbyRef.on('value', function(snap){
+    clearTimeout(_lobbyTimeout);
     var rooms = snap.val() || {};
+    dbg('[LOBBY] Dati ricevuti: ' + Object.keys(rooms).length + ' stanze totali');
     _lobbyRooms = {};
     var now = Date.now();
     for(var code in rooms){
       var r = rooms[code];
-      if(r && r.time && (now - r.time) < 90000){
-        _lobbyRooms[code] = r;
+      if(r && r.time){
+        var age = now - r.time;
+        if(age < 120000){
+          _lobbyRooms[code] = r;
+        } else {
+          dbg('[LOBBY] Stanza ' + code + ' scartata: age=' + Math.round(age/1000) + 's');
+        }
+      } else {
+        dbg('[LOBBY] Stanza ' + code + ' senza timestamp, inclusa comunque');
+        if(r) _lobbyRooms[code] = r;
       }
     }
+    dbg('[LOBBY] Stanze visibili: ' + Object.keys(_lobbyRooms).length);
     renderRoomList();
+  }, function(err){
+    dbg('[LOBBY] ERRORE lettura lobby: ' + err.message);
+    document.getElementById('room-list-status').textContent = 'Errore: ' + err.message;
   });
   _fbListeners.push(_lobbyRef);
 }
@@ -4886,12 +5274,19 @@ var _heartbeatTimer = null;
 var _roomLabel = '';
 function startHostHeartbeat() {
   stopHostHeartbeat();
-  if(!_fbDb || !mpRoom) return;
+  if(!_fbDb || !mpRoom) { dbg('[HEARTBEAT] SKIP: _fbDb='+!!_fbDb+' mpRoom='+mpRoom); return; }
   var myName = _getMyName() || 'Host';
+  // Auto-remove lobby entry when host disconnects (browser close, network loss)
+  _fbDb.ref('lobby/'+mpRoom).onDisconnect().remove()
+    .then(function(){ dbg('[HEARTBEAT] onDisconnect registrato per lobby/'+mpRoom); })
+    .catch(function(e){ dbg('[HEARTBEAT] onDisconnect ERR: '+e.message); });
   function beat(){
     if(!_fbDb || !mpRoom) return;
-    _fbDb.ref('lobby/'+mpRoom).set({host:myName, mode:gameMode, difficulty:cpuDifficulty, label:_roomLabel||('Partita di '+myName), time:firebase.database.ServerValue.TIMESTAMP});
-    dbg('HEARTBEAT');
+    var data = {host:myName, mode:gameMode, difficulty:cpuDifficulty, label:_roomLabel||('Partita di '+myName), time:firebase.database.ServerValue.TIMESTAMP};
+    dbg('[HEARTBEAT] Scrivendo in lobby/'+mpRoom+': ' + JSON.stringify({host:data.host, mode:data.mode}));
+    _fbDb.ref('lobby/'+mpRoom).set(data)
+      .then(function(){ dbg('[HEARTBEAT] OK — scritto in lobby/'+mpRoom); })
+      .catch(function(e){ dbg('[HEARTBEAT] ERRORE scrittura lobby: '+e.message); });
   }
   beat();
   _heartbeatTimer = setInterval(beat, 30000);
