@@ -1023,7 +1023,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
       • <b>Perde anche</b> chi non ha fatto almeno <b>1 punto intero</b> (un Asso o 3 figure).<br>
       • <b>🚀 Volo:</b> Se la somma dei punti dei 3 giocatori con meno punti <b>non raggiunge 3 punti</b>, chi ha fatto più punti fa "volo" e <b>vince</b> invece di perdere! Perdono solo quelli che non hanno fatto almeno 1 punto.
     </p>
-    <p><b>🔺 A Vincere:</b> Si gioca <b>a coppie</b> (i giocatori di fronte sono compagni). I punti delle prese vanno alla coppia. La coppia che fa più punti in una mano guadagna <b>1 punto torneo</b>. La prima coppia a raggiungere <b>7 punti torneo</b> vince!</p>
+    <p><b>🔺 A Vincere:</b> Si gioca <b>a coppie</b> (i giocatori di fronte sono compagni). I punti delle prese vanno alla coppia. Alla fine di ogni mano, i <b>punti interi</b> (scartando i terzi) si aggiungono al totale del torneo. I punti del <b>buongioco</b> si sommano ai punti fatti con le prese. La prima coppia a raggiungere <b>31 punti</b> vince!</p>
     <p style="margin-left:12px;font-size:clamp(11px,2.2vw,12px);color:#bbb">
       • <b>Buongioco (Accuse):</b> All’inizio di ogni mano, si dichiarano le combinazioni in mano:<br>
       &nbsp;&nbsp;– <b>Napola:</b> Asso + 2 + 3 dello stesso seme = 3 punti bonus (+1 per ogni carta consecutiva in più)<br>
@@ -1046,7 +1046,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
       <b>A Vincere:</b><br>
       • Si gioca a <b>coppie</b> (giocatori opposti sono compagni).<br>
       • I punti delle prese (+ buongioco) di ogni mano si <b>accumulano</b>.<br>
-      • La prima coppia a raggiungere <b>7 vittorie</b> vince il torneo!
+      • La prima coppia a raggiungere <b>31 punti</b> vince il torneo!
     </p>
     <p>La classifica del torneo è visibile durante la partita (pannello "🏆 TORNEO", cliccabile per mostrare/nascondere).</p>
 
@@ -1302,8 +1302,8 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
     <b>🃏 Come giocare:</b> Clicca o tocca una carta per giocarla. Devi seguire il seme di mano se puoi!<br>
     <b>⚠️ A Perdere:</b> Perde chi fa più punti e chi non arriva a 1 punto intero.<br>
     <b>🚀 Volo:</b> Se i 3 con meno punti non arrivano a 3, chi ha più punti vince!<br>
-    <b>🔺 A Vincere:</b> Si gioca a coppie! Vince la mano = +1 pt torneo. Prima coppia a 7 vittorie vince! Buongioco: Napola, 3/4 uguali.<br>
-    <b>🏆 Torneo:</b> A perdere: fino a 7 punti penalità. A vincere: prima coppia a 7 vittorie vince!<br>
+    <b>🔺 A Vincere:</b> Si gioca a coppie! I punti interi di ogni mano si sommano al totale. Prima coppia a 31 punti vince! Buongioco: Napola, 3/4 uguali.<br>
+    <b>🏆 Torneo:</b> A perdere: fino a 7 punti penalità. A vincere: prima coppia a 31 punti vince!<br>
     <b>👥 Multiplayer:</b> Gioca online con un amico! Crea o unisciti a una partita dalla lobby.<br>
   </div>
 
@@ -1837,7 +1837,7 @@ function selectMode(mode) {
   document.getElementById('overlay-sub').textContent = mode === 'perdere' ? 'A PERDERE' : 'A VINCERE';
   document.getElementById('info-objective').innerHTML = mode === 'perdere'
     ? '<b>🎯 Obiettivo:</b> Prendi MENO punti possibili!'
-    : '<b>🎯 Obiettivo:</b> Si gioca a coppie! Prendi PIÙ punti possibili con il compagno e dichiara il buongioco! Prima coppia a 7 vittorie vince.';
+    : '<b>🎯 Obiettivo:</b> Si gioca a coppie! Prendi PIÙ punti possibili con il compagno e dichiara il buongioco! Prima coppia a 31 punti vince.';
 }
 
 function selectDifficulty(diff) {
@@ -1877,7 +1877,7 @@ function getTeamName(teamIdx) {
   return PLAYER_NAMES[TEAM_MEMBERS[teamIdx][0]] + ' & ' + PLAYER_NAMES[TEAM_MEMBERS[teamIdx][1]];
 }
 function isVincereMode() { return gameMode === 'vincere'; }
-var VINCERE_LIMIT = 7; // first team to 7 wins the tournament
+var VINCERE_LIMIT = 31; // first team to 31 punti interi wins the tournament
 
 // ─── Buongioco (accuse) per il Tresette a Vincere ────────────────────
 // Napola: A-2-3 dello stesso seme = 3 punti, +1 per ogni carta consecutiva aggiuntiva
@@ -2276,7 +2276,7 @@ function createCardElement(card, faceUp) {
 var tournamentScores = [0, 0, 0, 0]; // penalty points per player (perdere) or per team (vincere: [team0, team1])
 var tournamentActive = false;
 var TOURNAMENT_LIMIT = 7; // first to reach this loses the tournament (a perdere)
-// For vincere: VINCERE_LIMIT = 7 (first team to 7 tournament points wins)
+// For vincere: VINCERE_LIMIT = 31 (first team to 31 punti interi wins)
 var tournamentOver = false;
 
 function resetTournament() {
@@ -2374,7 +2374,7 @@ function renderTournament() {
   container.innerHTML = '';
 
   if (isVincereMode()) {
-    // Team-based tournament for "a vincere" — +1 per hand won, first to 7
+    // Team-based tournament for "a vincere" — accumulate punti interi, first to 31
     var myIdx = mpMode ? (mySeat >= 0 ? mySeat : 0) : 0;
     var myTeam = getPlayerTeam(myIdx);
     var limit = VINCERE_LIMIT;
@@ -2386,7 +2386,7 @@ function renderTournament() {
       if (t.idx === myTeam) cls += ' you';
       if (t.score === Math.max(tournamentScores[0], tournamentScores[1]) && tournamentScores[0] !== tournamentScores[1]) cls += ' leader';
       row.className = cls;
-      row.innerHTML = '<span class="tp-name">' + (rank + 1) + '° ' + t.name + '</span><span class="tp-pts">' + t.score + ' / ' + limit + '</span>';
+      row.innerHTML = '<span class="tp-name">' + (rank + 1) + '° ' + t.name + '</span><span class="tp-pts">' + t.score + ' / ' + limit + ' pt</span>';
       container.appendChild(row);
     });
   } else {
@@ -2413,15 +2413,14 @@ function updateTournamentScores(winnerSet, loserSet, voloActive) {
   if (!tournamentActive || tournamentOver) return;
 
   if (isVincereMode()) {
-    // A vincere: +1 for winning team, 0 for losing, 0 each on tie
+    // A vincere: accumulate integer points (floor of terzi/3) per team
     var teamScore0 = getTeamScore(0);
     var teamScore1 = getTeamScore(1);
-    if (teamScore0 > teamScore1) {
-      tournamentScores[0] += 1;
-    } else if (teamScore1 > teamScore0) {
-      tournamentScores[1] += 1;
-    }
-    // tie: both get 0
+    // Convert terzi to punti interi (drop fractions)
+    var puntiTeam0 = Math.floor(teamScore0 / 3);
+    var puntiTeam1 = Math.floor(teamScore1 / 3);
+    tournamentScores[0] += puntiTeam0;
+    tournamentScores[1] += puntiTeam1;
   } else {
     // A perdere: individual penalty points
     for (var i = 0; i < 4; i++) {
@@ -3543,9 +3542,12 @@ function showGameOver() {
     const myTeam = getPlayerTeam(localSeat);
     const teamScore0 = getTeamScore(0);
     const teamScore1 = getTeamScore(1);
+    // Convert terzi to punti interi for this hand
+    var puntiHand0 = Math.floor(teamScore0 / 3);
+    var puntiHand1 = Math.floor(teamScore1 / 3);
     const teams = [
-      { idx: 0, score: teamScore0, name: getTeamName(0) },
-      { idx: 1, score: teamScore1, name: getTeamName(1) }
+      { idx: 0, score: teamScore0, puntiInteri: puntiHand0, name: getTeamName(0) },
+      { idx: 1, score: teamScore1, puntiInteri: puntiHand1, name: getTeamName(1) }
     ];
     teams.sort((a, b) => b.score - a.score); // highest first
 
@@ -3555,10 +3557,10 @@ function showGameOver() {
       const isTie = teamScore0 === teamScore1;
       const row = document.createElement('div');
       row.className = 'go-result-row' + (isLose ? ' loser' : '') + (isWin ? ' winner' : '');
-      let statusLabel = '';
-      if (isWin) statusLabel = '✅ +1 pt torneo';
-      else if (isTie) statusLabel = '🤝 0 pt torneo';
-      else if (isLose) statusLabel = '❌ 0 pt torneo';
+      let statusLabel = '+'  + t.puntiInteri + ' pt torneo';
+      if (isWin) statusLabel = '✅ ' + statusLabel;
+      else if (isTie) statusLabel = '🤝 ' + statusLabel;
+      else if (isLose) statusLabel = '❌ ' + statusLabel;
       row.innerHTML =
         `<span class="grr-name">${rank + 1}° ${t.name}</span>` +
         `<span class="grr-pts">${formatPuntiLong(t.score)}</span>` +
@@ -3694,9 +3696,9 @@ function showGameOver() {
     if (isVincereMode() && tournamentActive && !tournamentOver) {
       const progDiv = document.createElement('div');
       progDiv.style.cssText = 'margin-top:8px;border-top:1px solid rgba(255,255,255,0.15);padding-top:6px;text-align:center;';
-      progDiv.innerHTML = '<div style="color:#5af;font-size:clamp(10px,2.2vw,12px);margin-bottom:4px">📊 Classifica Torneo (obiettivo: ' + VINCERE_LIMIT + ' vittorie)</div>'
+      progDiv.innerHTML = '<div style="color:#5af;font-size:clamp(10px,2.2vw,12px);margin-bottom:4px">📊 Classifica Torneo (obiettivo: ' + VINCERE_LIMIT + ' punti)</div>'
         + [0,1].map(function(ti) {
-          return '<div style="color:#ccc;font-size:clamp(9px,2vw,11px)">' + getTeamName(ti) + ': ' + tournamentScores[ti] + ' / ' + VINCERE_LIMIT + '</div>';
+          return '<div style="color:#ccc;font-size:clamp(9px,2vw,11px)">' + getTeamName(ti) + ': ' + tournamentScores[ti] + ' / ' + VINCERE_LIMIT + ' pt</div>';
         }).join('');
       resultsEl.appendChild(progDiv);
     }
@@ -3716,8 +3718,8 @@ function showGameOver() {
       const tWinner = tSorted[0];
       const tLoser = tSorted[1];
       tEl.innerHTML = `<div style="color:#fa4;font-weight:bold;font-size:clamp(12px,3vw,16px);margin-bottom:4px">🏆 TORNEO FINITO!</div>`
-        + `<div style="color:#4f4;font-size:clamp(10px,2.5vw,13px)">👑 ${tWinner.name} vince (${tWinner.score} vittorie)</div>`
-        + `<div style="color:#f44;font-size:clamp(10px,2.5vw,13px)">💀 ${tLoser.name} perde (${tLoser.score} vittorie)</div>`;
+        + `<div style="color:#4f4;font-size:clamp(10px,2.5vw,13px)">👑 ${tWinner.name} vince (${tWinner.score} punti)</div>`
+        + `<div style="color:#f44;font-size:clamp(10px,2.5vw,13px)">💀 ${tLoser.name} perde (${tLoser.score} punti)</div>`;
     } else {
       const tSorted = tournamentScores.map((s, i) => ({ name: PLAYER_NAMES[i], score: s, idx: i }))
         .sort((a, b) => a.score - b.score);
@@ -4125,7 +4127,7 @@ function startGame() {
   document.getElementById('rules-title').textContent = isPerdere ? '📜 Tresette a Perdere' : '📜 Tresette a Vincere';
   document.getElementById('rules-objective').innerHTML = isPerdere
     ? '<b>Obiettivo:</b> Prendere il <b>minor numero di punti</b> possibile. Chi fa più punti <b>perde!</b>'
-    : '<b>Obiettivo:</b> Si gioca a <b>coppie</b>! Prendere il <b>maggior numero di punti</b> con il compagno. Prima coppia a <b>7 vittorie</b> vince! Ricordati di dichiarare il <b>buongioco</b>.';
+    : '<b>Obiettivo:</b> Si gioca a <b>coppie</b>! Prendere il <b>maggior numero di punti</b> con il compagno. Prima coppia a <b>31 punti</b> vince! Ricordati di dichiarare il <b>buongioco</b>.';
 
   initGame();
   deduplicateNames();
@@ -4164,7 +4166,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "2.2.0";
+const GAME_VERSION = "2.2.1";
 
 // ─── Game Duration Tracking ───
 var _gameStartedAt = 0;   // Date.now() when play started/resumed
@@ -4507,6 +4509,7 @@ function logGameStats(gameType, playerRole, completed) {
         type: gameType,
         role: playerRole,
         difficulty: cpuDifficulty || 'medio',
+        gameMode: gameMode || 'perdere',
         version: typeof GAME_VERSION !== 'undefined' ? GAME_VERSION : 'unknown',
         timestamp: firebase.database.ServerValue.TIMESTAMP,
         durationMs: durationMs,
