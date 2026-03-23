@@ -1191,12 +1191,12 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 </div>
 
 <!-- ═══════ Auth Screen ═══════ -->
-<div id="auth-overlay">
+<div id="auth-overlay" class="hidden">
   <h1 style="font-size:clamp(22px,6vw,42px);font-weight:900;letter-spacing:clamp(1px,0.5vw,4px);color:#fa4;text-shadow:0 2px 20px rgba(255,150,0,0.3);margin-bottom:4px">TRESETTE</h1>
   <div style="color:#888;font-size:clamp(10px,2.5vw,13px);letter-spacing:2px;margin-bottom:clamp(12px,3vh,28px)">con le carte napoletane</div>
 
-  <!-- Auth choice buttons -->
-  <div id="auth-choice" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+  <!-- Auth choice buttons (hidden — auto-guest on startup) -->
+  <div id="auth-choice" style="display:none">
     <!-- Sezione Ospite -->
     <div style="border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:14px 18px;width:min(280px,80vw);text-align:center;background:rgba(255,255,255,0.03)">
       <div style="color:#888;font-size:clamp(9px,2vw,11px);margin-bottom:8px">Nessuna registrazione richiesta</div>
@@ -1221,7 +1221,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
       <button class="lobby-btn" style="font-size:11px;padding:4px 10px" onclick="showAuthForm('register')">Registrati</button>
       <button class="lobby-btn" style="font-size:11px;padding:4px 10px" onclick="showAuthForm('resetpwd')">Password dimenticata?</button>
     </div>
-    <div style="margin-top:10px;text-align:center"><a href="#" style="color:#888;font-size:11px" onclick="showAuthForm('choice');return false">← Indietro</a></div>
+    <div style="margin-top:10px;text-align:center"><a href="#" style="color:#888;font-size:11px" onclick="document.getElementById('auth-overlay').classList.add('hidden');return false">← Indietro</a></div>
   </div>
 
   <!-- Register form -->
@@ -1233,7 +1233,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
     <div style="margin-bottom:8px"><input type="password" class="lobby-input" id="auth-reg-pwd" placeholder="Password (min 6 caratteri)" style="width:100%;max-width:100%;letter-spacing:normal;text-align:left;font-size:14px"></div>
     <div style="margin-bottom:8px"><input type="password" class="lobby-input" id="auth-reg-pwd2" placeholder="Conferma password" style="width:100%;max-width:100%;letter-spacing:normal;text-align:left;font-size:14px"></div>
     <button class="lobby-btn primary" style="width:100%" onclick="doRegister()">Crea Account</button>
-    <div style="margin-top:10px;text-align:center"><a href="#" style="color:#888;font-size:11px" onclick="showAuthForm('choice');return false">← Indietro</a></div>
+    <div style="margin-top:10px;text-align:center"><a href="#" style="color:#888;font-size:11px" onclick="showAuthForm('login');return false">← Indietro</a></div>
   </div>
 
   <!-- Reset password form -->
@@ -1272,14 +1272,14 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   <div style="margin-top: 20px; font-size: 10px; color: #888; text-align: center; max-width: 400px;">
     Questo gioco è un esperimento open source e non ha fini di lucro. Nessun dato personale viene salvato oltre allo stretto necessario per la partita.
   </div>
-  <div style="margin-top:8px;font-size:9px;color:#555;text-align:center">v<span id="auth-version">2.0.0</span></div>
+  <div style="margin-top:8px;font-size:9px;color:#555;text-align:center">v<span id="auth-version">2.1.0</span></div>
 </div>
 
 <!-- ═══════ Start Screen ═══════ -->
 <div id="overlay" class="hidden">
   <h1>TRESETTE</h1>
   <div class="sub" id="overlay-sub">A PERDERE</div>
-  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.0.0</span></div>
+  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.1.0</span></div>
 
   <div class="mode-selector">
     <button class="mode-btn selected" id="mode-perdere" onclick="selectMode('perdere')">🔻 A Perdere</button>
@@ -4150,7 +4150,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "2.0.0";
+const GAME_VERSION = "2.1.0";
 
 // Persistent ID: survives page refresh so reconnection works
 const MY_ID = (function(){
@@ -4268,15 +4268,17 @@ function _checkAuthState() {
       document.getElementById('auth-logged-email').textContent = user.email || '';
       _updateUserBadge();
       _syncNameFromAuth();
-      showAuthForm('logged');
       // Pre-fill game name
       var nameInput = document.getElementById('my-name-input');
       if (nameInput) nameInput.value = user.displayName || '';
       // Register user in DB for admin visibility
       _registerUserInDb(user);
+      // Go straight to game
+      proceedToGame();
     } else {
+      // Auto-login as guest and go straight to game
       _authUser = null;
-      showAuthForm('choice');
+      authAsGuest();
     }
   });
 }
@@ -4307,6 +4309,7 @@ function doLogin() {
   firebase.auth().signInWithEmailAndPassword(email, pwd)
     .then(function(cred) {
       dbg('[AUTH] Login riuscito: ' + (cred.user.displayName || cred.user.email));
+      proceedToGame();
     })
     .catch(function(e) { dbg('[AUTH] Login fallito: ' + e.code); errEl.textContent = _authErrorMsg(e); });
 }
@@ -4332,7 +4335,8 @@ function doRegister() {
       dbg('[AUTH] Registrazione riuscita: ' + name + ' (' + email + ')');
       document.getElementById('auth-logged-name').textContent = name;
       document.getElementById('auth-logged-email').textContent = email;
-      showAuthForm('logged');
+      _registerUserInDb(_authUser);
+      proceedToGame();
     })
     .catch(function(e) { errEl.textContent = _authErrorMsg(e); });
 }
@@ -4384,13 +4388,12 @@ function doLogout() {
   }
   firebase.auth().signOut().then(function() {
     _authUser = null;
-    _isGuest = false;
+    _isGuest = true;
     _updateUserBadge();
     _syncNameFromAuth();
-    showAuthForm('choice');
-    // Show auth overlay again
-    document.getElementById('overlay').classList.add('hidden');
-    document.getElementById('auth-overlay').classList.remove('hidden');
+    // Stay in game as guest
+    document.getElementById('auth-overlay').classList.add('hidden');
+    document.getElementById('overlay').classList.remove('hidden');
   });
 }
 
@@ -4433,13 +4436,13 @@ function _syncNameFromAuth() {
 function _onAuthBtnClick(e) {
   if (e) { e.stopPropagation(); }
   if (_authUser) {
-    // Logged in → logout
+    // Logged in → logout and continue as guest
     doLogout();
   } else {
-    // Guest → show choice screen (guest/login/register)
+    // Guest → show login form directly
     dbg('[AUTH] Richiesta login da badge');
     document.getElementById('auth-overlay').classList.remove('hidden');
-    showAuthForm('choice');
+    showAuthForm('login');
   }
 }
 
