@@ -83,10 +83,10 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   background:rgba(0,0,0,0.3);padding:clamp(2px, 0.5vh, 3px) clamp(4px, 1.5vw, 10px);border-radius:10px;
   letter-spacing:1px;white-space:nowrap;touch-action:none;
 }
-.player-label.south{bottom:clamp(55px, 17vh, 170px);left:50%;transform:translateX(-50%)}
-.player-label.north{top:clamp(40px, 13vh, 130px);left:50%;transform:translateX(-50%)}
+.player-label.south{bottom:clamp(55px, 19vh, 195px);left:50%;transform:translateX(-50%)}
+.player-label.north{top:clamp(62px, 16vh, 155px);left:50%;transform:translateX(-50%)}
 .player-label.west{left:clamp(56px, 12vw, 150px);top:50%;transform:translateY(-50%)}
-.player-label.east{right:clamp(36px, 8vw, 130px);top:50%;transform:translateY(-50%)}
+.player-label.east{right:clamp(62px, 13vw, 175px);top:50%;transform:translateY(-50%)}
 .player-label .lb-pts{color:#fa4;font-size:clamp(8px, 1.8vw, 10px);margin-left:4px}
 .player-label.active-turn{
   border:2px solid #fa4;
@@ -153,8 +153,8 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 }
 #status-msg.show{opacity:1}
 #dealer-banner{
-  display:none;position:fixed;top:0;left:0;right:0;bottom:0;
-  z-index:30;background:rgba(0,0,0,0.7);
+  display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:45;
   justify-content:center;align-items:center;flex-direction:column;
 }
 #dealer-banner.show{display:flex}
@@ -1307,14 +1307,14 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   <div style="margin-top: 20px; font-size: 10px; color: #888; text-align: center; max-width: 400px;">
     Questo gioco è un esperimento open source e non ha fini di lucro. Nessun dato personale viene salvato oltre allo stretto necessario per la partita.
   </div>
-  <div style="margin-top:8px;font-size:9px;color:#555;text-align:center">v<span id="auth-version">2.3.1</span></div>
+  <div style="margin-top:8px;font-size:9px;color:#555;text-align:center">v<span id="auth-version">2.3.2</span></div>
 </div>
 
 <!-- ═══════ Start Screen ═══════ -->
 <div id="overlay" class="hidden">
   <h1>TRESETTE</h1>
   <div class="sub" id="overlay-sub">A PERDERE</div>
-  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.3.1</span></div>
+  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.3.2</span></div>
 
   <div class="mode-selector">
     <button class="mode-btn selected" id="mode-perdere" onclick="selectMode('perdere')">🔻 A Perdere</button>
@@ -2945,27 +2945,23 @@ async function animateDealerSelection(onComplete) {
   // Pause to let players see all 4 cards
   await delay(1500);
 
-  // Determine winner: highest RANK_POWER, tie-break by lowest SUITS index (coppe strongest)
+  // Determine winner: natural card order (Re=10 > Cavallo=9 > Fante=8 > 7 > ... > Asso=1)
+  // Tie-break: first player dealt wins
+  var NATURAL_POWER = {1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10};
   var winnerSeat = 0;
-  var winnerPower = RANK_POWER[selectionCards[0].rank];
-  var winnerSuitIdx = SUITS.indexOf(selectionCards[0].suit);
+  var winnerPower = NATURAL_POWER[selectionCards[0].rank];
   for (var w = 1; w < 4; w++) {
-    var pw = RANK_POWER[selectionCards[w].rank];
-    var si = SUITS.indexOf(selectionCards[w].suit);
-    if (pw > winnerPower || (pw === winnerPower && si < winnerSuitIdx)) {
+    var pw = NATURAL_POWER[selectionCards[w].rank];
+    if (pw > winnerPower) {
       winnerSeat = w;
       winnerPower = pw;
-      winnerSuitIdx = si;
     }
   }
 
-  // Clean up: hide deck and remove flying cards
+  // Clean up: hide deck (keep flying cards visible)
   hideDeck();
-  for (var fc = 0; fc < flyCards.length; fc++) {
-    if (flyCards[fc].el.parentNode) flyCards[fc].el.parentNode.removeChild(flyCards[fc].el);
-  }
 
-  // Show dealer banner
+  // Show dealer banner on top of the visible cards
   var bannerEl = document.getElementById('dealer-banner');
   var bannerText = document.getElementById('dealer-banner-text');
   var dealerName = PLAYER_NAMES[winnerSeat];
@@ -2987,6 +2983,11 @@ async function animateDealerSelection(onComplete) {
   });
 
   bannerEl.classList.remove('show');
+
+  // Now remove flying cards
+  for (var fc = 0; fc < flyCards.length; fc++) {
+    if (flyCards[fc].el.parentNode) flyCards[fc].el.parentNode.removeChild(flyCards[fc].el);
+  }
 
   if (onComplete) onComplete(winnerSeat);
 }
@@ -4708,9 +4709,12 @@ function startGame() {
   // First game of session: animate dealer selection
   if (_isVeryFirstGame) {
     _isVeryFirstGame = false;
-    // Render labels so player names are visible during animation
+    // Set labels directly (renderLabels needs game which is null at this point)
     deduplicateNames();
-    renderLabels();
+    document.getElementById('label-south').innerHTML = PLAYER_NAMES[0] + ' <span class="lb-pts"></span>';
+    document.getElementById('label-east').innerHTML = PLAYER_NAMES[1] + ' <span class="lb-pts"></span>';
+    document.getElementById('label-north').innerHTML = PLAYER_NAMES[2] + ' <span class="lb-pts"></span>';
+    document.getElementById('label-west').innerHTML = PLAYER_NAMES[3] + ' <span class="lb-pts"></span>';
     document.getElementById('trick-count').textContent = '';
     document.getElementById('player-hand').innerHTML = '';
     document.getElementById('north-hand').innerHTML = '';
@@ -4783,7 +4787,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "2.3.1";
+const GAME_VERSION = "2.3.2";
 
 // ─── Game Duration Tracking ───
 var _gameStartedAt = 0;   // Date.now() when play started/resumed
