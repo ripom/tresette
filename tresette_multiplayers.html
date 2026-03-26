@@ -152,6 +152,18 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   max-width:90vw;text-align:center;
 }
 #status-msg.show{opacity:1}
+#dealer-banner{
+  display:none;position:fixed;top:0;left:0;right:0;bottom:0;
+  z-index:30;background:rgba(0,0,0,0.7);
+  justify-content:center;align-items:center;flex-direction:column;
+}
+#dealer-banner.show{display:flex}
+.dealer-banner-content{
+  text-align:center;color:#fff;font-size:clamp(18px,4vw,28px);font-weight:bold;
+  background:rgba(20,40,20,0.95);padding:clamp(18px,3vh,32px) clamp(24px,5vw,48px);border-radius:16px;
+  border:2px solid rgba(250,170,60,0.5);box-shadow:0 0 30px rgba(0,0,0,0.6);
+  text-shadow:0 0 10px rgba(0,0,0,0.5);
+}
 #disconnect-banner{
   position:fixed;top:0;left:0;right:0;
   z-index:90;color:#fff;font-size:clamp(12px, 3vw, 15px);font-weight:bold;
@@ -970,6 +982,12 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 <div id="trick-winner-badge"></div>
 <div id="scardone-banner">SCARDONE!</div>
 <div id="status-msg"></div>
+<div id="dealer-banner">
+  <div class="dealer-banner-content">
+    <div id="dealer-banner-text"></div>
+    <button id="dealer-continue-btn" class="lobby-btn primary" style="margin-top:16px">Continua</button>
+  </div>
+</div>
 <div id="disconnect-banner">
   <div class="disc-title" id="disconnect-text"></div>
   <div class="disc-steps" id="disc-steps">
@@ -1289,14 +1307,14 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   <div style="margin-top: 20px; font-size: 10px; color: #888; text-align: center; max-width: 400px;">
     Questo gioco è un esperimento open source e non ha fini di lucro. Nessun dato personale viene salvato oltre allo stretto necessario per la partita.
   </div>
-  <div style="margin-top:8px;font-size:9px;color:#555;text-align:center">v<span id="auth-version">2.3.0</span></div>
+  <div style="margin-top:8px;font-size:9px;color:#555;text-align:center">v<span id="auth-version">2.3.1</span></div>
 </div>
 
 <!-- ═══════ Start Screen ═══════ -->
 <div id="overlay" class="hidden">
   <h1>TRESETTE</h1>
   <div class="sub" id="overlay-sub">A PERDERE</div>
-  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.3.0</span></div>
+  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.3.1</span></div>
 
   <div class="mode-selector">
     <button class="mode-btn selected" id="mode-perdere" onclick="selectMode('perdere')">🔻 A Perdere</button>
@@ -2505,6 +2523,7 @@ function cleanupAnimations() {
 }
 
 var _lastGameStarter = -1; // tracks who started the previous game
+var _isVeryFirstGame = true; // true only for the very first game of the session
 
 function initGame(startPlayer) {
   const deck = shuffle(createDeck());
@@ -2737,9 +2756,9 @@ async function animateDealing(onComplete) {
 
   // Deal cards: one card per player per round, 10 rounds
   // Within each round, stagger cards for a realistic dealing feel
-  var FLIGHT_DURATION = isMobileView ? 250 : 400; // ms for card to fly from deck to hand
-  var STAGGER_DELAY = isMobileView ? 80 : 150;    // ms delay between cards within a round
-  var ROUND_PAUSE = isMobileView ? 50 : 100;      // ms pause between rounds
+  var FLIGHT_DURATION = isMobileView ? 133 : 213; // ms for card to fly from deck to hand
+  var STAGGER_DELAY = isMobileView ? 43 : 80;     // ms delay between cards within a round
+  var ROUND_PAUSE = isMobileView ? 27 : 53;        // ms pause between rounds
 
   for (var round = 0; round < 10; round++) {
     if (_gameAborted || !game) return; // abort check at start of each round
@@ -2823,6 +2842,153 @@ async function animateDealing(onComplete) {
   hideDeck();
   game.animating = false;
   if (onComplete) onComplete();
+}
+
+// ─── Dealer Selection Animation (first game only) ─────────────
+async function animateDealerSelection(onComplete) {
+  _gameAborted = false;
+
+  var viewport = getViewportSize();
+  var isMobileView = viewport.width <= 520 || viewport.width <= 900;
+
+  // Pick 4 random unique cards (one per player)
+  var tempDeck = shuffle(createDeck());
+  var selectionCards = [tempDeck[0], tempDeck[1], tempDeck[2], tempDeck[3]];
+
+  // We need a temporary game.leadPlayer for showDeck positioning — use seat 0
+  var savedGame = game;
+  game = { leadPlayer: 0 };
+  showDeck();
+  game = savedGame;
+
+  await delay(200);
+
+  var deckPos = getDeckScreenPos();
+  var deckCardW = viewport.width <= 520 ? 50 : viewport.width < 600 ? 70 : 90;
+  var deckCardH = viewport.width <= 520 ? 77 : viewport.width < 600 ? 107 : 138;
+  var targetCardW = deckCardW;
+  var targetCardH = deckCardH;
+
+  var FLIGHT_DURATION = isMobileView ? 250 : 400;
+  var STAGGER_DELAY = isMobileView ? 200 : 350;
+  var FLIP_DELAY = 200;
+
+  var flyCards = []; // keep references to remove later
+
+  for (var p = 0; p < 4; p++) {
+    if (_gameAborted) return;
+
+    var seat = p;
+    var card = selectionCards[seat];
+    var target = getPlayerTargetPos(seat);
+
+    // Create flying card at deck position (face down)
+    var flyCard = document.createElement('div');
+    flyCard.style.cssText = 'position:fixed;z-index:50;pointer-events:none;border-radius:6px;' +
+      'border:none;box-shadow:2px 4px 10px rgba(0,0,0,0.5);overflow:hidden;background:#f5f5f0;' +
+      'width:' + deckCardW + 'px;height:' + deckCardH + 'px;' +
+      'left:' + (deckPos.x - deckCardW / 2) + 'px;top:' + (deckPos.y - deckCardH / 2) + 'px;' +
+      'transition:none;';
+    applyCardBack(flyCard, 'card-back-img');
+    document.body.appendChild(flyCard);
+    flyCards.push({ el: flyCard, card: card, seat: seat, target: target });
+
+    sndCardSlide();
+
+    // Animate flight to player position
+    await new Promise(function(resolve) {
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          flyCard.style.transition = 'left ' + FLIGHT_DURATION + 'ms ease-in-out, top ' + FLIGHT_DURATION + 'ms ease-in-out, width ' + FLIGHT_DURATION + 'ms ease-in-out, height ' + FLIGHT_DURATION + 'ms ease-in-out';
+          flyCard.style.left = (target.x - targetCardW / 2) + 'px';
+          flyCard.style.top = (target.y - targetCardH / 2) + 'px';
+          flyCard.style.width = targetCardW + 'px';
+          flyCard.style.height = targetCardH + 'px';
+        });
+      });
+      setTimeout(resolve, FLIGHT_DURATION + 50);
+    });
+
+    if (_gameAborted) return;
+
+    // Flip card: scale to 0, swap content, scale back to 1
+    flyCard.style.transition = 'transform ' + FLIP_DELAY + 'ms ease-in';
+    flyCard.style.transform = 'scaleX(0)';
+    await delay(FLIP_DELAY);
+
+    if (_gameAborted) return;
+
+    // Replace card back with card face
+    flyCard.innerHTML = '';
+    var _imgSuit = card.suit === 'coppe' ? 'bastoni' : card.suit === 'bastoni' ? 'coppe' : card.suit;
+    var faceImg = document.createElement('img');
+    faceImg.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;';
+    faceImg.src = CARD_DATA[_imgSuit + '_' + card.rank];
+    faceImg.alt = RANK_NAMES[card.rank] + ' di ' + SUIT_NAMES[card.suit];
+    faceImg.draggable = false;
+    flyCard.appendChild(faceImg);
+
+    flyCard.style.transition = 'transform ' + FLIP_DELAY + 'ms ease-out';
+    flyCard.style.transform = 'scaleX(1)';
+    await delay(FLIP_DELAY);
+
+    // Remove a card from visual deck
+    var deckEl = document.getElementById('deck-container');
+    if (deckEl && deckEl.lastChild) deckEl.removeChild(deckEl.lastChild);
+
+    // Pause between cards
+    if (p < 3) await delay(STAGGER_DELAY - FLIGHT_DURATION);
+  }
+
+  if (_gameAborted) return;
+
+  // Pause to let players see all 4 cards
+  await delay(1500);
+
+  // Determine winner: highest RANK_POWER, tie-break by lowest SUITS index (coppe strongest)
+  var winnerSeat = 0;
+  var winnerPower = RANK_POWER[selectionCards[0].rank];
+  var winnerSuitIdx = SUITS.indexOf(selectionCards[0].suit);
+  for (var w = 1; w < 4; w++) {
+    var pw = RANK_POWER[selectionCards[w].rank];
+    var si = SUITS.indexOf(selectionCards[w].suit);
+    if (pw > winnerPower || (pw === winnerPower && si < winnerSuitIdx)) {
+      winnerSeat = w;
+      winnerPower = pw;
+      winnerSuitIdx = si;
+    }
+  }
+
+  // Clean up: hide deck and remove flying cards
+  hideDeck();
+  for (var fc = 0; fc < flyCards.length; fc++) {
+    if (flyCards[fc].el.parentNode) flyCards[fc].el.parentNode.removeChild(flyCards[fc].el);
+  }
+
+  // Show dealer banner
+  var bannerEl = document.getElementById('dealer-banner');
+  var bannerText = document.getElementById('dealer-banner-text');
+  var dealerName = PLAYER_NAMES[winnerSeat];
+  var winCard = selectionCards[winnerSeat];
+  bannerText.innerHTML = '🃏 Mazziere: <span style="color:#fa4">' + dealerName + '</span><br>' +
+    '<span style="font-size:0.6em;color:#ccc">' + RANK_NAMES[winCard.rank] + ' di ' + SUIT_NAMES[winCard.suit] + ' — carta più alta</span>';
+  bannerEl.classList.add('show');
+
+  // Wait for continue button
+  var continueBtn = document.getElementById('dealer-continue-btn');
+  await new Promise(function(resolve) {
+    function onContinue() {
+      continueBtn.removeEventListener('click', onContinue);
+      continueBtn.removeEventListener('touchend', onContinue);
+      resolve();
+    }
+    continueBtn.addEventListener('click', onContinue);
+    continueBtn.addEventListener('touchend', onContinue);
+  });
+
+  bannerEl.classList.remove('show');
+
+  if (onComplete) onComplete(winnerSeat);
 }
 
 // ─── Card Play Animation ──────────────────────────────────────
@@ -4304,11 +4470,9 @@ function handleContinueTournament(e) {
     document.getElementById('trick-area').innerHTML = '';
     sndStart();
     showStatus('Nuova mano!', 1500);
-    animateDealing(function(){
-      renderAll();
-      showBuongiocoAndStart(function(){
-        if(game && !isHumanSeat(game.currentPlayer)) setTimeout(function(){ cpuTurn(); }, 400);
-      });
+    renderAll();
+    showBuongiocoAndStart(function(){
+      if(game && !isHumanSeat(game.currentPlayer)) setTimeout(function(){ cpuTurn(); }, 400);
     });
   }
 }
@@ -4360,11 +4524,9 @@ function handleRetryGame(e) {
     document.getElementById('trick-area').innerHTML = '';
     sndStart();
     showStatus('Nuovo torneo!', 1500);
-    animateDealing(function(){
-      renderAll();
-      showBuongiocoAndStart(function(){
-        if(game && !isHumanSeat(game.currentPlayer)) setTimeout(function(){ cpuTurn(); }, 400);
-      });
+    renderAll();
+    showBuongiocoAndStart(function(){
+      if(game && !isHumanSeat(game.currentPlayer)) setTimeout(function(){ cpuTurn(); }, 400);
     });
   }
 }
@@ -4543,6 +4705,37 @@ function startGame() {
     ? '<b>Obiettivo:</b> Prendere il <b>minor numero di punti</b> possibile. Chi fa più punti <b>perde!</b>'
     : '<b>Obiettivo:</b> Si gioca a <b>coppie</b>! Prendere il <b>maggior numero di punti</b> con il compagno. Prima coppia a <b>31 punti</b> vince! Ricordati di dichiarare il <b>buongioco</b>.';
 
+  // First game of session: animate dealer selection
+  if (_isVeryFirstGame) {
+    _isVeryFirstGame = false;
+    // Render labels so player names are visible during animation
+    deduplicateNames();
+    renderLabels();
+    document.getElementById('trick-count').textContent = '';
+    document.getElementById('player-hand').innerHTML = '';
+    document.getElementById('north-hand').innerHTML = '';
+    document.getElementById('west-hand').innerHTML = '';
+    document.getElementById('east-hand').innerHTML = '';
+    document.getElementById('trick-area').innerHTML = '';
+
+    animateDealerSelection(function(dealerSeat) {
+      initGame(dealerSeat);
+      deduplicateNames();
+      renderLabels();
+      renderScores();
+      document.getElementById('trick-count').textContent = 'Mano 0 / 10';
+      showStatus(isPerdere ? 'A Perdere — Buona Fortuna! 🃏' : 'A Vincere — Buona Fortuna! 🃏', 1500);
+      setTimeout(function() { sndStart(); }, 150);
+      renderAll();
+      showBuongiocoAndStart(function() {
+        if (game && !isHumanSeat(game.currentPlayer)) {
+          setTimeout(function(){ cpuTurn(); }, 400);
+        }
+      });
+    });
+    return;
+  }
+
   initGame();
   deduplicateNames();
   // Render table elements (labels, scores) but not hands yet
@@ -4560,15 +4753,12 @@ function startGame() {
   // Start sound after a small delay to let AudioContext fully resume
   setTimeout(() => { sndStart(); }, 150);
 
-  // Animate dealing, then show hands and start play
-  animateDealing(function() {
-    renderAll();
-    // Show buongioco banners (if vincere), then start play
-    showBuongiocoAndStart(function() {
-      if (game && !isHumanSeat(game.currentPlayer)) {
-        setTimeout(function(){ cpuTurn(); }, 400);
-      }
-    });
+  // Show hands and start play (no dealing animation)
+  renderAll();
+  showBuongiocoAndStart(function() {
+    if (game && !isHumanSeat(game.currentPlayer)) {
+      setTimeout(function(){ cpuTurn(); }, 400);
+    }
   });
 }
 
@@ -4593,7 +4783,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "2.3.0";
+const GAME_VERSION = "2.3.1";
 
 // ─── Game Duration Tracking ───
 var _gameStartedAt = 0;   // Date.now() when play started/resumed
@@ -5012,7 +5202,7 @@ function genCode() {
 }
 
 function showLobbySection(id) {
-  ['lobby-menu','lobby-host','lobby-join','lobby-waiting','lobby-pick-seat'].forEach(function(s){document.getElementById(s).style.display=s===id?'block':'none';});
+  ['lobby-host','lobby-join','lobby-waiting','lobby-pick-seat'].forEach(function(s){var el=document.getElementById(s);if(el)el.style.display=s===id?'block':'none';});
   if(id === 'lobby-menu') startLobbyBrowser(); else stopLobbyBrowser();
 }
 function cancelLobby() {
@@ -6016,7 +6206,33 @@ function startMultiplayerGame() {
   document.getElementById('overlay').classList.add('hidden');
   document.getElementById('game-over').classList.remove('show');
   document.getElementById('quit-btn').style.display = '';
-  initAudio(); initGame();
+  initAudio();
+
+  // First game of session: animate dealer selection
+  if (_isVeryFirstGame) {
+    _isVeryFirstGame = false;
+    document.getElementById('player-hand').innerHTML = '';
+    document.getElementById('north-hand').innerHTML = '';
+    document.getElementById('west-hand').innerHTML = '';
+    document.getElementById('east-hand').innerHTML = '';
+    document.getElementById('trick-area').innerHTML = '';
+
+    animateDealerSelection(function(dealerSeat) {
+      initGame(dealerSeat);
+      resetTournament();
+      renderAll(); renderTournament();
+      dbg('HOST startGame cp='+game.currentPlayer);
+      mpSend({t:'start',gm:gameMode,diff:cpuDifficulty,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
+      syncState();
+      sndStart(); showStatus('Partita iniziata!',1500);
+      showBuongiocoAndStart(function(){
+        if(game && !isHumanSeat(game.currentPlayer)) setTimeout(function(){cpuTurn();},400);
+      });
+    });
+    return;
+  }
+
+  initGame();
   // Start tournament for multiplayer
   resetTournament();
   renderAll(); renderTournament();
