@@ -563,7 +563,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 
 /* ════════ Emoticon System ════════ */
 .emoticon-bubble{
-  position:fixed;pointer-events:none;z-index:30;opacity:0;
+  position:fixed;pointer-events:none;z-index:96;opacity:0;
   transition:opacity .22s ease;
 }
 .emoticon-bubble.show{opacity:1}
@@ -751,6 +751,29 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 }
 .emoticon-bubble[data-emote="bored"] .emote-avatar,
 .emote-btn[data-emote="bored"] .emote-avatar{animation:avatar-bored 2.2s ease-in-out infinite}
+.emoticon-bubble[data-emote="angry"] .emote-chip,
+.emoticon-bubble[data-emote="angry"] .emote-chip{color:#ff4444}
+.emoticon-bubble[data-emote="angry"] .emote-face,
+.emote-btn[data-emote="angry"] .emote-face{background:#e53935}
+.emoticon-bubble[data-emote="angry"] .emote-eye,
+.emote-btn[data-emote="angry"] .emote-eye{top:34%;width:14%;height:10%;border-radius:1px;transform:rotate(-12deg)}
+.emoticon-bubble[data-emote="angry"] .emote-eye.right,
+.emote-btn[data-emote="angry"] .emote-eye.right{transform:rotate(12deg)}
+.emoticon-bubble[data-emote="angry"] .emote-mouth,
+.emote-btn[data-emote="angry"] .emote-mouth{bottom:22%;width:40%;height:10%;border-radius:0 0 50% 50%;border-top:2px solid #fff;border-bottom:none;background:transparent}
+.emoticon-bubble[data-emote="angry"] .emote-mouth::after,
+.emote-btn[data-emote="angry"] .emote-mouth::after{display:none}
+.emoticon-bubble[data-emote="angry"] .emote-mark,
+.emote-btn[data-emote="angry"] .emote-mark{position:absolute;top:18%;left:22%;width:56%;height:3px;background:#fff;border-radius:2px;opacity:.7}
+.emoticon-bubble[data-emote="angry"] .emote-avatar,
+.emote-btn[data-emote="angry"] .emote-avatar{animation:avatar-angry .6s ease-in-out infinite}
+.emote-btn[data-emote="angry"]{border-color:rgba(255,68,68,0.3)}
+@keyframes avatar-angry{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.emoticon-bubble[data-emote="bye"] .emote-native-icon{animation:native-wave 1s ease-in-out infinite}
+.emote-btn[data-emote="bye"] .emote-native-icon{animation:native-wave 1s ease-in-out infinite}
+.emote-btn[data-emote="bye"]{border-color:rgba(120,200,255,0.26)}
+.emoticon-bubble[data-emote="bye"] .emote-chip{color:#7ac8ff}
+@keyframes native-wave{0%,100%{transform:rotate(0deg)}25%{transform:rotate(20deg)}75%{transform:rotate(-15deg)}}
 .emoticon-bubble[data-emote="happy"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-sway 1.9s ease-in-out infinite}
 .emoticon-bubble[data-emote="laugh"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-laugh-bob .95s ease-in-out infinite}
 .emoticon-bubble[data-emote="sad"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-drift 2.6s ease-in-out infinite}
@@ -758,6 +781,10 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 .emoticon-bubble[data-emote="thumbsDown"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-shrug 1.5s ease-in-out infinite}
 .emoticon-bubble[data-emote="applause"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-clap 1.0s ease-in-out infinite}
 .emoticon-bubble[data-emote="bored"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-droop 2.3s ease-in-out infinite}
+.emoticon-bubble[data-emote="angry"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-angry-shake .5s ease-in-out infinite}
+.emoticon-bubble[data-emote="bye"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-wave-drift 1.8s ease-in-out infinite}
+@keyframes emote-wave-drift{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-4px) rotate(5deg)}}
+@keyframes emote-angry-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 @keyframes emote-chip-in{
   0%{transform:translateY(12px) scale(.82);opacity:0}
   100%{transform:translateY(0) scale(1);opacity:1}
@@ -1412,14 +1439,14 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   <div style="margin-top: 20px; font-size: 10px; color: #888; text-align: center; max-width: 400px;">
     Questo gioco è un esperimento open source e non ha fini di lucro. Nessun dato personale viene salvato oltre allo stretto necessario per la partita.
   </div>
-  <div style="margin-top:8px;font-size:9px;color:#555;text-align:center">v<span id="auth-version">2.4.0</span></div>
+  <div style="margin-top:8px;font-size:9px;color:#555;text-align:center">v<span id="auth-version">2.4.1</span></div>
 </div>
 
 <!-- ═══════ Start Screen ═══════ -->
 <div id="overlay" class="hidden">
   <h1>TRESETTE</h1>
   <div class="sub" id="overlay-sub">A PERDERE</div>
-  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.4.0</span></div>
+  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.4.1</span></div>
 
   <div class="mode-selector">
     <button class="mode-btn selected" id="mode-perdere" onclick="selectMode('perdere')">🔻 A Perdere</button>
@@ -1877,6 +1904,14 @@ const RAW_SOUNDS = {
   emoteBored: _mixSampleLayers([
     { offset: 0, samples: _makeEmoteDing({ freq: 610, sparkle: 1600, bend: -0.05, decay: 9.0, refGain1: 0.10, refGain2: 0.05, warmth: 0.25, air: 0.028, seed: 71, gain: 0.72 }) },
     { offset: Math.floor(AUDIO_SR * 0.11), samples: _makeEmoteDing({ freq: 500, sparkle: 1450, bend: -0.06, decay: 8.4, refGain1: 0.08, refGain2: 0.04, warmth: 0.28, air: 0.025, seed: 73, gain: 0.58 }) }
+  ]),
+  emoteAngry: _mixSampleLayers([
+    { offset: 0, samples: _makeEmoteDing({ freq: 380, sparkle: 1200, bend: -0.10, decay: 7.5, refGain1: 0.20, refGain2: 0.12, warmth: 0.35, air: 0.02, seed: 81, gain: 0.88 }) },
+    { offset: Math.floor(AUDIO_SR * 0.06), samples: _makeEmoteDing({ freq: 320, sparkle: 1050, bend: -0.12, decay: 6.8, refGain1: 0.22, refGain2: 0.14, warmth: 0.38, air: 0.018, seed: 83, gain: 0.80 }) }
+  ]),
+  emoteBye: _mixSampleLayers([
+    { offset: 0, samples: _makeEmoteDing({ freq: 780, sparkle: 2100, bend: 0.03, decay: 11.5, refGain1: 0.15, refGain2: 0.08, warmth: 0.15, seed: 91, gain: 0.70 }) },
+    { offset: Math.floor(AUDIO_SR * 0.12), samples: _makeEmoteDing({ freq: 660, sparkle: 1900, bend: -0.02, decay: 10.0, refGain1: 0.12, refGain2: 0.06, warmth: 0.18, seed: 93, gain: 0.60 }) }
   ]),
 };
 
@@ -4981,7 +5016,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "2.4.0";
+const GAME_VERSION = "2.4.1";
 
 // ─── Game Duration Tracking ───
 var _gameStartedAt = 0;   // Date.now() when play started/resumed
@@ -7220,19 +7255,22 @@ document.addEventListener('webkitfullscreenchange',_updateFsBtn);
     {id:'thumbsUp',   emoji:'👍', label:'Thumbs Up',   sub:'ottima mossa',       snd:'emoteThumbsUp'},
     {id:'thumbsDown', emoji:'👎', label:'Thumbs Down', sub:'non ci siamo',       snd:'emoteThumbsDown'},
     {id:'applause',   emoji:'👏', label:'Applauso',    sub:'bella giocata',      snd:'emoteApplause'},
-    {id:'bored',      emoji:'🥱', label:'Annoiato',    sub:'muoviamoci un po\'', snd:'emoteBored'}
+    {id:'bored',      emoji:'🥱', label:'Annoiato',    sub:'muoviamoci un po\'', snd:'emoteBored'},
+    {id:'angry',      emoji:'😡', label:'Arrabbiato',  sub:'ma che fai?!',       snd:'emoteAngry'},
+    {id:'bye',        emoji:'👋', label:'Ciao!',       sub:'devo andare via!',   snd:'emoteBye'}
   ];
   var POSITIONS = ['south','east','north','west'];
   var emoteTimers = {};
   var openMenuPos = null;
 
   function renderEmoteAvatar(emote, wrapperClass){
-    if(emote.id === 'thumbsUp' || emote.id === 'thumbsDown' || emote.id === 'applause') {
+    if(emote.id === 'thumbsUp' || emote.id === 'thumbsDown' || emote.id === 'applause' || emote.id === 'bye') {
       return '<span class="' + wrapperClass + '"><span class="emote-native-icon">' + emote.emoji + '</span></span>';
     }
     var extra = '';
     if(emote.id === 'sad') extra = '<span class="emote-mark"></span>';
     else if(emote.id === 'bored') extra = '<span class="emote-mark"></span>';
+    else if(emote.id === 'angry') extra = '<span class="emote-mark"></span>';
     return '<span class="' + wrapperClass + '"><span class="emote-avatar">'
       + '<span class="emote-face"></span>'
       + '<span class="emote-eye left"></span>'
@@ -7421,6 +7459,7 @@ var _pendingInvitations = {};
 var _invitationsRef = null;
 var _knownOnlineFriends = {};
 var _inviteSeatTarget = -1;
+var _invResponseRef = null;
 var _socialListenersStarted = false;
 
 // ────── Toast Notifications ──────
@@ -7514,7 +7553,8 @@ function _startOnlinePlayersListener() {
         _onlinePlayers[uid] = all[uid];
       }
     }
-    if (_authUser) delete _onlinePlayers[_authUser.uid];
+    var myUid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
+    delete _onlinePlayers[myUid];
     dbg('[SOCIAL] Online players (excluding self): ' + Object.keys(_onlinePlayers).length);
     _renderOnlinePlayersPanel();
     _checkFriendOnlineNotifications();
@@ -7658,6 +7698,23 @@ function _startInvitationsListener() {
   });
 }
 
+function _startInvitationResponsesListener() {
+  if (!_fbDb) return;
+  var myUid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
+  if (_invResponseRef) _invResponseRef.off();
+  _invResponseRef = _fbDb.ref('invitationResponses/' + myUid);
+  _invResponseRef.on('child_added', function(snap) {
+    var resp = snap.val();
+    var fromUid = snap.key;
+    if (!resp) return;
+    if (resp.rejected) {
+      _showToast('❌ ' + (resp.fromName || 'Giocatore') + ' ha rifiutato il tuo invito.', 'warn', 6000);
+    }
+    // Clean up the response node after reading
+    _fbDb.ref('invitationResponses/' + myUid + '/' + fromUid).remove();
+  });
+}
+
 function _showInvitationToast(senderUid, inv) {
   var container = document.getElementById('toast-container');
   if (!container) return;
@@ -7718,7 +7775,14 @@ function _acceptInvitation(senderUid, inv) {
 function _rejectInvitation(senderUid) {
   if (!_fbDb) return;
   var myUid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
+  var myName = (_authUser ? _authUser.displayName : '') || _getMyName() || 'Ospite';
   _fbDb.ref('invitations/' + myUid + '/' + senderUid).remove();
+  // Notify the sender that the invitation was rejected
+  _fbDb.ref('invitationResponses/' + senderUid + '/' + myUid).set({
+    rejected: true,
+    fromName: myName,
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  });
 }
 
 // ────── Social Panel UI ──────
@@ -7947,11 +8011,11 @@ function _renderInvitePlayerList() {
 function _initSocialListeners() {
   if (!_fbDb) return;
   _startOnlinePlayersListener();
-  _startInvitationsListener(); // all players (including guests) can receive invitations
+  _startInvitationsListener();
+  _startInvitationResponsesListener();
   if (_authUser && !_isGuest) {
     _startFriendsListener();
     _startFriendRequestsListener();
-    _startInvitationsListener();
   }
   _socialListenersStarted = true;
   // Show social button
@@ -7965,6 +8029,7 @@ function _cleanupSocialListeners() {
   if (_friendReqRef) { _friendReqRef.off(); _friendReqRef = null; }
   if (_friendsRef) { _friendsRef.off(); _friendsRef = null; }
   if (_invitationsRef) { _invitationsRef.off(); _invitationsRef = null; }
+  if (_invResponseRef) { _invResponseRef.off(); _invResponseRef = null; }
   _onlinePlayers = {};
   _friendsList = {};
   _pendingFriendRequests = {};
