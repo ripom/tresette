@@ -366,6 +366,14 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   min-height:44px;
 }
 #retry-btn:active{filter:brightness(1.15);transform:scale(0.97)}
+#endgame-btn{
+  margin-top:clamp(6px, 1vh, 10px);font-size:clamp(11px, 2.5vw, 14px);padding:clamp(6px, 1vh, 8px) clamp(16px, 5vw, 30px);
+  background:linear-gradient(135deg,#8a2a2a,#ba3a3a);
+  color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold;
+  touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0.1);
+  min-height:40px;display:block;margin-left:auto;margin-right:auto;
+}
+#endgame-btn:active{filter:brightness(1.15);transform:scale(0.97)}
 
 /* ════════ Trick count ════════ */
 #trick-count{
@@ -382,14 +390,14 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   box-shadow:0 0 12px rgba(255,170,68,0.5);
 }
 #lead-suit-badge{
-  position:fixed;top:calc(50% + clamp(70px, 22vh, 200px));left:50%;transform:translateX(-50%);
+  position:fixed;top:calc(50% + clamp(100px, 28vh, 240px));left:50%;transform:translateX(-50%);
   z-index:20;font-size:clamp(12px, 3vw, 16px);font-weight:bold;
   background:rgba(0,0,0,0.55);padding:3px 14px;border-radius:10px;
   letter-spacing:1px;display:none;
   text-shadow:1px 1px 3px #000;touch-action:none;
 }
 #trick-winner-badge{
-  position:fixed;top:calc(50% + clamp(94px, 28vh, 230px));left:50%;transform:translateX(-50%);
+  position:fixed;top:calc(50% + clamp(124px, 34vh, 270px));left:50%;transform:translateX(-50%);
   z-index:20;font-size:clamp(10px, 2.5vw, 14px);font-weight:bold;
   background:rgba(0,0,0,0.55);padding:3px 14px;border-radius:10px;
   letter-spacing:0.5px;display:none;
@@ -439,8 +447,8 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   #score-panel{top:auto;bottom:clamp(100px, 28vw, 140px);right:auto;left:clamp(2px, 0.5vw, 4px);width:clamp(72px, 34vw, 136px)}
   #tournament-panel{top:auto;bottom:clamp(100px, 28vw, 140px);left:auto;right:clamp(2px, 0.5vw, 4px);width:clamp(72px, 34vw, 136px)}
   /* Banners: top-left area, below fullscreen button */
-  #lead-suit-badge{top:clamp(148px, 35vw, 195px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
-  #trick-winner-badge{top:clamp(176px, 41vw, 225px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
+  #lead-suit-badge{top:clamp(190px, 45vw, 250px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
+  #trick-winner-badge{top:clamp(218px, 51vw, 280px);left:clamp(4px, 1vw, 10px);right:auto;transform:none}
   #overlay{padding-top:calc(env(safe-area-inset-top, 12px) + 14px);padding-bottom:calc(96px + env(safe-area-inset-bottom, 12px))}
   #overlay::before,#overlay::after{display:none}
   /* West label: just below west cards */
@@ -470,8 +478,8 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   /* South label: higher up so it doesn't overlap cards */
   .player-label.south{bottom:clamp(64px, 20vh, 110px);left:auto;right:calc(50% + clamp(50px, 10vw, 100px));transform:none}
   /* Banners: top-right area, further right */
-  #lead-suit-badge{top:clamp(4px, 2vh, 12px);left:auto;right:clamp(100px, 12vw, 200px);transform:none}
-  #trick-winner-badge{top:clamp(28px, 8vh, 40px);left:auto;right:clamp(100px, 12vw, 200px);transform:none}
+  #lead-suit-badge{top:clamp(8px, 4vh, 20px);left:auto;right:clamp(100px, 12vw, 200px);transform:none}
+  #trick-winner-badge{top:clamp(34px, 10vh, 50px);left:auto;right:clamp(100px, 12vw, 200px);transform:none}
   .info-box{max-height:30vh;overflow-y:auto}
   .preview-row{display:none}
   #overlay .sub2{margin-bottom:8px}
@@ -1498,6 +1506,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
     <div class="go-results" id="go-results"></div>
     <button id="continue-btn" style="display:none">CONTINUA ▶</button>
     <button id="retry-btn" style="display:none">GIOCA ANCORA</button>
+    <button id="endgame-btn">FINE PARTITA ⏹</button>
   </div>
 </div>
 
@@ -4220,10 +4229,7 @@ function delay(ms) {
 
 // ─── Game Over ────────────────────────────────────────────────
 function showGameOver() {
-  // Log completed game stats
-  var _goType = mpMode ? 'Multiplayer' : 'CPU';
-  var _goRole = mpMode ? (isHost ? 'Host' : 'Client') : null;
-  logGameStats(_goType, _goRole, true);
+  // Stats will be logged AFTER result computation (below)
   _updatePresenceInGame(false);
 
   const el = document.getElementById('game-over');
@@ -4400,6 +4406,23 @@ function showGameOver() {
 
   // Update tournament scores
   updateTournamentScores(winnerSet, loserSet, voloActive);
+
+  // --- Log completed game stats WITH result data ---
+  var _goType = mpMode ? 'Multiplayer' : 'CPU';
+  var _goRole = mpMode ? (isHost ? 'Host' : 'Client') : null;
+  var _resultStr = playerIsWinner ? 'win' : (playerIsLoser ? 'lose' : 'draw');
+  var _playerScore = game.scores[localSeat] || 0;
+  var _resultData = {
+    result: _resultStr,
+    playerScore: _playerScore,
+    scores: game.scores.slice(),
+    playerNames: PLAYER_NAMES.slice(),
+    volo: voloActive
+  };
+  if (!isPerdere) {
+    _resultData.teamScores = [getTeamScore(0), getTeamScore(1)];
+  }
+  logGameStats(_goType, _goRole, true, _resultData);
 
   // --- Set title: if tournament just ended, reflect tournament result; otherwise hand result ---
   if (tournamentOver) {
@@ -4615,6 +4638,12 @@ document.getElementById('continue-btn').onclick = () => {
   handleContinueTournament();
 };
 document.getElementById('continue-btn').addEventListener('touchend', handleContinueTournament, { passive: false });
+document.getElementById('endgame-btn').onclick = () => {
+  quitGame();
+};
+document.getElementById('endgame-btn').addEventListener('touchend', function(e) {
+  e.preventDefault(); e.stopPropagation(); quitGame();
+}, { passive: false });
 document.getElementById('rules-btn').onclick = () => {
   document.getElementById('rules-panel').classList.add('show');
 };
@@ -5016,7 +5045,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "2.4.1";
+const GAME_VERSION = "2.4.2";
 
 // ─── Game Duration Tracking ───
 var _gameStartedAt = 0;   // Date.now() when play started/resumed
@@ -5364,10 +5393,11 @@ function _getGameDuration() {
   return elapsed;
 }
 
-function logGameStats(gameType, playerRole, completed) {
+function logGameStats(gameType, playerRole, completed, resultData) {
   if (typeof firebase !== 'undefined' && firebase.database) {
     try {
       var durationMs = _getGameDuration();
+      var uid = (_authUser && _authUser.uid) ? _authUser.uid : null;
       var statData = {
         type: gameType,
         role: playerRole,
@@ -5377,13 +5407,39 @@ function logGameStats(gameType, playerRole, completed) {
         timestamp: firebase.database.ServerValue.TIMESTAMP,
         durationMs: durationMs,
         tricksPlayed: (game && game.trickNum) ? game.trickNum : 0,
-        completed: !!completed
+        completed: !!completed,
+        uid: uid || null
       };
+      // Attach result data if provided
+      if (resultData) {
+        statData.result = resultData.result || null;          // 'win', 'lose', 'draw'
+        statData.playerScore = resultData.playerScore || null; // player's score in terzi
+        statData.scores = resultData.scores || null;           // all player scores array
+        statData.playerNames = resultData.playerNames || null; // all player names array
+        statData.volo = resultData.volo || false;
+        if (resultData.teamScores) statData.teamScores = resultData.teamScores;
+      }
       var statsRef = firebase.database().ref('statistics/games').push();
-      statsRef.set(statData);
+      statsRef.set(statData).then(function() {
+        console.log('[STATS] Global stat saved OK, uid=' + uid);
+      }).catch(function(e) {
+        console.error('[STATS] Global stat save FAILED:', e);
+      });
       // Also save per-user stats if logged in
-      if (_authUser && _authUser.uid) {
-        firebase.database().ref('users/' + _authUser.uid + '/gameStats').push().set(statData);
+      if (uid) {
+        firebase.database().ref('users/' + uid + '/gameStats').push().set(statData)
+          .then(function() {
+            console.log('[STATS] Per-user stat saved OK for uid=' + uid);
+          })
+          .catch(function(e) {
+            console.warn('[STATS] Per-user stat save failed, will retry once', e);
+            setTimeout(function() {
+              if (_authUser && _authUser.uid) {
+                firebase.database().ref('users/' + _authUser.uid + '/gameStats').push().set(statData)
+                  .catch(function(e2) { console.error('Per-user stat retry also failed', e2); });
+              }
+            }, 3000);
+          });
       }
     } catch(e) { console.error('Errore salvataggio stat', e); }
   }
@@ -7452,6 +7508,8 @@ var _presenceRef = null;
 var _onlinePlayers = {};
 var _onlinePlayersRef = null;
 var _friendsList = {};
+var _presenceHeartbeatTimer = null;
+var PRESENCE_STALE_MS = 2 * 60 * 1000; // 2 minutes — entries older than this are considered offline
 var _friendsRef = null;
 var _pendingFriendRequests = {};
 var _friendReqRef = null;
@@ -7516,6 +7574,13 @@ function _setupPresence() {
       });
     }
   });
+  // Heartbeat: update lastSeen every 60s so stale detection works
+  if (_presenceHeartbeatTimer) clearInterval(_presenceHeartbeatTimer);
+  _presenceHeartbeatTimer = setInterval(function() {
+    if (_presenceRef) {
+      _presenceRef.update({ lastSeen: firebase.database.ServerValue.TIMESTAMP }).catch(function(){});
+    }
+  }, 60 * 1000);
 }
 
 function _updatePresenceRoom(roomCode) {
@@ -7545,17 +7610,24 @@ function _startOnlinePlayersListener() {
   _onlinePlayersRef = _fbDb.ref('presence');
   _onlinePlayersRef.on('value', function(snap) {
     var all = snap.val() || {};
+    var now = Date.now();
     dbg('[SOCIAL] Presence snapshot: ' + Object.keys(all).length + ' entries');
-    // Filter: only entries with online === true
+    // Filter: only entries with online === true AND lastSeen within PRESENCE_STALE_MS
     _onlinePlayers = {};
     for (var uid in all) {
       if (all[uid] && all[uid].online === true) {
-        _onlinePlayers[uid] = all[uid];
+        var lastSeen = all[uid].lastSeen || 0;
+        if (now - lastSeen < PRESENCE_STALE_MS) {
+          _onlinePlayers[uid] = all[uid];
+        } else {
+          // Stale entry — remove it from Firebase so it doesn't linger
+          _fbDb.ref('presence/' + uid).remove().catch(function(){});
+        }
       }
     }
     var myUid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
     delete _onlinePlayers[myUid];
-    dbg('[SOCIAL] Online players (excluding self): ' + Object.keys(_onlinePlayers).length);
+    dbg('[SOCIAL] Online players (excluding self, after stale filter): ' + Object.keys(_onlinePlayers).length);
     _renderOnlinePlayersPanel();
     _checkFriendOnlineNotifications();
   }, function(err) {
@@ -8024,6 +8096,7 @@ function _initSocialListeners() {
 }
 
 function _cleanupSocialListeners() {
+  if (_presenceHeartbeatTimer) { clearInterval(_presenceHeartbeatTimer); _presenceHeartbeatTimer = null; }
   if (_presenceRef) { _presenceRef.remove(); _presenceRef = null; }
   if (_onlinePlayersRef) { _onlinePlayersRef.off(); _onlinePlayersRef = null; }
   if (_friendReqRef) { _friendReqRef.off(); _friendReqRef = null; }
