@@ -1454,7 +1454,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 <div id="overlay" class="hidden">
   <h1>TRESETTE</h1>
   <div class="sub" id="overlay-sub">A PERDERE</div>
-  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.4.1</span></div>
+  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.4.3</span></div>
 
   <div class="mode-selector">
     <button class="mode-btn selected" id="mode-perdere" onclick="selectMode('perdere')">🔻 A Perdere</button>
@@ -3033,6 +3033,18 @@ async function animateDealerSelection(onComplete, options) {
   _dealerAnimRunning = true;
   options = options || {};
 
+  // Hide leftover badges from the previous hand
+  var _lsBadge = document.getElementById('lead-suit-badge');
+  var _twBadge = document.getElementById('trick-winner-badge');
+  if (_lsBadge) _lsBadge.style.display = 'none';
+  if (_twBadge) _twBadge.style.display = 'none';
+  // Clear trick area
+  var _trickArea = document.getElementById('trick-area');
+  if (_trickArea) _trickArea.innerHTML = '';
+  // Hide turn indicator and trick count
+  var _turnInd = document.getElementById('turn-indicator');
+  if (_turnInd) _turnInd.style.display = 'none';
+
   var viewport = getViewportSize();
   var isMobileView = viewport.width <= 520 || viewport.width <= 900;
 
@@ -3110,6 +3122,7 @@ async function animateDealerSelection(onComplete, options) {
     if (_gameAborted) return;
 
     // Replace card back with card face
+    // NOTE: CARD_DATA has coppe↔bastoni images swapped, so we apply the same correction as main card rendering
     flyCard.innerHTML = '';
     var _imgSuit = card.suit === 'coppe' ? 'bastoni' : card.suit === 'bastoni' ? 'coppe' : card.suit;
     var faceImg = document.createElement('img');
@@ -4728,7 +4741,11 @@ function handleRetryGame(e) {
     var _dTempDeck2 = shuffle(createDeck());
     var _dCards2 = [{suit:_dTempDeck2[0].suit,rank:_dTempDeck2[0].rank},{suit:_dTempDeck2[1].suit,rank:_dTempDeck2[1].rank},{suit:_dTempDeck2[2].suit,rank:_dTempDeck2[2].rank},{suit:_dTempDeck2[3].suit,rank:_dTempDeck2[3].rank}];
     var _dWinner2 = _calcDealerWinner(_dCards2);
-    mpSend({t:'dealer',cards:_dCards2,winnerSeat:_dWinner2,names:PLAYER_NAMES.slice()});
+    // Build seatMap so clients can set mySeat before animation (avoids race condition)
+    var _seatMap2 = {};
+    for(var _sk2 in _humanSeats) { if(_humanSeats[_sk2] && _humanSeats[_sk2].id) _seatMap2[_humanSeats[_sk2].id] = parseInt(_sk2); }
+    dbg('[DEALER] Host seatMap (tournament): ' + JSON.stringify(_seatMap2));
+    mpSend({t:'dealer',cards:_dCards2,winnerSeat:_dWinner2,names:PLAYER_NAMES.slice(),seatMap:_seatMap2});
     animateDealerSelection(function(dealerSeat) {
       initGame((dealerSeat + 1) % 4);
       renderAll();
@@ -4865,6 +4882,8 @@ function quitGame() {
   dbg('[QUIT] quitGame called');
   _startingGame = false;
   _updatePresenceRoom(null);
+  // Dismiss dealer selection animation/banner if active
+  _dismissDealerBanner();
   // Log abandoned game stats
   if(game && game.phase === 'playing') {
     var _qType = mpMode ? 'Multiplayer' : 'CPU';
@@ -5045,7 +5064,9 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "2.4.2";
+const GAME_VERSION = "2.4.3";
+// Auto-sync version display in overlay
+(function(){ var el = document.getElementById('game-version-display'); if(el) el.textContent = 'v' + GAME_VERSION; })();
 
 // ─── Game Duration Tracking ───
 var _gameStartedAt = 0;   // Date.now() when play started/resumed
@@ -6618,7 +6639,11 @@ function startMultiplayerGame() {
   var _dTempDeck = shuffle(createDeck());
   var _dCards = [{suit:_dTempDeck[0].suit,rank:_dTempDeck[0].rank},{suit:_dTempDeck[1].suit,rank:_dTempDeck[1].rank},{suit:_dTempDeck[2].suit,rank:_dTempDeck[2].rank},{suit:_dTempDeck[3].suit,rank:_dTempDeck[3].rank}];
   var _dWinner = _calcDealerWinner(_dCards);
-  mpSend({t:'dealer',cards:_dCards,winnerSeat:_dWinner,names:PLAYER_NAMES.slice()});
+  // Build seatMap so clients can set mySeat before animation (avoids race condition)
+  var _seatMap = {};
+  for(var _sk in _humanSeats) { if(_humanSeats[_sk] && _humanSeats[_sk].id) _seatMap[_humanSeats[_sk].id] = parseInt(_sk); }
+  dbg('[DEALER] Host seatMap: ' + JSON.stringify(_seatMap));
+  mpSend({t:'dealer',cards:_dCards,winnerSeat:_dWinner,names:PLAYER_NAMES.slice(),seatMap:_seatMap});
 
   animateDealerSelection(function(dealerSeat) {
     _startingGame = false;
@@ -6853,6 +6878,7 @@ function _doActualJoin(myName, code, prefSeat) {
     }
     if(data.t==='quit'){
       // Host quit with no other humans — game over for real
+      _dismissDealerBanner();
       showStatus('L\'host ha abbandonato!', 3000);
       _clearSession();
       _updatePresenceRoom(null);
@@ -6868,6 +6894,7 @@ function _doActualJoin(myName, code, prefSeat) {
     }
     if(data.t==='host-leaving'){
       // Host is leaving but room data preserved — attempt migration
+      _dismissDealerBanner();
       dbg('[CLIENT] Host leaving — attempting immediate promotion');
       stopTurnTimer(); // prevent stale turn timer from firing during migration
       showStatus('L\'host ha abbandonato. Migrazione in corso...', 3000);
@@ -6895,7 +6922,24 @@ function _doActualJoin(myName, code, prefSeat) {
       return;
     }
     if(data.t==='dealer'){
-      dbg('CLIENT dealer selection received: winner='+data.winnerSeat);
+      dbg('CLIENT dealer selection received: winner='+data.winnerSeat+' mySeat='+mySeat+' MY_ID='+MY_ID);
+      // CRITICAL: set mpMode=true NOW so that getPlayerTargetPos applies the correct rotation
+      // (otherwise rot=0 is used, same as host, and cards don't rotate on client screen)
+      mpMode = true;
+      // CRITICAL: set mySeat from seatMap BEFORE rendering, to fix rotation
+      // The seat assignment via Firebase DB may not have arrived yet (race condition)
+      if(data.seatMap) {
+        dbg('[DEALER] Client received seatMap: ' + JSON.stringify(data.seatMap));
+        var _foundSeat = data.seatMap[MY_ID];
+        if(_foundSeat !== undefined && _foundSeat !== null) {
+          dbg('[SEAT] Seat set from dealer seatMap: mySeat='+_foundSeat+' (was '+mySeat+')');
+          mySeat = _foundSeat;
+        } else {
+          dbg('[SEAT] WARNING: MY_ID not found in seatMap! MY_ID='+MY_ID+' keys='+Object.keys(data.seatMap).join(','));
+        }
+      } else {
+        dbg('[SEAT] WARNING: No seatMap in dealer message!');
+      }
       // Set player names from host so labels show correctly during animation
       if(data.names) for(var di=0;di<4;di++) PLAYER_NAMES[di]=data.names[di];
       deduplicateNames();
