@@ -88,6 +88,8 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 .player-label.west{left:clamp(56px, 12vw, 150px);top:50%;transform:translateY(-50%)}
 .player-label.east{right:clamp(62px, 13vw, 175px);top:50%;transform:translateY(-50%)}
 .player-label .lb-pts{color:#fa4;font-size:clamp(8px, 1.8vw, 10px);margin-left:4px}
+.player-label .host-badge{font-size:clamp(7px, 1.5vw, 9px);color:#0f0;margin-left:3px;font-weight:bold;text-transform:uppercase}
+.player-label .client-badge{font-size:clamp(7px, 1.5vw, 9px);color:#6cf;margin-left:3px;font-weight:bold;text-transform:uppercase}
 .player-label.active-turn{
   border:2px solid #fa4;
   background:rgba(255,150,0,0.25);
@@ -942,8 +944,85 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   background:rgba(0,0,0,0.7); 
   color:#fff 
 }
-#vol-toggle:active { 
+#vol-toggle:active {
   transform:scale(0.95);
+}
+
+/* ════════ Toast Notifications ════════ */
+#toast-container{
+  position:fixed;top:clamp(40px,5vh,60px);right:clamp(4px,1vw,10px);
+  z-index:95;display:flex;flex-direction:column;gap:6px;
+  pointer-events:none;max-width:min(320px,85vw);
+}
+.toast-item{
+  pointer-events:auto;
+  background:rgba(10,20,10,0.94);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.15);border-radius:10px;
+  padding:10px 14px;color:#ddd;font-size:clamp(11px,2.2vw,13px);
+  box-shadow:0 4px 16px rgba(0,0,0,0.4);
+  transform:translateX(110%);transition:transform .3s ease,opacity .3s;
+  cursor:pointer;
+}
+.toast-item.show{transform:translateX(0)}
+.toast-item.toast-ok{border-left:3px solid #4f4}
+.toast-item.toast-err{border-left:3px solid #f44}
+.toast-item.toast-info{border-left:3px solid #5af}
+.toast-item.toast-warn{border-left:3px solid #fa4}
+
+/* ════════ Social Button ════════ */
+#social-btn{
+  position:fixed;bottom:clamp(4px,1vh,10px);left:clamp(54px,12vw,80px);
+  z-index:22;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);
+  color:#ddd;border-radius:50%;cursor:pointer;
+  font-size:clamp(14px,3vw,18px);
+  width:clamp(36px,8vw,44px);height:clamp(36px,8vw,44px);
+  display:none;align-items:center;justify-content:center;
+  touch-action:manipulation;transition:background .2s;
+}
+#social-btn:hover{background:rgba(0,0,0,0.7);color:#fff}
+#social-btn .social-badge{
+  position:absolute;top:-2px;right:-2px;background:#f44;color:#fff;
+  font-size:9px;border-radius:50%;min-width:16px;height:16px;
+  display:none;align-items:center;justify-content:center;font-weight:bold;
+}
+
+/* ════════ Social Panel ════════ */
+#social-panel{
+  position:fixed;inset:0;z-index:52;display:none;
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);
+}
+#social-panel.show{display:flex}
+#social-panel .social-content{
+  background:rgba(20,40,20,0.96);border:1px solid rgba(255,255,255,0.15);
+  border-radius:12px;padding:20px;max-width:min(420px,92vw);width:100%;
+  max-height:80vh;overflow-y:auto;color:#ddd;
+}
+.social-tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap}
+.social-tab{
+  flex:1;padding:8px 4px;font-size:clamp(10px,2.2vw,12px);font-weight:bold;
+  border:1px solid rgba(255,255,255,0.15);border-radius:6px;
+  background:rgba(255,255,255,0.04);color:#888;cursor:pointer;
+  text-align:center;touch-action:manipulation;
+}
+.social-tab.active{background:rgba(255,170,68,0.15);color:#fa4;border-color:#fa4}
+.social-body{max-height:50vh;overflow-y:auto}
+.social-player-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 10px;margin:4px 0;border-radius:8px;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+}
+.social-player-name{color:#ccc;font-size:clamp(12px,2.5vw,14px)}
+.social-player-status{font-size:clamp(9px,1.8vw,11px)}
+.social-empty{color:#888;font-size:12px;text-align:center;padding:20px 10px}
+
+/* ════════ Invite Player Panel ════════ */
+#invite-player-panel{
+  display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:53;max-height:60vh;overflow-y:auto;
+  background:rgba(20,40,20,0.96);border:1px solid rgba(255,255,255,0.15);
+  border-radius:12px;padding:20px;max-width:min(380px,90vw);width:90vw;color:#ddd;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
 }
 
 </style>
@@ -1011,7 +1090,9 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 <button id="rules-btn">📜 Regole</button>
 <button id="quit-btn" style="display:none">❌ Fine Partita</button>
 <button id="fullscreen-btn" onclick="toggleFullscreen()">⛶ Schermo intero</button>
+<button id="social-btn" onclick="_showSocialPanel()">👥<span class="social-badge" id="social-badge">0</span></button>
 <div id="user-badge" title="Profilo utente"><span class="ub-icon">👤</span><span id="ub-name">Ospite</span><button id="ub-auth-btn" onclick="_onAuthBtnClick(event)" style="margin-left:6px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#ccc;font-size:clamp(8px,1.6vw,10px);padding:2px 6px;border-radius:4px;cursor:pointer;touch-action:manipulation">🔑</button></div>
+<div id="toast-container"></div>
 
 <div id="tournament-panel" style="display:none">
   <div class="tp-header" onclick="toggleTournament()">
@@ -1135,6 +1216,30 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   </div>
 </div>
 
+<!-- Social Panel -->
+<div id="social-panel">
+  <div class="social-content">
+    <h3 style="color:#fa4;margin-bottom:4px;text-align:center">👥 Social</h3>
+    <div class="social-tabs">
+      <button class="social-tab active" id="social-tab-online" onclick="_showSocialTab('online')">🌐 Online</button>
+      <button class="social-tab" id="social-tab-friends" onclick="_showSocialTab('friends')">⭐ Amici</button>
+      <button class="social-tab" id="social-tab-requests" onclick="_showSocialTab('requests')">📨 Richieste <span id="req-badge" style="display:none;background:#f44;color:#fff;border-radius:50%;padding:1px 5px;font-size:9px;margin-left:4px">0</span></button>
+    </div>
+    <div id="social-body-online" class="social-body"></div>
+    <div id="social-body-friends" class="social-body" style="display:none"></div>
+    <div id="social-body-requests" class="social-body" style="display:none"></div>
+    <button class="rp-close" onclick="_closeSocialPanel()">Chiudi</button>
+  </div>
+</div>
+
+<!-- Invite Player Panel -->
+<div id="invite-player-panel">
+  <h3 style="color:#fa4;margin-bottom:4px;text-align:center">📨 Invita Giocatore</h3>
+  <div style="color:#aaa;font-size:11px;margin-bottom:8px;text-align:center">Posto <span id="invite-seat-label">?</span></div>
+  <div id="invite-player-list" style="display:flex;flex-direction:column;gap:6px"></div>
+  <div style="margin-top:10px;text-align:center"><button class="lobby-btn" onclick="_closeInvitePanel()">Chiudi</button></div>
+</div>
+
 <!-- Debug Panel -->
 <div id="dbg-wrapper" style="position:fixed;bottom:0;left:0;right:0;max-height:30vh;z-index:99999;display:none;flex-direction:column;background:rgba(0,0,0,0.85)">
   <div id="host-info" style="flex:0 0 auto;background:rgba(10,10,10,0.98);border-bottom:1px solid rgba(255,255,255,0.15);padding:3px 8px;font:10px/1.4 monospace;color:#aaa;text-align:right">👑 <span id="hi-host">—</span></div>
@@ -1175,7 +1280,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
         <div class="seat-row" id="seat-3"><span class="seat-icon">⏳</span> <span class="seat-label">Posto 4</span> — <span class="seat-name" id="seat-name-3" style="color:#888">In attesa...</span></div>
       </div>
       <div class="lobby-status" id="host-status">In attesa di giocatori...</div>
-      <button class="lobby-btn primary" id="start-mp-btn" style="display:none" onclick="startMultiplayerGame()">▶ Inizia Partita</button>
+      <button class="lobby-btn primary" id="start-mp-btn" style="display:none">▶ Inizia Partita</button>
     </div>
     <button class="lobby-btn" id="lobby-back-host-btn" style="margin-top:8px" onclick="cancelLobby()">Indietro</button>
   </div>
@@ -1307,14 +1412,14 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   <div style="margin-top: 20px; font-size: 10px; color: #888; text-align: center; max-width: 400px;">
     Questo gioco è un esperimento open source e non ha fini di lucro. Nessun dato personale viene salvato oltre allo stretto necessario per la partita.
   </div>
-  <div style="margin-top:8px;font-size:9px;color:#555;text-align:center">v<span id="auth-version">2.3.2</span></div>
+  <div style="margin-top:8px;font-size:9px;color:#555;text-align:center">v<span id="auth-version">2.4.0</span></div>
 </div>
 
 <!-- ═══════ Start Screen ═══════ -->
 <div id="overlay" class="hidden">
   <h1>TRESETTE</h1>
   <div class="sub" id="overlay-sub">A PERDERE</div>
-  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.3.2</span></div>
+  <div class="sub2">con le carte napoletane <span id="game-version-display" style="font-size: 0.8em; opacity: 0.7;">v2.4.0</span></div>
 
   <div class="mode-selector">
     <button class="mode-btn selected" id="mode-perdere" onclick="selectMode('perdere')">🔻 A Perdere</button>
@@ -1351,6 +1456,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
     <button class="lobby-btn primary" id="overlay-single-btn" type="button" style="width:min(280px,80vw)" onpointerdown="return runOverlayMenuAction(event,'single')" onclick="return runOverlayMenuAction(event,'single')">🃏 Gioca da Solo (vs CPU)</button>
     <button class="lobby-btn primary" id="overlay-create-btn" type="button" style="width:min(280px,80vw);background:rgba(20,80,40,0.9)" onpointerdown="return runOverlayMenuAction(event,'create')" onclick="return runOverlayMenuAction(event,'create')">🏠 Crea Stanza</button>
     <button class="lobby-btn" id="overlay-join-btn" type="button" style="width:min(280px,80vw)" onpointerdown="return runOverlayMenuAction(event,'join')" onclick="return runOverlayMenuAction(event,'join')">🚪 Unisciti a Stanza</button>
+    <button class="lobby-btn" id="overlay-social-btn" type="button" style="width:min(280px,80vw)" onclick="_showSocialPanel()">👥 Giocatori Online</button>
   </div>
 
   <div style="margin-top: 15px; margin-bottom: 15px; font-size: 10px; color: #888; text-align: center; max-width: 400px;">
@@ -2844,16 +2950,56 @@ async function animateDealing(onComplete) {
   if (onComplete) onComplete();
 }
 
-// ─── Dealer Selection Animation (first game only) ─────────────
-async function animateDealerSelection(onComplete) {
+// ─── Dealer Selection Animation ─────────────────────────────────
+// options (optional): { cards: [{suit,rank},...], winnerSeat: N }
+// When cards/winnerSeat provided, uses those instead of random selection.
+var _dealerBannerActive = false;
+var _dealerAnimRunning = false;
+function _dismissDealerBanner() {
+  _dealerBannerActive = false;
+  _dealerAnimRunning = false;
+  _gameAborted = true; // stop ongoing async dealer animation
+  var bannerEl = document.getElementById('dealer-banner');
+  if (bannerEl) bannerEl.classList.remove('show');
+  // Remove any leftover flying cards
+  var leftover = document.querySelectorAll('.dealer-fly-card');
+  for (var i = 0; i < leftover.length; i++) {
+    if (leftover[i].parentNode) leftover[i].parentNode.removeChild(leftover[i]);
+  }
+  // Hide deck if still visible
+  hideDeck();
+}
+
+function _calcDealerWinner(cards) {
+  var NATURAL_POWER = {1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10};
+  var winnerSeat = 0;
+  var winnerPower = NATURAL_POWER[cards[0].rank];
+  for (var w = 1; w < 4; w++) {
+    var pw = NATURAL_POWER[cards[w].rank];
+    if (pw > winnerPower) {
+      winnerSeat = w;
+      winnerPower = pw;
+    }
+  }
+  return winnerSeat;
+}
+
+async function animateDealerSelection(onComplete, options) {
   _gameAborted = false;
+  _dealerAnimRunning = true;
+  options = options || {};
 
   var viewport = getViewportSize();
   var isMobileView = viewport.width <= 520 || viewport.width <= 900;
 
-  // Pick 4 random unique cards (one per player)
-  var tempDeck = shuffle(createDeck());
-  var selectionCards = [tempDeck[0], tempDeck[1], tempDeck[2], tempDeck[3]];
+  // Use predetermined cards or pick random ones
+  var selectionCards;
+  if (options.cards && options.cards.length === 4) {
+    selectionCards = options.cards;
+  } else {
+    var tempDeck = shuffle(createDeck());
+    selectionCards = [tempDeck[0], tempDeck[1], tempDeck[2], tempDeck[3]];
+  }
 
   // We need a temporary game.leadPlayer for showDeck positioning — use seat 0
   var savedGame = game;
@@ -2884,6 +3030,7 @@ async function animateDealerSelection(onComplete) {
 
     // Create flying card at deck position (face down)
     var flyCard = document.createElement('div');
+    flyCard.className = 'dealer-fly-card';
     flyCard.style.cssText = 'position:fixed;z-index:50;pointer-events:none;border-radius:6px;' +
       'border:none;box-shadow:2px 4px 10px rgba(0,0,0,0.5);overflow:hidden;background:#f5f5f0;' +
       'width:' + deckCardW + 'px;height:' + deckCardH + 'px;' +
@@ -2945,17 +3092,12 @@ async function animateDealerSelection(onComplete) {
   // Pause to let players see all 4 cards
   await delay(1500);
 
-  // Determine winner: natural card order (Re=10 > Cavallo=9 > Fante=8 > 7 > ... > Asso=1)
-  // Tie-break: first player dealt wins
-  var NATURAL_POWER = {1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10};
-  var winnerSeat = 0;
-  var winnerPower = NATURAL_POWER[selectionCards[0].rank];
-  for (var w = 1; w < 4; w++) {
-    var pw = NATURAL_POWER[selectionCards[w].rank];
-    if (pw > winnerPower) {
-      winnerSeat = w;
-      winnerPower = pw;
-    }
+  // Determine winner (use provided or calculate)
+  var winnerSeat;
+  if (typeof options.winnerSeat === 'number') {
+    winnerSeat = options.winnerSeat;
+  } else {
+    winnerSeat = _calcDealerWinner(selectionCards);
   }
 
   // Clean up: hide deck (keep flying cards visible)
@@ -2966,12 +3108,18 @@ async function animateDealerSelection(onComplete) {
   var bannerText = document.getElementById('dealer-banner-text');
   var dealerName = PLAYER_NAMES[winnerSeat];
   var winCard = selectionCards[winnerSeat];
+  var starterSeat = (winnerSeat + 1) % 4;
+  var starterName = PLAYER_NAMES[starterSeat];
   bannerText.innerHTML = '🃏 Mazziere: <span style="color:#fa4">' + dealerName + '</span><br>' +
-    '<span style="font-size:0.6em;color:#ccc">' + RANK_NAMES[winCard.rank] + ' di ' + SUIT_NAMES[winCard.suit] + ' — carta più alta</span>';
+    '<span style="font-size:0.6em;color:#ccc">' + RANK_NAMES[winCard.rank] + ' di ' + SUIT_NAMES[winCard.suit] + ' — carta più alta</span><br>' +
+    '<span style="font-size:0.55em;color:#aaa">Inizia: <b>' + starterName + '</b></span>';
   bannerEl.classList.add('show');
+  _dealerBannerActive = true;
 
-  // Wait for continue button
   var continueBtn = document.getElementById('dealer-continue-btn');
+
+  // Wait for continue button click
+  continueBtn.style.display = '';
   await new Promise(function(resolve) {
     function onContinue() {
       continueBtn.removeEventListener('click', onContinue);
@@ -2981,7 +3129,8 @@ async function animateDealerSelection(onComplete) {
     continueBtn.addEventListener('click', onContinue);
     continueBtn.addEventListener('touchend', onContinue);
   });
-
+  _dealerBannerActive = false;
+  _dealerAnimRunning = false;
   bannerEl.classList.remove('show');
 
   // Now remove flying cards
@@ -3455,12 +3604,17 @@ function renderLabels() {
   for (let v = 0; v < 4; v++) {
     const actual = (v + rot) % 4;
     const label = document.getElementById('label-' + PLAYER_POS[v]);
+    var roleBadge = '';
+    if (mpMode && actual === mySeat) {
+      roleBadge = isHost
+        ? ' <span class="host-badge">[HOST]</span>'
+        : ' <span class="client-badge">[CLIENT]</span>';
+    }
     if (isVincereMode()) {
-      // Show team score next to player name
       var teamIdx = getPlayerTeam(actual);
-      label.innerHTML = PLAYER_NAMES[actual] + ' <span class="lb-pts">' + formatPunti(getTeamScore(teamIdx)) + '</span>';
+      label.innerHTML = PLAYER_NAMES[actual] + roleBadge + ' <span class="lb-pts">' + formatPunti(getTeamScore(teamIdx)) + '</span>';
     } else {
-      label.innerHTML = PLAYER_NAMES[actual] + ' <span class="lb-pts">' + formatPunti(game.scores[actual]) + '</span>';
+      label.innerHTML = PLAYER_NAMES[actual] + roleBadge + ' <span class="lb-pts">' + formatPunti(game.scores[actual]) + '</span>';
     }
     label.classList.toggle('active-turn', game.currentPlayer === actual && game.phase === 'playing' && !game.animating);
   }
@@ -4035,6 +4189,7 @@ function showGameOver() {
   var _goType = mpMode ? 'Multiplayer' : 'CPU';
   var _goRole = mpMode ? (isHost ? 'Host' : 'Client') : null;
   logGameStats(_goType, _goRole, true);
+  _updatePresenceInGame(false);
 
   const el = document.getElementById('game-over');
   el.classList.add('show');
@@ -4498,36 +4653,58 @@ function handleRetryGame(e) {
   resetTournament();
 
   if (mpMode && isHost) {
-    initGame();
+    // New tournament: animate dealer selection
     deduplicateNames();
-    renderAll();
-    renderTournament();
-    mpSend({t:'start',gm:gameMode,diff:cpuDifficulty,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
-    syncState();
-    sndStart();
-    showStatus('Nuovo torneo!',1500);
-    showBuongiocoAndStart(function(){
-      if(game && !isHumanSeat(game.currentPlayer)) setTimeout(function(){cpuTurn();},400);
-    });
-  } else if (mpMode && !isHost) {
-    showStatus('In attesa nuovo torneo...',2000);
-  } else {
-    initGame();
-    deduplicateNames();
-    renderLabels();
-    renderScores();
-    renderTournament();
-    document.getElementById('trick-count').textContent = 'Mano 0 / 10';
     document.getElementById('player-hand').innerHTML = '';
     document.getElementById('north-hand').innerHTML = '';
     document.getElementById('west-hand').innerHTML = '';
     document.getElementById('east-hand').innerHTML = '';
     document.getElementById('trick-area').innerHTML = '';
-    sndStart();
-    showStatus('Nuovo torneo!', 1500);
-    renderAll();
-    showBuongiocoAndStart(function(){
-      if(game && !isHumanSeat(game.currentPlayer)) setTimeout(function(){ cpuTurn(); }, 400);
+    // Pre-calculate dealer cards and winner, send to clients
+    var _dTempDeck2 = shuffle(createDeck());
+    var _dCards2 = [{suit:_dTempDeck2[0].suit,rank:_dTempDeck2[0].rank},{suit:_dTempDeck2[1].suit,rank:_dTempDeck2[1].rank},{suit:_dTempDeck2[2].suit,rank:_dTempDeck2[2].rank},{suit:_dTempDeck2[3].suit,rank:_dTempDeck2[3].rank}];
+    var _dWinner2 = _calcDealerWinner(_dCards2);
+    mpSend({t:'dealer',cards:_dCards2,winnerSeat:_dWinner2,names:PLAYER_NAMES.slice()});
+    animateDealerSelection(function(dealerSeat) {
+      initGame((dealerSeat + 1) % 4);
+      renderAll();
+      renderTournament();
+      mpSend({t:'start',gm:gameMode,diff:cpuDifficulty,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
+      syncState();
+      sndStart();
+      showStatus('Nuovo torneo!',1500);
+      showBuongiocoAndStart(function(){
+        if(game && !isHumanSeat(game.currentPlayer)) setTimeout(function(){cpuTurn();},400);
+      });
+    }, {cards:_dCards2, winnerSeat:_dWinner2});
+  } else if (mpMode && !isHost) {
+    showStatus('In attesa nuovo torneo...',2000);
+  } else {
+    // New tournament single player: animate dealer selection
+    deduplicateNames();
+    document.getElementById('label-south').innerHTML = PLAYER_NAMES[0] + ' <span class="lb-pts"></span>';
+    document.getElementById('label-east').innerHTML = PLAYER_NAMES[1] + ' <span class="lb-pts"></span>';
+    document.getElementById('label-north').innerHTML = PLAYER_NAMES[2] + ' <span class="lb-pts"></span>';
+    document.getElementById('label-west').innerHTML = PLAYER_NAMES[3] + ' <span class="lb-pts"></span>';
+    document.getElementById('trick-count').textContent = '';
+    document.getElementById('player-hand').innerHTML = '';
+    document.getElementById('north-hand').innerHTML = '';
+    document.getElementById('west-hand').innerHTML = '';
+    document.getElementById('east-hand').innerHTML = '';
+    document.getElementById('trick-area').innerHTML = '';
+    animateDealerSelection(function(dealerSeat) {
+      initGame((dealerSeat + 1) % 4);
+      deduplicateNames();
+      renderLabels();
+      renderScores();
+      renderTournament();
+      document.getElementById('trick-count').textContent = 'Mano 0 / 10';
+      sndStart();
+      showStatus('Nuovo torneo!', 1500);
+      renderAll();
+      showBuongiocoAndStart(function(){
+        if(game && !isHumanSeat(game.currentPlayer)) setTimeout(function(){ cpuTurn(); }, 400);
+      });
     });
   }
 }
@@ -4622,6 +4799,8 @@ function copyInviteLink() {
 
 function quitGame() {
   dbg('[QUIT] quitGame called');
+  _startingGame = false;
+  _updatePresenceRoom(null);
   // Log abandoned game stats
   if(game && game.phase === 'playing') {
     var _qType = mpMode ? 'Multiplayer' : 'CPU';
@@ -4631,30 +4810,45 @@ function quitGame() {
   _clearSession();
   // Immediately abort all animations and clean up
   cleanupAnimations();
+  var wasHost = isHost;
+  var oldRoom = mpRoom;
+  var hadGame = !!game;
   game = null;
   document.getElementById('quit-btn').style.display = 'none';
   document.getElementById('game-over').classList.remove('show');
   _hideDiscBanner();
   stopTurnTimer();
   hideBuongiocoBanners();
-  var wasHost = isHost;
-  var oldRoom = mpRoom;
   stopHostHeartbeat();
   if(_mpPingTimer){ clearInterval(_mpPingTimer); _mpPingTimer=null; }
   if(mpMode){
-    if(wasHost) mpSend({t:'quit'});
-    mpMode = false;
-    _fbCleanup();
-    if(_fbDb && oldRoom){
-      if(wasHost){
+    if(wasHost && _fbDb && oldRoom){
+      // Check if there are other human players who can take over
+      var hasOtherHumans = false;
+      for(var qs=1;qs<=3;qs++){
+        if(_humanSeats[qs]) { hasOtherHumans = true; break; }
+      }
+      if(hasOtherHumans && hadGame){
+        // Notify clients to migrate host, do NOT delete room data
+        mpSend({t:'host-leaving'});
+        // Remove lobby entry and own seat; keep meta/state for migration
+        _fbDb.ref('lobby/'+oldRoom).remove();
+        _fbDb.ref('rooms/'+oldRoom+'/seats/'+MY_ID).remove();
+        // Stop lease renewal so clients detect it and promote
+        // The lease will expire and clients will attempt promotion
+      } else {
+        // No other humans — clean up everything
+        mpSend({t:'quit'});
         _fbDb.ref('lobby/'+oldRoom).remove();
         _fbDb.ref('rooms/'+oldRoom+'/state').remove();
         _fbDb.ref('rooms/'+oldRoom+'/seats').remove();
         _fbDb.ref('rooms/'+oldRoom+'/meta').remove();
-      } else if(MY_ID){
-        _fbDb.ref('rooms/'+oldRoom+'/seats/'+MY_ID).remove();
       }
+    } else if(!wasHost && _fbDb && oldRoom && MY_ID){
+      _fbDb.ref('rooms/'+oldRoom+'/seats/'+MY_ID).remove();
     }
+    mpMode = false;
+    _fbCleanup();
   }
   document.getElementById('overlay').classList.remove('hidden');
 }
@@ -4723,7 +4917,7 @@ function startGame() {
     document.getElementById('trick-area').innerHTML = '';
 
     animateDealerSelection(function(dealerSeat) {
-      initGame(dealerSeat);
+      initGame((dealerSeat + 1) % 4);
       deduplicateNames();
       renderLabels();
       renderScores();
@@ -4787,7 +4981,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "2.3.2";
+const GAME_VERSION = "2.4.0";
 
 // ─── Game Duration Tracking ───
 var _gameStartedAt = 0;   // Date.now() when play started/resumed
@@ -4858,6 +5052,11 @@ function _getSession() {
       });
       _fbDb = firebase.database();
       _fbReady = true;
+      // Sync server time offset for accurate lease age calculations
+      _fbDb.ref('.info/serverTimeOffset').on('value', function(snap) {
+        _fbServerTimeOffset = snap.val() || 0;
+        dbg('[FIREBASE] serverTimeOffset = ' + _fbServerTimeOffset + 'ms');
+      });
       dbg('Firebase ready! DB URL: ' + _fbDb.app.options.databaseURL);
       // Listen for connectivity changes
       _fbDb.ref('.info/connected').on('value', function(snap) {
@@ -4921,6 +5120,9 @@ function _checkAuthState() {
       if (nameInput) nameInput.value = user.displayName || '';
       // Register user in DB for admin visibility
       _registerUserInDb(user);
+      // Setup social: presence + listeners
+      _setupPresence();
+      _initSocialListeners();
       // Go straight to game
       proceedToGame();
     } else {
@@ -4936,6 +5138,9 @@ function authAsGuest() {
   _authUser = null;
   dbg('[AUTH] Accesso come ospite');
   _updateUserBadge();
+  // Guests appear online and can see online players
+  _setupPresence();
+  _initSocialListeners();
   proceedToGame();
 }
 
@@ -5034,6 +5239,8 @@ function doLogout() {
     dbg('[AUTH] Arresto gioco in corso prima del logout');
     quitGame();
   }
+  // Cleanup social listeners and presence
+  _cleanupSocialListeners();
   firebase.auth().signOut().then(function() {
     _authUser = null;
     _isGuest = true;
@@ -5214,6 +5421,7 @@ function cancelLobby() {
   if(isHost && mpRoom) _removeLobbyEntry();
   _fbCleanup();
   stopHostHeartbeat();
+  _updatePresenceRoom(null);
   document.getElementById('lobby-overlay').classList.add('hidden');
   document.getElementById('overlay').classList.remove('hidden');
 }
@@ -5231,6 +5439,8 @@ function _fbCleanup(){
   _stateSeq = 0;
   if(_hostWatchdogTimer){ clearInterval(_hostWatchdogTimer); _hostWatchdogTimer = null; }
   if(_clientWatchdogTimer){ clearInterval(_clientWatchdogTimer); _clientWatchdogTimer = null; }
+  // Stop turn timer to prevent CPU auto-play after leaving
+  stopTurnTimer();
   // Clean up host migration timers
   _stopHostLease();
   _stopMetaWatch();
@@ -5297,6 +5507,10 @@ var _metaWatchTimer = null;   // clients check for expired lease
 var HOST_LEASE_INTERVAL = 10000;  // host writes lease every 10s
 var HOST_LEASE_TIMEOUT  = 35000;  // lease considered expired after 35s
 var _hostSelfCheckTimer = null;   // periodic split-brain self-check
+var _fbServerTimeOffset = 0;      // ms offset: serverTime ≈ Date.now() + _fbServerTimeOffset
+
+// Estimate current server time (compensated for clock skew)
+function _serverNow() { return Date.now() + _fbServerTimeOffset; }
 
 // Write meta node (host calls this)
 function _writeHostMeta() {
@@ -5312,20 +5526,37 @@ function _writeHostMeta() {
   }).then(function(){ dbg('[META] Meta written OK'); }).catch(function(e){ dbg('[META] WRITE ERR: '+e); });
 }
 
-// Start the host lease heartbeat (host only) + split-brain self-check
+// Start the host lease heartbeat (host only) + split-brain detection
+var _hostMetaListenerRef = null; // real-time meta listener for the host
 function _startHostLease() {
   _stopHostLease();
   dbg('[LEASE] Starting host lease heartbeat, epoch='+_hostEpoch+' interval='+HOST_LEASE_INTERVAL+'ms');
   _writeHostMeta();
   _metaLeaseTimer = setInterval(function() {
-    if(!isHost || !mpMode) { dbg('[LEASE] Stopping lease: isHost='+isHost+' mpMode='+mpMode); _stopHostLease(); return; }
+    if(!isHost) { dbg('[LEASE] Stopping lease: isHost='+isHost); _stopHostLease(); return; }
     dbg('[LEASE] Renewing lease, epoch='+_hostEpoch);
     _fbDb.ref('rooms/'+mpRoom+'/meta/hostLease').set(
       firebase.database.ServerValue.TIMESTAMP
     ).catch(function(e){ dbg('[LEASE] Renew ERR: '+e); });
   }, HOST_LEASE_INTERVAL);
 
-  // Split-brain self-check: verify we are still the rightful host every 12s
+  // Real-time meta listener: detect if another host promoted (immediate split-brain resolution)
+  if(_hostMetaListenerRef) { try{_hostMetaListenerRef.off();}catch(e){} }
+  _hostMetaListenerRef = _fbDb.ref('rooms/'+mpRoom+'/meta');
+  _hostMetaListenerRef.on('value', function(snap) {
+    var meta = snap.val();
+    if(!meta || !isHost) return;
+    if(meta.hostId !== MY_ID && meta.hostEpoch > _hostEpoch) {
+      dbg('[SPLIT-BRAIN-RT] *** DETECTED *** Meta hostId='+meta.hostId+' epoch='+meta.hostEpoch+' > myEpoch='+_hostEpoch+' — demoting immediately');
+      _hostEpoch = meta.hostEpoch;
+      _lastSeenEpoch = meta.hostEpoch;
+      _stopHostLease();
+      _demoteToClient();
+      showStatus('Un altro giocatore è diventato host', 2500);
+    }
+  });
+
+  // Backup split-brain self-check every 6s (handles edge cases where real-time listener misses)
   _stopHostSelfCheck();
   _hostSelfCheckTimer = setInterval(function() {
     if(!isHost || !mpMode || !_fbDb || !mpRoom) return;
@@ -5359,13 +5590,14 @@ function _startHostLease() {
         }
       }
     });
-  }, 12000);
+  }, 6000);
 }
 function _stopHostSelfCheck() {
   if(_hostSelfCheckTimer){ clearInterval(_hostSelfCheckTimer); _hostSelfCheckTimer = null; }
 }
 function _stopHostLease() {
   if(_metaLeaseTimer){ dbg('[LEASE] Stopping host lease timer'); clearInterval(_metaLeaseTimer); _metaLeaseTimer = null; }
+  if(_hostMetaListenerRef){ dbg('[LEASE] Detaching host meta listener'); try{_hostMetaListenerRef.off();}catch(e){} _hostMetaListenerRef = null; }
   _stopHostSelfCheck();
 }
 
@@ -5397,8 +5629,8 @@ function _startMetaWatch() {
     _fbDb.ref('rooms/'+mpRoom+'/meta').once('value', function(snap) {
       var meta = snap.val();
       if(!meta || !meta.hostLease) return;
-      var age = Date.now() - meta.hostLease;
-      dbg('[WATCH] Lease check: hostId='+meta.hostId+' epoch='+meta.hostEpoch+' age='+age+'ms timeout='+HOST_LEASE_TIMEOUT+'ms');
+      var age = _serverNow() - meta.hostLease;
+      dbg('[WATCH] Lease check: hostId='+meta.hostId+' epoch='+meta.hostEpoch+' age='+age+'ms timeout='+HOST_LEASE_TIMEOUT+'ms offset='+_fbServerTimeOffset+'ms');
       if(age > HOST_LEASE_TIMEOUT) {
         dbg('[WATCH] HOST LEASE EXPIRED (age='+age+'ms) — attempting promotion');
         _attemptPromotion(meta);
@@ -5427,8 +5659,8 @@ function _attemptPromotion(metaSnapshot) {
       dbg('[PROMOTE] Transaction ABORT: epoch changed (expected='+expectedEpoch+' actual='+current.hostEpoch+')');
       return;
     }
-    var age = Date.now() - (current.hostLease || 0);
-    dbg('[PROMOTE] Transaction: lease age='+age+'ms threshold='+(HOST_LEASE_TIMEOUT-5000)+'ms');
+    var age = _serverNow() - (current.hostLease || 0);
+    dbg('[PROMOTE] Transaction: lease age='+age+'ms threshold='+(HOST_LEASE_TIMEOUT-5000)+'ms offset='+_fbServerTimeOffset+'ms');
     if(age < HOST_LEASE_TIMEOUT - 5000) {
       dbg('[PROMOTE] Transaction ABORT: host lease still fresh (age='+age+'ms)');
       return;
@@ -5450,6 +5682,50 @@ function _attemptPromotion(metaSnapshot) {
     _originalHostId = newMeta.originalHostId || '';
     dbg('[PROMOTE] *** PROMOTION WON *** I am now host! epoch='+_hostEpoch+' originalHost='+_originalHostId);
     _showDiscBanner('🔄 Ripristino partita...', 3, 'Sincronizzazione stato di gioco...');
+    _becomeHost();
+  }, false);
+}
+
+// Forced promotion when host explicitly leaves (no lease timeout check)
+function _attemptForcedPromotion(metaSnapshot) {
+  if(isHost || !_fbDb || !mpRoom || !mpMode || !game) {
+    dbg('[PROMOTE-FORCED] SKIP: isHost='+isHost+' db='+!!_fbDb+' room='+mpRoom+' mpMode='+mpMode+' game='+!!game);
+    return;
+  }
+  var expectedEpoch = metaSnapshot.hostEpoch || 0;
+  dbg('[PROMOTE-FORCED] *** ATTEMPTING FORCED PROMOTION *** expectedEpoch='+expectedEpoch+' myId='+MY_ID);
+
+  _fbDb.ref('rooms/'+mpRoom+'/meta').transaction(function(current) {
+    if(!current) { dbg('[PROMOTE-FORCED] Transaction: current is null, writing fresh meta');
+      return {
+        hostId: MY_ID,
+        hostEpoch: expectedEpoch + 1,
+        originalHostId: _originalHostId || MY_ID,
+        roomLabel: _roomLabel || '',
+        hostLease: firebase.database.ServerValue.TIMESTAMP
+      };
+    }
+    if(current.hostEpoch !== expectedEpoch) {
+      dbg('[PROMOTE-FORCED] Transaction ABORT: epoch changed (expected='+expectedEpoch+' actual='+current.hostEpoch+')');
+      return; // another client already promoted
+    }
+    dbg('[PROMOTE-FORCED] Transaction COMMITTING: new hostId='+MY_ID+' new epoch='+(current.hostEpoch+1));
+    return {
+      hostId: MY_ID,
+      hostEpoch: current.hostEpoch + 1,
+      originalHostId: current.originalHostId || '',
+      roomLabel: current.roomLabel || '',
+      hostLease: firebase.database.ServerValue.TIMESTAMP
+    };
+  }, function(error, committed, snapshot) {
+    if(error) { dbg('[PROMOTE-FORCED] Transaction ERROR: '+error); return; }
+    if(!committed) { dbg('[PROMOTE-FORCED] Transaction NOT COMMITTED'); return; }
+    var newMeta = snapshot.val();
+    _hostEpoch = newMeta.hostEpoch;
+    _lastSeenEpoch = _hostEpoch;
+    _originalHostId = newMeta.originalHostId || '';
+    dbg('[PROMOTE-FORCED] *** PROMOTION WON *** I am now host! epoch='+_hostEpoch);
+    _showDiscBanner('🔄 Sei diventato il nuovo host!', 3, 'La partita continua...');
     _becomeHost();
   }, false);
 }
@@ -5478,11 +5754,12 @@ function _becomeHost() {
     for(var playerId in seats) {
       var seatIdx = seats[playerId];
       if(playerId === MY_ID) { dbg('[BECOME] Skipping myself: seat='+seatIdx); continue; }
-      // Force original host to seat 0 regardless of what Firebase says
-      if(playerId === _originalHostId && seatIdx !== 0) {
-        dbg('[BECOME] Correcting original host seat from '+seatIdx+' to 0');
-        seatIdx = 0;
-        _fbDb.ref('rooms/'+mpRoom+'/seats/'+playerId).set(0);
+      // The original host removed their seat from Firebase when leaving.
+      // If it somehow still appears (race condition), skip and clean up.
+      if(playerId === _originalHostId && playerId !== MY_ID) {
+        dbg('[BECOME] Skipping original host (left): seat='+seatIdx+' id='+playerId);
+        _fbDb.ref('rooms/'+mpRoom+'/seats/'+playerId).remove();
+        continue;
       }
       // Don't let anyone else occupy MY seat
       if(seatIdx === mySeat) {
@@ -5494,8 +5771,24 @@ function _becomeHost() {
       _humanSeatSet.add(seatIdx);
       dbg('[BECOME] Restored seat '+seatIdx+': name='+pName+' id='+playerId);
     }
-    if(!_humanSeatSet.has(0)) _humanSeatSet.add(0);
     dbg('[BECOME] Final humanSeats: '+JSON.stringify(Object.keys(_humanSeats))+' humanSeatSet: ['+Array.from(_humanSeatSet).join(',')+']');
+
+    // Now that _humanSeats is rebuilt, sync state to clients with correct humanSeatSet
+    dbg('[BECOME] Syncing state as new host (after seats rebuilt)...');
+    syncState();
+
+    // Explicit render to make sure UI is up to date
+    if(game) {
+      dbg('[BECOME] Forcing renderAll after seats rebuilt');
+      renderAll();
+    }
+
+    // If it's a CPU turn (including the seat of the host who left), kick the AI
+    var cpuNeeded = (game && game.phase === 'playing' && !isHumanSeat(game.currentPlayer));
+    dbg('[BECOME] CPU turn needed? '+cpuNeeded+' currentPlayer='+(game?game.currentPlayer:'n/a')+' phase='+(game?game.phase:'n/a'));
+    if(cpuNeeded) {
+      setTimeout(function() { dbg('[BECOME] Kicking CPU turn after promotion'); cpuTurn(); }, 600);
+    }
   });
 
   // Start listening for messages as host
@@ -5520,7 +5813,7 @@ function _becomeHost() {
           }
         }
       }
-      // Original host ALWAYS gets seat 0, fix any corruption
+      // Original host ALWAYS gets seat 0 on rejoin
       var isOrig = (data._from === _originalHostId && data._from !== MY_ID);
       if(isOrig && existingSeat >= 0 && existingSeat !== 0) {
         dbg('[MIG-HOST] Original host was at seat='+existingSeat+' — forcing to seat 0');
@@ -5554,7 +5847,7 @@ function _becomeHost() {
     if(data.t === 'play' && mpMode && game) {
       var playSeat = -1;
       for(var k2 in _humanSeats) { if(_humanSeats[k2].id === data._from) { playSeat = parseInt(k2); break; } }
-      // Original host always plays at seat 0
+      // Original host always plays at seat 0 on rejoin
       if(playSeat < 0 && data._from === _originalHostId) {
         dbg('[MIG-HOST] Original host play not in _humanSeats, forcing seat 0');
         playSeat = 0;
@@ -5575,24 +5868,29 @@ function _becomeHost() {
   mpListen(_migratedHostHandler);
   startHostHeartbeat();
 
+  // Start host watchdog to detect disconnected human players
+  if(_hostWatchdogTimer) clearInterval(_hostWatchdogTimer);
+  _clientDisconnected = false;
+  _hostWatchdogTimer = setInterval(function(){
+    if(!mpMode || !game || game.phase==='done') return;
+    var anyDisc = false;
+    for(var k in _humanSeats){
+      if(Date.now() - _humanSeats[k].lastPing > 30000){
+        anyDisc = true;
+        break;
+      }
+    }
+    if(anyDisc && !_clientDisconnected){
+      _clientDisconnected = true;
+      _showDiscBanner('⚠️ Un giocatore disconnesso...', 0, 'In attesa di riconnessione...');
+      startHostHeartbeat();
+    }
+  }, 5000);
+
   // Hide disconnect banner with success message
   _showDiscSuccess('✅ Sei diventato il nuovo host!');
   showStatus('Sei diventato il nuovo host!', 3000);
-  dbg('[BECOME] Syncing state as new host...');
-  syncState();
 
-  // Explicit render to make sure UI is up to date
-  if(game) {
-    dbg('[BECOME] Forcing renderAll after becoming host');
-    renderAll();
-  }
-
-  // If it's a CPU turn, kick the AI
-  var cpuNeeded = (game && game.phase === 'playing' && !isHumanSeat(game.currentPlayer));
-  dbg('[BECOME] CPU turn needed? '+cpuNeeded+' currentPlayer='+( game?game.currentPlayer:'n/a')+' phase='+(game?game.phase:'n/a'));
-  if(cpuNeeded) {
-    setTimeout(function() { dbg('[BECOME] Kicking CPU turn after promotion'); cpuTurn(); }, 600);
-  }
   dbg('[BECOME] *** Host migration complete ***');
 }
 
@@ -5602,6 +5900,7 @@ function _demoteToClient() {
   isHost = false;
   _stopHostLease();
   stopHostHeartbeat();
+  stopTurnTimer();
   if(_hostWatchdogTimer) { dbg('[DEMOTE] Clearing host watchdog'); clearInterval(_hostWatchdogTimer); _hostWatchdogTimer = null; }
   // Reset seq tracking so we accept state from the new host
   _latestAppliedStateSeq = 0;
@@ -6008,8 +6307,8 @@ function _updateSeatUI(){
       nameEl.style.color = '#4f4';
       iconEl.textContent = '👤';
     } else {
-      nameEl.textContent = 'In attesa...';
-      nameEl.style.color = '#888';
+      nameEl.innerHTML = '<span style="color:#888">In attesa...</span> <button class="lobby-btn" style="font-size:10px;padding:3px 8px;min-height:24px;margin-left:6px" onclick="_showInviteForSeat('+i+')">📨 Invita</button>';
+      nameEl.style.color = '';
       iconEl.textContent = '⏳';
     }
   }
@@ -6055,6 +6354,7 @@ function hostGame() {
   PLAYER_NAMES[0] = myName;
   mpRoom = genCode(); isHost = true; mySeat = 0;
   _saveSession(mpRoom, myName, true);
+  _updatePresenceRoom(mpRoom);
   _humanSeats = {};
   _humanSeatSet = new Set([0]);
   // Write host's own seat to Firebase so migrated hosts can find us
@@ -6184,9 +6484,13 @@ function hostGame() {
   }, 5000);
 }
 
+var _startingGame = false; // guard against double-calls
 function startMultiplayerGame() {
-  if(!isHost) return;
+  if(!isHost || _startingGame) return;
+  _startingGame = true;
   mpMode = true;
+  // Ensure host lease is running (may have been stopped if lobby took >10s)
+  if(!_metaLeaseTimer) _startHostLease();
   _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 15000);
   PLAYER_NAMES[0] = document.getElementById('host-name-input').value.trim() || 'Tu';
   // Fill seats: human players get their names, empty seats become CPU with random names
@@ -6212,41 +6516,32 @@ function startMultiplayerGame() {
   document.getElementById('quit-btn').style.display = '';
   initAudio();
 
-  // First game of session: animate dealer selection
-  if (_isVeryFirstGame) {
-    _isVeryFirstGame = false;
-    document.getElementById('player-hand').innerHTML = '';
-    document.getElementById('north-hand').innerHTML = '';
-    document.getElementById('west-hand').innerHTML = '';
-    document.getElementById('east-hand').innerHTML = '';
-    document.getElementById('trick-area').innerHTML = '';
+  // Always animate dealer selection for the first game of a multiplayer session
+  document.getElementById('player-hand').innerHTML = '';
+  document.getElementById('north-hand').innerHTML = '';
+  document.getElementById('west-hand').innerHTML = '';
+  document.getElementById('east-hand').innerHTML = '';
+  document.getElementById('trick-area').innerHTML = '';
 
-    animateDealerSelection(function(dealerSeat) {
-      initGame(dealerSeat);
-      resetTournament();
-      renderAll(); renderTournament();
-      dbg('HOST startGame cp='+game.currentPlayer);
-      mpSend({t:'start',gm:gameMode,diff:cpuDifficulty,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
-      syncState();
-      sndStart(); showStatus('Partita iniziata!',1500);
-      showBuongiocoAndStart(function(){
-        if(game && !isHumanSeat(game.currentPlayer)) setTimeout(function(){cpuTurn();},400);
-      });
+  // Pre-calculate dealer cards and winner, send to clients
+  var _dTempDeck = shuffle(createDeck());
+  var _dCards = [{suit:_dTempDeck[0].suit,rank:_dTempDeck[0].rank},{suit:_dTempDeck[1].suit,rank:_dTempDeck[1].rank},{suit:_dTempDeck[2].suit,rank:_dTempDeck[2].rank},{suit:_dTempDeck[3].suit,rank:_dTempDeck[3].rank}];
+  var _dWinner = _calcDealerWinner(_dCards);
+  mpSend({t:'dealer',cards:_dCards,winnerSeat:_dWinner,names:PLAYER_NAMES.slice()});
+
+  animateDealerSelection(function(dealerSeat) {
+    _startingGame = false;
+    initGame((dealerSeat + 1) % 4);
+    resetTournament();
+    renderAll(); renderTournament();
+    dbg('HOST startGame cp='+game.currentPlayer);
+    mpSend({t:'start',gm:gameMode,diff:cpuDifficulty,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
+    syncState();
+    _updatePresenceInGame(true);
+    sndStart(); showStatus('Partita iniziata!',1500);    showBuongiocoAndStart(function(){
+      if(game && !isHumanSeat(game.currentPlayer)) setTimeout(function(){cpuTurn();},400);
     });
-    return;
-  }
-
-  initGame();
-  // Start tournament for multiplayer
-  resetTournament();
-  renderAll(); renderTournament();
-  dbg('HOST startGame cp='+game.currentPlayer);
-  mpSend({t:'start',gm:gameMode,diff:cpuDifficulty,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
-  syncState();
-  sndStart(); showStatus('Partita iniziata!',1500);
-  showBuongiocoAndStart(function(){
-    if(game && !isHumanSeat(game.currentPlayer)) setTimeout(function(){cpuTurn();},400);
-  });
+  }, {cards:_dCards, winnerSeat:_dWinner});
 }
 
 // ===== CLIENT =====
@@ -6388,7 +6683,13 @@ function _doActualJoin(myName, code, prefSeat) {
   if(_seatInfoRef){ try{_seatInfoRef.off();}catch(e){} _seatInfoRef = null; }
   
   isHost = false; mySeat = -1; mpRoom = code;
+  // Reset epoch tracking for the new room — prevents stale epoch from previous session
+  _hostEpoch = 0;
+  _lastSeenEpoch = 0;
+  _latestAppliedStateSeq = 0;
+  _stateSeq = 0;
   _saveSession(mpRoom, myName, false);
+  _updatePresenceRoom(code);
   dbg('CLIENT joining room='+mpRoom + (prefSeat != null ? ' prefSeat='+prefSeat : ''));
   document.getElementById('join-status').textContent='Connessione...';
   document.getElementById('join-error').textContent='';
@@ -6418,6 +6719,28 @@ function _doActualJoin(myName, code, prefSeat) {
 
   _listenState();
 
+  function _processClientStart(data) {
+    dbg('CLIENT _processClientStart cp='+data.cp+' mySeat='+mySeat);
+    if(mySeat < 0) mySeat = 1; // fallback
+    mpMode = true; gameMode = data.gm||'perdere';
+    if(data.diff) cpuDifficulty = data.diff;
+    if(data.humanSeats) _humanSeatSet = new Set(data.humanSeats);
+    for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
+    game = {hands:data.hands.map(function(h){return h.map(function(c){return {suit:c.suit,rank:c.rank,id:c.id};});}),trick:[],trickNum:0,leadPlayer:data.lp||0,currentPlayer:data.cp||0,leadSuit:null,scores:[0,0,0,0],trickCards:[],phase:'playing',animating:false,_buongiocoDecls:[]};
+    var clientDecls = applyBuongioco();
+    game._buongiocoDecls = clientDecls;
+    document.getElementById('lobby-overlay').classList.add('hidden');
+    document.getElementById('overlay').classList.add('hidden');
+    document.getElementById('game-over').classList.remove('show');
+    document.getElementById('quit-btn').style.display = '';
+    if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 15000);
+    if (!tournamentActive) {
+      resetTournament();
+    }
+    initAudio(); renderAll(); renderTournament(); _updatePresenceInGame(true); sndStart(); showStatus('Partita iniziata!',1500);
+    showBuongiocoAndStart(null);
+  }
+
   function clientHandler(data){
     _hostLastPing = Date.now();
     if(_hostDisconnected){
@@ -6438,34 +6761,82 @@ function _doActualJoin(myName, code, prefSeat) {
       return;
     }
     if(data.t==='quit'){
+      // Host quit with no other humans — game over for real
       showStatus('L\'host ha abbandonato!', 3000);
+      _clearSession();
+      _updatePresenceRoom(null);
+      stopTurnTimer();
+      game = null;
+      mpMode = false;
       if(_mpPingTimer){ clearInterval(_mpPingTimer); _mpPingTimer=null; }
-      setTimeout(function(){ mpMode=false; _fbCleanup(); document.getElementById('quit-btn').style.display='none'; document.getElementById('overlay').classList.remove('hidden'); }, 3000);
+      if(_clientWatchdogTimer){ clearInterval(_clientWatchdogTimer); _clientWatchdogTimer=null; }
+      _fbCleanup();
+      document.getElementById('quit-btn').style.display='none';
+      setTimeout(function(){ document.getElementById('overlay').classList.remove('hidden'); }, 3000);
       return;
     }
-    if(data.t==='start'){
-      dbg('CLIENT start! cp='+data.cp+' mySeat='+mySeat);
-      if(mySeat < 0) mySeat = 1; // fallback
-      mpMode = true; gameMode = data.gm||'perdere';
-      if(data.diff) cpuDifficulty = data.diff;
-      if(data.humanSeats) _humanSeatSet = new Set(data.humanSeats);
-      for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
-      game = {hands:data.hands.map(function(h){return h.map(function(c){return {suit:c.suit,rank:c.rank,id:c.id};});}),trick:[],trickNum:0,leadPlayer:data.lp||0,currentPlayer:data.cp||0,leadSuit:null,scores:[0,0,0,0],trickCards:[],phase:'playing',animating:false,_buongiocoDecls:[]};
-      // Apply buongioco on client side too
-      var clientDecls = applyBuongioco();
-      game._buongiocoDecls = clientDecls;
+    if(data.t==='host-leaving'){
+      // Host is leaving but room data preserved — attempt migration
+      dbg('[CLIENT] Host leaving — attempting immediate promotion');
+      stopTurnTimer(); // prevent stale turn timer from firing during migration
+      showStatus('L\'host ha abbandonato. Migrazione in corso...', 3000);
+      // Read meta and attempt promotion immediately
+      if(_fbDb && mpRoom) {
+        _fbDb.ref('rooms/'+mpRoom+'/meta').once('value', function(snap) {
+          var meta = snap.val();
+          if(!meta) {
+            dbg('[CLIENT] host-leaving: meta is null, cannot migrate');
+            showStatus('Impossibile continuare la partita.', 3000);
+            _clearSession();
+            stopTurnTimer();
+            game = null;
+            mpMode = false;
+            _fbCleanup();
+            document.getElementById('quit-btn').style.display='none';
+            setTimeout(function(){ document.getElementById('overlay').classList.remove('hidden'); }, 3000);
+            return;
+          }
+          // Force promotion — the host's lease will stop renewing
+          // Attempt immediately: override the lease timeout check
+          _attemptForcedPromotion(meta);
+        });
+      }
+      return;
+    }
+    if(data.t==='dealer'){
+      dbg('CLIENT dealer selection received: winner='+data.winnerSeat);
+      // Set player names from host so labels show correctly during animation
+      if(data.names) for(var di=0;di<4;di++) PLAYER_NAMES[di]=data.names[di];
+      deduplicateNames();
+      // Show labels
+      var rot = mySeat >= 0 ? mySeat : 0;
+      document.getElementById('label-south').innerHTML = PLAYER_NAMES[rot] + ' <span class="lb-pts"></span>';
+      document.getElementById('label-east').innerHTML = PLAYER_NAMES[(rot+1)%4] + ' <span class="lb-pts"></span>';
+      document.getElementById('label-north').innerHTML = PLAYER_NAMES[(rot+2)%4] + ' <span class="lb-pts"></span>';
+      document.getElementById('label-west').innerHTML = PLAYER_NAMES[(rot+3)%4] + ' <span class="lb-pts"></span>';
+      // Hide lobby, show game area
       document.getElementById('lobby-overlay').classList.add('hidden');
       document.getElementById('overlay').classList.add('hidden');
       document.getElementById('game-over').classList.remove('show');
       document.getElementById('quit-btn').style.display = '';
-      if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 15000);
-      // Initialize tournament on client if not already active
-      if (!tournamentActive) {
-        resetTournament();
-      }
-      initAudio(); renderAll(); renderTournament(); sndStart(); showStatus('Partita iniziata!',1500);
-      // Show buongioco banners on client
-      showBuongiocoAndStart(null);
+      // Clear hand containers
+      document.getElementById('player-hand').innerHTML = '';
+      document.getElementById('north-hand').innerHTML = '';
+      document.getElementById('west-hand').innerHTML = '';
+      document.getElementById('east-hand').innerHTML = '';
+      document.getElementById('trick-area').innerHTML = '';
+      initAudio();
+      // Run dealer selection animation — if host clicks Continue first,
+      // the 'start' message will force-dismiss and start the game immediately
+      animateDealerSelection(null, {cards:data.cards, winnerSeat:data.winnerSeat});
+      return;
+    }
+    if(data.t==='start'){
+      dbg('CLIENT start! cp='+data.cp+' mySeat='+mySeat+' dealerAnimRunning='+_dealerAnimRunning);
+      // Force-dismiss dealer animation/banner immediately — host already clicked Continue
+      _dismissDealerBanner();
+      _processClientStart(data);
+      return;
     }
     if(data.t==='emote' && data.eid && typeof data.pidx==='number'){
       try{
@@ -7034,6 +7405,573 @@ document.addEventListener('webkitfullscreenchange',_updateFsBtn);
   }
   window._emoteSystem = { showForPlayer:showEmoticonForPlayer, findEmote:findEmote, EMOTES:EMOTES };
 })();
+
+// ═══════════════════════════════════════════════════════════════
+//  SOCIAL SYSTEM — Presence, Friends, Invitations
+// ═══════════════════════════════════════════════════════════════
+
+var _presenceRef = null;
+var _onlinePlayers = {};
+var _onlinePlayersRef = null;
+var _friendsList = {};
+var _friendsRef = null;
+var _pendingFriendRequests = {};
+var _friendReqRef = null;
+var _pendingInvitations = {};
+var _invitationsRef = null;
+var _knownOnlineFriends = {};
+var _inviteSeatTarget = -1;
+var _socialListenersStarted = false;
+
+// ────── Toast Notifications ──────
+
+function _showToast(text, type, duration) {
+  var container = document.getElementById('toast-container');
+  if (!container) return;
+  var toast = document.createElement('div');
+  toast.className = 'toast-item toast-' + (type || 'info');
+  toast.textContent = text;
+  toast.onclick = function() {
+    toast.classList.remove('show');
+    setTimeout(function(){ if(toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+  };
+  container.appendChild(toast);
+  requestAnimationFrame(function() { toast.classList.add('show'); });
+  var dur = duration || 5000;
+  setTimeout(function() {
+    toast.classList.remove('show');
+    setTimeout(function(){ if(toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+  }, dur);
+  while (container.children.length > 5) container.removeChild(container.firstChild);
+}
+
+// ────── Presence System ──────
+
+function _setupPresence() {
+  if (!_fbDb) return;
+  var uid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
+  var displayName = (_authUser && !_isGuest) ? (_authUser.displayName || 'Giocatore') : 'Ospite';
+  _presenceRef = _fbDb.ref('presence/' + uid);
+  // Write presence immediately (don't wait for .info/connected which may have already fired)
+  var presenceData = {
+    displayName: displayName,
+    lastSeen: firebase.database.ServerValue.TIMESTAMP,
+    online: true,
+    isGuest: _isGuest || false,
+    currentRoom: mpRoom || null,
+    inGame: false
+  };
+  _presenceRef.set(presenceData).then(function() {
+    dbg('[SOCIAL] Presence set OK for uid=' + uid);
+  }).catch(function(e) {
+    dbg('[SOCIAL] Presence set FAILED: ' + e.message);
+  });
+  _presenceRef.onDisconnect().remove();
+  // Also re-set on reconnect
+  _fbDb.ref('.info/connected').on('value', function(snap) {
+    if (snap.val() === true && _presenceRef) {
+      _presenceRef.onDisconnect().remove();
+      _presenceRef.update({
+        online: true,
+        lastSeen: firebase.database.ServerValue.TIMESTAMP
+      });
+    }
+  });
+}
+
+function _updatePresenceRoom(roomCode) {
+  if (_presenceRef) {
+    _presenceRef.update({
+      currentRoom: roomCode || null,
+      inGame: false,
+      lastSeen: firebase.database.ServerValue.TIMESTAMP
+    });
+  }
+}
+
+function _updatePresenceInGame(playing) {
+  if (_presenceRef) {
+    _presenceRef.update({
+      inGame: !!playing,
+      lastSeen: firebase.database.ServerValue.TIMESTAMP
+    });
+  }
+}
+
+// ────── Online Players Listener ──────
+
+function _startOnlinePlayersListener() {
+  if (!_fbDb) return;
+  if (_onlinePlayersRef) _onlinePlayersRef.off();
+  _onlinePlayersRef = _fbDb.ref('presence');
+  _onlinePlayersRef.on('value', function(snap) {
+    var all = snap.val() || {};
+    dbg('[SOCIAL] Presence snapshot: ' + Object.keys(all).length + ' entries');
+    // Filter: only entries with online === true
+    _onlinePlayers = {};
+    for (var uid in all) {
+      if (all[uid] && all[uid].online === true) {
+        _onlinePlayers[uid] = all[uid];
+      }
+    }
+    if (_authUser) delete _onlinePlayers[_authUser.uid];
+    dbg('[SOCIAL] Online players (excluding self): ' + Object.keys(_onlinePlayers).length);
+    _renderOnlinePlayersPanel();
+    _checkFriendOnlineNotifications();
+  }, function(err) {
+    dbg('[SOCIAL] Presence listener ERROR: ' + err.message);
+  });
+}
+
+// ────── Friends Listener ──────
+
+function _startFriendsListener() {
+  if (!_authUser || _isGuest || !_fbDb) return;
+  if (_friendsRef) _friendsRef.off();
+  _friendsRef = _fbDb.ref('friends/' + _authUser.uid);
+  _friendsRef.on('value', function(snap) {
+    _friendsList = snap.val() || {};
+    _renderFriendsList();
+  });
+}
+
+// ────── Friend Requests ──────
+
+function _startFriendRequestsListener() {
+  if (!_authUser || _isGuest || !_fbDb) return;
+  if (_friendReqRef) _friendReqRef.off();
+  _friendReqRef = _fbDb.ref('friendRequests/' + _authUser.uid);
+  _friendReqRef.on('value', function(snap) {
+    var prev = Object.keys(_pendingFriendRequests);
+    _pendingFriendRequests = snap.val() || {};
+    var curr = Object.keys(_pendingFriendRequests);
+    curr.forEach(function(senderUid) {
+      if (prev.indexOf(senderUid) === -1) {
+        var req = _pendingFriendRequests[senderUid];
+        _showToast('📨 Richiesta da ' + req.fromName + (req.message ? ': "' + req.message + '"' : ''), 'info', 8000);
+      }
+    });
+    _updateFriendRequestBadge();
+    _renderFriendRequests();
+  });
+}
+
+function _sendFriendRequest(targetUid, targetName, message) {
+  if (!_authUser || _isGuest) {
+    _showToast('Devi effettuare il login per aggiungere amici.', 'warn');
+    return;
+  }
+  if (targetUid === _authUser.uid) return;
+  // Check if already friends
+  if (_friendsList[targetUid]) {
+    _showToast(targetName + ' è già tuo amico!', 'warn');
+    return;
+  }
+  var msg = (message || '').substring(0, 200);
+  _fbDb.ref('friendRequests/' + targetUid + '/' + _authUser.uid).set({
+    fromName: _authUser.displayName || 'Giocatore',
+    message: msg,
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  }).then(function() {
+    _showToast('Richiesta di amicizia inviata a ' + targetName + '!', 'ok');
+  }).catch(function(e) {
+    _showToast('Errore: ' + e.message, 'err');
+  });
+}
+
+function _acceptFriendRequest(senderUid) {
+  if (!_authUser || !_fbDb) return;
+  var req = _pendingFriendRequests[senderUid];
+  if (!req) return;
+  var updates = {};
+  updates['friends/' + _authUser.uid + '/' + senderUid] = {
+    displayName: req.fromName,
+    since: firebase.database.ServerValue.TIMESTAMP
+  };
+  updates['friends/' + senderUid + '/' + _authUser.uid] = {
+    displayName: _authUser.displayName || 'Giocatore',
+    since: firebase.database.ServerValue.TIMESTAMP
+  };
+  updates['friendRequests/' + _authUser.uid + '/' + senderUid] = null;
+  _fbDb.ref().update(updates).then(function() {
+    _showToast('Ora sei amico di ' + req.fromName + '!', 'ok');
+  }).catch(function(e) {
+    _showToast('Errore: ' + e.message, 'err');
+  });
+}
+
+function _rejectFriendRequest(senderUid) {
+  if (!_authUser || !_fbDb) return;
+  _fbDb.ref('friendRequests/' + _authUser.uid + '/' + senderUid).remove();
+  _showToast('Richiesta rifiutata.', 'info');
+}
+
+function _removeFriend(friendUid, friendName) {
+  if (!_authUser || !_fbDb) return;
+  if (!confirm('Rimuovere ' + (friendName || 'questo amico') + ' dalla lista amici?')) return;
+  var updates = {};
+  updates['friends/' + _authUser.uid + '/' + friendUid] = null;
+  updates['friends/' + friendUid + '/' + _authUser.uid] = null;
+  _fbDb.ref().update(updates).then(function() {
+    _showToast('Amico rimosso.', 'info');
+  });
+}
+
+function _showAddFriendDialog(targetUid, targetName) {
+  var msg = prompt('Messaggio per ' + targetName + ' (opzionale):', 'Ciao, giochiamo insieme!');
+  if (msg === null) return;
+  _sendFriendRequest(targetUid, targetName, msg);
+}
+
+// ────── Friend Online Notifications ──────
+
+function _checkFriendOnlineNotifications() {
+  if (!_authUser || _isGuest) return;
+  var newOnline = {};
+  for (var uid in _onlinePlayers) {
+    if (_friendsList[uid]) {
+      newOnline[uid] = true;
+      if (!_knownOnlineFriends[uid]) {
+        _showToast('🟢 ' + (_friendsList[uid].displayName || 'Amico') + ' è online!', 'info');
+      }
+    }
+  }
+  _knownOnlineFriends = newOnline;
+}
+
+// ────── Invitations ──────
+
+function _startInvitationsListener() {
+  if (!_fbDb) return;
+  var myUid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
+  if (_invitationsRef) _invitationsRef.off();
+  _invitationsRef = _fbDb.ref('invitations/' + myUid);
+  _invitationsRef.on('child_added', function(snap) {
+    var inv = snap.val();
+    var senderUid = snap.key;
+    if (!inv) return;
+    _pendingInvitations[senderUid] = inv;
+    _showInvitationToast(senderUid, inv);
+  });
+  _invitationsRef.on('child_removed', function(snap) {
+    delete _pendingInvitations[snap.key];
+  });
+}
+
+function _showInvitationToast(senderUid, inv) {
+  var container = document.getElementById('toast-container');
+  if (!container) return;
+  var toast = document.createElement('div');
+  toast.className = 'toast-item toast-info show';
+  var accId = 'inv-acc-' + senderUid.substring(0, 8);
+  var rejId = 'inv-rej-' + senderUid.substring(0, 8);
+  toast.innerHTML = '<div style="margin-bottom:6px">🎮 <b>' + _escHtml(inv.fromName) + '</b> ti invita a giocare!</div>'
+    + '<div style="font-size:10px;color:#aaa;margin-bottom:8px">' + _escHtml(inv.roomLabel || 'Partita') + ' — Posto ' + (inv.seatIndex + 1) + '</div>'
+    + '<div style="display:flex;gap:8px">'
+    + '<button class="lobby-btn primary" style="font-size:11px;padding:4px 12px;min-height:30px" id="' + accId + '">Accetta</button>'
+    + '<button class="lobby-btn" style="font-size:11px;padding:4px 12px;min-height:30px" id="' + rejId + '">Rifiuta</button>'
+    + '</div>';
+  container.appendChild(toast);
+  document.getElementById(accId).onclick = function() {
+    _acceptInvitation(senderUid, inv);
+    if (toast.parentNode) toast.parentNode.removeChild(toast);
+  };
+  document.getElementById(rejId).onclick = function() {
+    _rejectInvitation(senderUid);
+    if (toast.parentNode) toast.parentNode.removeChild(toast);
+  };
+  setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 30000);
+}
+
+function _sendInvitation(targetUid) {
+  if (!_authUser || !_fbDb || !mpRoom) return;
+  var targetPlayer = _onlinePlayers[targetUid];
+  _fbDb.ref('invitations/' + targetUid + '/' + _authUser.uid).set({
+    fromName: _authUser.displayName || 'Giocatore',
+    roomCode: mpRoom,
+    roomLabel: document.getElementById('room-name-input') ? document.getElementById('room-name-input').value || 'Partita' : 'Partita',
+    seatIndex: _inviteSeatTarget,
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  }).then(function() {
+    _showToast('Invito inviato a ' + (targetPlayer ? targetPlayer.displayName : 'giocatore') + '!', 'ok');
+    _closeInvitePanel();
+  });
+  _fbDb.ref('invitations/' + targetUid + '/' + _authUser.uid).onDisconnect().remove();
+}
+
+function _acceptInvitation(senderUid, inv) {
+  var myUid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
+  _fbDb.ref('invitations/' + myUid + '/' + senderUid).remove();
+  var myName = (_authUser ? _authUser.displayName : '') || _getMyName() || 'Ospite';
+  var joinNameEl = document.getElementById('join-name-input');
+  var joinCodeEl = document.getElementById('join-code-input');
+  if (joinNameEl) joinNameEl.value = myName;
+  if (joinCodeEl) joinCodeEl.value = inv.roomCode;
+  // Show lobby and join directly with the seat from the invitation
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('lobby-overlay').classList.remove('hidden');
+  showLobbySection('lobby-join');
+  var invSeat = typeof inv.seatIndex === 'number' ? inv.seatIndex : undefined;
+  setTimeout(function() { _doActualJoin(myName, inv.roomCode.toUpperCase(), invSeat); }, 400);
+}
+
+function _rejectInvitation(senderUid) {
+  if (!_fbDb) return;
+  var myUid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
+  _fbDb.ref('invitations/' + myUid + '/' + senderUid).remove();
+}
+
+// ────── Social Panel UI ──────
+
+function _showSocialPanel() {
+  var panel = document.getElementById('social-panel');
+  if (!panel) return;
+  panel.classList.add('show');
+  // Start listeners if not yet
+  if (!_socialListenersStarted && _fbDb) {
+    _startOnlinePlayersListener();
+    if (_authUser && !_isGuest) {
+      _startFriendsListener();
+      _startFriendRequestsListener();
+      _startInvitationsListener();
+    }
+    _socialListenersStarted = true;
+  }
+  _showSocialTab('online');
+  _renderOnlinePlayersPanel();
+  _renderFriendsList();
+  _renderFriendRequests();
+}
+
+function _closeSocialPanel() {
+  var panel = document.getElementById('social-panel');
+  if (panel) panel.classList.remove('show');
+}
+
+function _showSocialTab(tab) {
+  var tabs = ['online', 'friends', 'requests'];
+  tabs.forEach(function(t) {
+    var tabBtn = document.getElementById('social-tab-' + t);
+    var body = document.getElementById('social-body-' + t);
+    if (tabBtn) tabBtn.classList.toggle('active', t === tab);
+    if (body) body.style.display = (t === tab) ? 'block' : 'none';
+  });
+  // Hide friends/requests tabs for guests
+  if (_isGuest) {
+    document.getElementById('social-tab-friends').style.display = 'none';
+    document.getElementById('social-tab-requests').style.display = 'none';
+  } else {
+    document.getElementById('social-tab-friends').style.display = '';
+    document.getElementById('social-tab-requests').style.display = '';
+  }
+}
+
+function _escHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function _renderOnlinePlayersPanel() {
+  var body = document.getElementById('social-body-online');
+  if (!body) return;
+  var uids = Object.keys(_onlinePlayers);
+  if (uids.length === 0) {
+    body.innerHTML = '<div class="social-empty">Nessun altro giocatore online al momento.</div>';
+    return;
+  }
+  // Sort: friends first
+  uids.sort(function(a, b) {
+    var af = _friendsList[a] ? 0 : 1;
+    var bf = _friendsList[b] ? 0 : 1;
+    if (af !== bf) return af - bf;
+    return (_onlinePlayers[a].displayName || '').localeCompare(_onlinePlayers[b].displayName || '');
+  });
+  var html = '';
+  uids.forEach(function(uid) {
+    var p = _onlinePlayers[uid];
+    var isFriend = !!_friendsList[uid];
+    var inGame = !!p.inGame;
+    var inLobby = !!p.currentRoom && !p.inGame;
+    html += '<div class="social-player-row">';
+    html += '<div>';
+    html += '<span class="social-player-name" style="color:' + (isFriend ? '#4f4' : '#ccc') + '">';
+    html += (isFriend ? '⭐ ' : '🟢 ') + _escHtml(p.displayName);
+    if (p.isGuest) html += ' <span style="color:#999;font-size:0.85em">(ospite)</span>';
+    html += '</span>';
+    if (inGame) html += ' <span class="social-player-status" style="color:#e84">(in partita)</span>';
+    else if (inLobby) html += ' <span class="social-player-status" style="color:#888">(in lobby)</span>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:4px">';
+    if (!_isGuest && !isFriend && uid.indexOf('guest_') !== 0) {
+      html += '<button class="lobby-btn" style="font-size:10px;padding:3px 8px;min-height:24px" onclick="_showAddFriendDialog(\'' + uid + '\',\'' + _escHtml(p.displayName).replace(/'/g, "\\'") + '\')">➕ Amico</button>';
+    }
+    html += '</div>';
+    html += '</div>';
+  });
+  body.innerHTML = html;
+}
+
+function _renderFriendsList() {
+  var body = document.getElementById('social-body-friends');
+  if (!body) return;
+  if (_isGuest) { body.innerHTML = '<div class="social-empty">Effettua il login per gestire gli amici.</div>'; return; }
+  var uids = Object.keys(_friendsList);
+  if (uids.length === 0) {
+    body.innerHTML = '<div class="social-empty">Nessun amico ancora. Aggiungi amici dalla lista Online!</div>';
+    return;
+  }
+  var html = '';
+  uids.forEach(function(uid) {
+    var f = _friendsList[uid];
+    var isOnline = !!_onlinePlayers[uid];
+    var inGame = isOnline && _onlinePlayers[uid].inGame;
+    var inLobby = isOnline && _onlinePlayers[uid].currentRoom && !_onlinePlayers[uid].inGame;
+    html += '<div class="social-player-row">';
+    html += '<div>';
+    html += '<span class="social-player-name" style="color:' + (isOnline ? '#4f4' : '#888') + '">';
+    html += (isOnline ? '🟢' : '⚫') + ' ' + _escHtml(f.displayName);
+    html += '</span>';
+    if (inGame) html += ' <span class="social-player-status" style="color:#e84">(in partita)</span>';
+    else if (inLobby) html += ' <span class="social-player-status" style="color:#888">(in lobby)</span>';
+    else if (!isOnline) html += ' <span class="social-player-status" style="color:#666">offline</span>';
+    html += '</div>';
+    html += '<button class="lobby-btn" style="font-size:10px;padding:3px 8px;min-height:24px;color:#f88" onclick="_removeFriend(\'' + uid + '\',\'' + _escHtml(f.displayName).replace(/'/g, "\\'") + '\')">✕</button>';
+    html += '</div>';
+  });
+  body.innerHTML = html;
+}
+
+function _renderFriendRequests() {
+  var body = document.getElementById('social-body-requests');
+  if (!body) return;
+  if (_isGuest) { body.innerHTML = '<div class="social-empty">Effettua il login per vedere le richieste.</div>'; return; }
+  var uids = Object.keys(_pendingFriendRequests);
+  if (uids.length === 0) {
+    body.innerHTML = '<div class="social-empty">Nessuna richiesta di amicizia in sospeso.</div>';
+    return;
+  }
+  var html = '';
+  uids.forEach(function(senderUid) {
+    var req = _pendingFriendRequests[senderUid];
+    html += '<div class="social-player-row" style="flex-direction:column;align-items:stretch;gap:6px">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between">';
+    html += '<span class="social-player-name">📨 ' + _escHtml(req.fromName) + '</span>';
+    html += '</div>';
+    if (req.message) {
+      html += '<div style="font-size:11px;color:#aaa;font-style:italic;padding:4px 8px;background:rgba(255,255,255,0.03);border-radius:4px">"' + _escHtml(req.message) + '"</div>';
+    }
+    html += '<div style="display:flex;gap:6px;justify-content:flex-end">';
+    html += '<button class="lobby-btn primary" style="font-size:11px;padding:4px 12px;min-height:28px" onclick="_acceptFriendRequest(\'' + senderUid + '\')">✓ Accetta</button>';
+    html += '<button class="lobby-btn" style="font-size:11px;padding:4px 12px;min-height:28px;color:#f88" onclick="_rejectFriendRequest(\'' + senderUid + '\')">✕ Rifiuta</button>';
+    html += '</div>';
+    html += '</div>';
+  });
+  body.innerHTML = html;
+}
+
+function _updateFriendRequestBadge() {
+  var count = Object.keys(_pendingFriendRequests).length;
+  var badge = document.getElementById('req-badge');
+  if (badge) {
+    badge.textContent = count;
+    badge.style.display = count > 0 ? 'inline' : 'none';
+  }
+  // Also update the social-btn badge
+  var sBadge = document.getElementById('social-badge');
+  if (sBadge) {
+    sBadge.textContent = count;
+    sBadge.style.display = count > 0 ? 'flex' : 'none';
+  }
+}
+
+// ────── Invite from Seat ──────
+
+function _showInviteForSeat(seatIdx) {
+  _inviteSeatTarget = seatIdx;
+  var panel = document.getElementById('invite-player-panel');
+  if (!panel) return;
+  panel.style.display = 'block';
+  document.getElementById('invite-seat-label').textContent = (seatIdx + 1);
+  // Make sure online players are being listened to
+  if (!_socialListenersStarted && _fbDb) {
+    _startOnlinePlayersListener();
+    _socialListenersStarted = true;
+  }
+  _renderInvitePlayerList();
+}
+
+function _closeInvitePanel() {
+  var panel = document.getElementById('invite-player-panel');
+  if (panel) panel.style.display = 'none';
+  _inviteSeatTarget = -1;
+}
+
+function _renderInvitePlayerList() {
+  var listEl = document.getElementById('invite-player-list');
+  if (!listEl) return;
+  var uids = Object.keys(_onlinePlayers);
+  if (uids.length === 0) {
+    listEl.innerHTML = '<div class="social-empty">Nessun giocatore online al momento.</div>';
+    return;
+  }
+  // Sort: friends first
+  uids.sort(function(a, b) {
+    var af = _friendsList[a] ? 0 : 1;
+    var bf = _friendsList[b] ? 0 : 1;
+    if (af !== bf) return af - bf;
+    return (_onlinePlayers[a].displayName || '').localeCompare(_onlinePlayers[b].displayName || '');
+  });
+  var html = '';
+  uids.forEach(function(uid) {
+    var p = _onlinePlayers[uid];
+    var isFriend = !!_friendsList[uid];
+    var inGame = !!p.inGame;
+    var inLobby = !!p.currentRoom && !p.inGame;
+    html += '<div class="social-player-row">';
+    html += '<div>';
+    html += '<span class="social-player-name" style="color:' + (isFriend ? '#4f4' : '#ccc') + '">';
+    html += (isFriend ? '⭐ ' : '') + _escHtml(p.displayName);
+    html += '</span>';
+    if (inGame) html += ' <span class="social-player-status" style="color:#e84">(in partita)</span>';
+    else if (inLobby) html += ' <span class="social-player-status" style="color:#888">(in lobby)</span>';
+    html += '</div>';
+    html += '<button class="lobby-btn primary" style="font-size:10px;padding:3px 10px;min-height:26px" onclick="_sendInvitation(\'' + uid + '\')">📨 Invita</button>';
+    html += '</div>';
+  });
+  listEl.innerHTML = html;
+}
+
+// ────── Social Init & Cleanup ──────
+
+function _initSocialListeners() {
+  if (!_fbDb) return;
+  _startOnlinePlayersListener();
+  _startInvitationsListener(); // all players (including guests) can receive invitations
+  if (_authUser && !_isGuest) {
+    _startFriendsListener();
+    _startFriendRequestsListener();
+    _startInvitationsListener();
+  }
+  _socialListenersStarted = true;
+  // Show social button
+  var btn = document.getElementById('social-btn');
+  if (btn) btn.style.display = 'flex';
+}
+
+function _cleanupSocialListeners() {
+  if (_presenceRef) { _presenceRef.remove(); _presenceRef = null; }
+  if (_onlinePlayersRef) { _onlinePlayersRef.off(); _onlinePlayersRef = null; }
+  if (_friendReqRef) { _friendReqRef.off(); _friendReqRef = null; }
+  if (_friendsRef) { _friendsRef.off(); _friendsRef = null; }
+  if (_invitationsRef) { _invitationsRef.off(); _invitationsRef = null; }
+  _onlinePlayers = {};
+  _friendsList = {};
+  _pendingFriendRequests = {};
+  _pendingInvitations = {};
+  _knownOnlineFriends = {};
+  _socialListenersStarted = false;
+}
 
 </script>
 
