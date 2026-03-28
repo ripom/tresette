@@ -671,7 +671,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 .emote-chip-sub{
   color:rgba(255,255,255,0.68);font-size:clamp(9px,1.8vw,11px);line-height:1.15;
 }
-.emoticon-bubble[data-emote="happy"] .emote-chip,
+.emoticon-bubble[data-emote="hello"] .emote-chip,
 .emoticon-bubble[data-emote="laugh"] .emote-chip{
   border-color:rgba(255,190,90,0.28);
   box-shadow:0 14px 34px rgba(255,162,66,0.20), inset 0 1px 0 rgba(255,240,200,0.11);
@@ -688,16 +688,15 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 .emoticon-bubble[data-emote="thumbsDown"] .emote-chip{
   border-color:rgba(255,120,120,0.20);
 }
-.emoticon-bubble[data-emote="happy"] .emote-face,
-.emote-btn[data-emote="happy"] .emote-face{
-  background:radial-gradient(circle at 30% 28%,#fff7b7 0%,#ffe27d 20%,#ffb854 58%,#f28943 100%);
+.emoticon-bubble[data-emote="noCards"] .emote-chip,
+.emoticon-bubble[data-emote="yourTurn"] .emote-chip{
+  border-color:rgba(180,160,255,0.22);
+  box-shadow:0 14px 34px rgba(100,80,200,0.16), inset 0 1px 0 rgba(255,255,255,0.09);
 }
-.emoticon-bubble[data-emote="happy"] .emote-mouth,
-.emote-btn[data-emote="happy"] .emote-mouth{
-  width:42%;height:19%;border-color:#7a2b1d;border-top:0;
+.emoticon-bubble[data-emote="problem"] .emote-chip{
+  border-color:rgba(255,180,60,0.24);
+  box-shadow:0 14px 34px rgba(255,140,0,0.18), inset 0 1px 0 rgba(255,255,255,0.09);
 }
-.emoticon-bubble[data-emote="happy"] .emote-avatar,
-.emote-btn[data-emote="happy"] .emote-avatar{animation:avatar-bob 1.7s ease-in-out infinite}
 .emoticon-bubble[data-emote="laugh"] .emote-face,
 .emote-btn[data-emote="laugh"] .emote-face{
   background:radial-gradient(circle at 32% 26%,#fff4ae 0%,#ffd766 22%,#ffb447 58%,#ea7d37 100%);
@@ -759,38 +758,57 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 }
 .emoticon-bubble[data-emote="bored"] .emote-avatar,
 .emote-btn[data-emote="bored"] .emote-avatar{animation:avatar-bored 2.2s ease-in-out infinite}
-.emoticon-bubble[data-emote="angry"] .emote-chip,
-.emoticon-bubble[data-emote="angry"] .emote-chip{color:#ff4444}
-.emoticon-bubble[data-emote="angry"] .emote-face,
-.emote-btn[data-emote="angry"] .emote-face{background:#e53935}
-.emoticon-bubble[data-emote="angry"] .emote-eye,
-.emote-btn[data-emote="angry"] .emote-eye{top:34%;width:14%;height:10%;border-radius:1px;transform:rotate(-12deg)}
-.emoticon-bubble[data-emote="angry"] .emote-eye.right,
-.emote-btn[data-emote="angry"] .emote-eye.right{transform:rotate(12deg)}
-.emoticon-bubble[data-emote="angry"] .emote-mouth,
-.emote-btn[data-emote="angry"] .emote-mouth{bottom:22%;width:40%;height:10%;border-radius:0 0 50% 50%;border-top:2px solid #fff;border-bottom:none;background:transparent}
-.emoticon-bubble[data-emote="angry"] .emote-mouth::after,
-.emote-btn[data-emote="angry"] .emote-mouth::after{display:none}
-.emoticon-bubble[data-emote="angry"] .emote-mark,
-.emote-btn[data-emote="angry"] .emote-mark{position:absolute;top:18%;left:22%;width:56%;height:3px;background:#fff;border-radius:2px;opacity:.7}
-.emoticon-bubble[data-emote="angry"] .emote-avatar,
-.emote-btn[data-emote="angry"] .emote-avatar{animation:avatar-angry .6s ease-in-out infinite}
-.emote-btn[data-emote="angry"]{border-color:rgba(255,68,68,0.3)}
+.emoticon-bubble[data-emote="dammit"] .emote-chip,
+.emoticon-bubble[data-emote="dammit"] .emote-chip{color:#ff4444}
+.emoticon-bubble[data-emote="dammit"] .emote-face,
+.emote-btn[data-emote="dammit"] .emote-face{background:#e53935}
+.emoticon-bubble[data-emote="dammit"] .emote-eye,
+.emote-btn[data-emote="dammit"] .emote-eye{top:34%;width:14%;height:10%;border-radius:1px;transform:rotate(-12deg)}
+.emoticon-bubble[data-emote="dammit"] .emote-eye.right,
+.emote-btn[data-emote="dammit"] .emote-eye.right{transform:rotate(12deg)}
+.emoticon-bubble[data-emote="dammit"] .emote-mouth,
+.emote-btn[data-emote="dammit"] .emote-mouth{bottom:22%;width:40%;height:10%;border-radius:0 0 50% 50%;border-top:2px solid #fff;border-bottom:none;background:transparent}
+.emoticon-bubble[data-emote="dammit"] .emote-mouth::after,
+.emote-btn[data-emote="dammit"] .emote-mouth::after{display:none}
+.emoticon-bubble[data-emote="dammit"] .emote-mark,
+.emote-btn[data-emote="dammit"] .emote-mark{position:absolute;top:18%;left:22%;width:56%;height:3px;background:#fff;border-radius:2px;opacity:.7}
+.emoticon-bubble[data-emote="dammit"] .emote-avatar,
+.emote-btn[data-emote="dammit"] .emote-avatar{animation:avatar-angry .6s ease-in-out infinite}
+.emote-btn[data-emote="dammit"]{border-color:rgba(255,68,68,0.3)}
 @keyframes avatar-angry{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.emoticon-bubble[data-emote="hello"] .emote-native-icon{animation:native-wave 1s ease-in-out infinite}
+.emote-btn[data-emote="hello"] .emote-native-icon{animation:native-wave 1s ease-in-out infinite}
+.emote-btn[data-emote="hello"]{border-color:rgba(255,190,90,0.26)}
+.emoticon-bubble[data-emote="hello"] .emote-chip{color:#ffb854}
 .emoticon-bubble[data-emote="bye"] .emote-native-icon{animation:native-wave 1s ease-in-out infinite}
 .emote-btn[data-emote="bye"] .emote-native-icon{animation:native-wave 1s ease-in-out infinite}
 .emote-btn[data-emote="bye"]{border-color:rgba(120,200,255,0.26)}
 .emoticon-bubble[data-emote="bye"] .emote-chip{color:#7ac8ff}
+.emoticon-bubble[data-emote="noCards"] .emote-native-icon{animation:emote-nod 1.4s ease-in-out infinite}
+.emote-btn[data-emote="noCards"] .emote-native-icon{animation:emote-nod 1.4s ease-in-out infinite}
+.emote-btn[data-emote="noCards"]{border-color:rgba(180,160,255,0.26)}
+.emoticon-bubble[data-emote="noCards"] .emote-chip{color:#b4a0ff}
+.emoticon-bubble[data-emote="yourTurn"] .emote-native-icon{animation:emote-nod 1.2s ease-in-out infinite}
+.emote-btn[data-emote="yourTurn"] .emote-native-icon{animation:emote-nod 1.2s ease-in-out infinite}
+.emote-btn[data-emote="yourTurn"]{border-color:rgba(255,180,60,0.26)}
+.emoticon-bubble[data-emote="yourTurn"] .emote-chip{color:#ffb43c}
+.emoticon-bubble[data-emote="problem"] .emote-native-icon{animation:emote-angry-shake .5s ease-in-out infinite}
+.emote-btn[data-emote="problem"] .emote-native-icon{animation:emote-angry-shake .5s ease-in-out infinite}
+.emote-btn[data-emote="problem"]{border-color:rgba(255,160,0,0.3)}
+.emoticon-bubble[data-emote="problem"] .emote-chip{color:#ffa000}
 @keyframes native-wave{0%,100%{transform:rotate(0deg)}25%{transform:rotate(20deg)}75%{transform:rotate(-15deg)}}
-.emoticon-bubble[data-emote="happy"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-sway 1.9s ease-in-out infinite}
+.emoticon-bubble[data-emote="hello"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-sway 1.9s ease-in-out infinite}
 .emoticon-bubble[data-emote="laugh"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-laugh-bob .95s ease-in-out infinite}
 .emoticon-bubble[data-emote="sad"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-drift 2.6s ease-in-out infinite}
 .emoticon-bubble[data-emote="thumbsUp"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-nod 1.4s ease-in-out infinite}
 .emoticon-bubble[data-emote="thumbsDown"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-shrug 1.5s ease-in-out infinite}
 .emoticon-bubble[data-emote="applause"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-clap 1.0s ease-in-out infinite}
 .emoticon-bubble[data-emote="bored"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-droop 2.3s ease-in-out infinite}
-.emoticon-bubble[data-emote="angry"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-angry-shake .5s ease-in-out infinite}
+.emoticon-bubble[data-emote="dammit"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-angry-shake .5s ease-in-out infinite}
 .emoticon-bubble[data-emote="bye"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-wave-drift 1.8s ease-in-out infinite}
+.emoticon-bubble[data-emote="noCards"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-shrug 1.5s ease-in-out infinite}
+.emoticon-bubble[data-emote="yourTurn"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-nod 1.2s ease-in-out infinite}
+.emoticon-bubble[data-emote="problem"] .emote-chip{animation:emote-chip-in .28s cubic-bezier(.2,.9,.2,1.15), emote-angry-shake .5s ease-in-out infinite}
 @keyframes emote-wave-drift{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-4px) rotate(5deg)}}
 @keyframes emote-angry-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 @keyframes emote-chip-in{
@@ -5076,7 +5094,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "2.4.4";
+const GAME_VERSION = "2.4.5";
 // Auto-sync version display everywhere from single GAME_VERSION constant
 (function(){ ['game-version-display','auth-version'].forEach(function(id){ var el = document.getElementById(id); if(el) el.textContent = 'v' + GAME_VERSION; }); })();
 
@@ -7362,28 +7380,31 @@ document.addEventListener('webkitfullscreenchange',_updateFsBtn);
 // ═══════════════════════════════════════════════════════════════
 (function initEmoticons(){
   var EMOTES = [
-    {id:'happy',      emoji:'🙂', label:'Che bello',   sub:'mi piace proprio',   snd:'emoteHappy'},
-    {id:'laugh',      emoji:'😂', label:'Ah ah',       sub:'questa era bella',   snd:'emoteLaugh'},
-    {id:'sad',        emoji:'😔', label:'Mi spiace',   sub:'questa fa male',     snd:'emoteSad'},
-    {id:'thumbsUp',   emoji:'👍', label:'Thumbs Up',   sub:'ottima mossa',       snd:'emoteThumbsUp'},
-    {id:'thumbsDown', emoji:'👎', label:'Thumbs Down', sub:'non ci siamo',       snd:'emoteThumbsDown'},
-    {id:'applause',   emoji:'👏', label:'Applauso',    sub:'bella giocata',      snd:'emoteApplause'},
-    {id:'bored',      emoji:'🥱', label:'Annoiato',    sub:'muoviamoci un po\'', snd:'emoteBored'},
-    {id:'angry',      emoji:'😡', label:'Arrabbiato',  sub:'ma che fai?!',       snd:'emoteAngry'},
-    {id:'bye',        emoji:'👋', label:'Ciao!',       sub:'devo andare via!',   snd:'emoteBye'}
+    {id:'hello',      emoji:'👋', label:'Ciao!',          sub:'benvenuto!',          snd:'emoteHappy'},
+    {id:'bye',        emoji:'🫡', label:'Ciao!',          sub:'devo andare via!',    snd:'emoteBye'},
+    {id:'laugh',      emoji:'😂', label:'Ahahah',         sub:'questa era bella',    snd:'emoteLaugh'},
+    {id:'noCards',    emoji:'🃏', label:'Non ne ho!',     sub:'non ho quel seme',    snd:'emoteSad'},
+    {id:'yourTurn',   emoji:'⏳', label:'Tocca a te!',    sub:'muoviti dai!',        snd:'emoteBored'},
+    {id:'dammit',     emoji:'😤', label:'Mannaggia!',     sub:'che sfortuna!',       snd:'emoteAngry'},
+    {id:'applause',   emoji:'👏', label:'Bravo!',         sub:'bella giocata',       snd:'emoteApplause'},
+    {id:'thumbsUp',   emoji:'👍', label:'Thumbs Up',      sub:'ottima mossa',        snd:'emoteThumbsUp'},
+    {id:'thumbsDown', emoji:'👎', label:'Thumbs Down',    sub:'non ci siamo',        snd:'emoteThumbsDown'},
+    {id:'bored',      emoji:'🥱', label:'Annoiato',       sub:'muoviamoci un po\'',  snd:'emoteBored'},
+    {id:'problem',    emoji:'⚠️', label:'Problema!',      sub:'c\'è qualche problema!', snd:'emoteAngry'},
+    {id:'sad',        emoji:'😔', label:'Mi dispiace!',   sub:'questa fa male',      snd:'emoteSad'}
   ];
   var POSITIONS = ['south','east','north','west'];
   var emoteTimers = {};
   var openMenuPos = null;
 
   function renderEmoteAvatar(emote, wrapperClass){
-    if(emote.id === 'thumbsUp' || emote.id === 'thumbsDown' || emote.id === 'applause' || emote.id === 'bye') {
+    if(emote.id === 'thumbsUp' || emote.id === 'thumbsDown' || emote.id === 'applause' || emote.id === 'hello' || emote.id === 'bye' || emote.id === 'noCards' || emote.id === 'yourTurn' || emote.id === 'problem') {
       return '<span class="' + wrapperClass + '"><span class="emote-native-icon">' + emote.emoji + '</span></span>';
     }
     var extra = '';
     if(emote.id === 'sad') extra = '<span class="emote-mark"></span>';
     else if(emote.id === 'bored') extra = '<span class="emote-mark"></span>';
-    else if(emote.id === 'angry') extra = '<span class="emote-mark"></span>';
+    else if(emote.id === 'dammit') extra = '<span class="emote-mark"></span>';
     return '<span class="' + wrapperClass + '"><span class="emote-avatar">'
       + '<span class="emote-face"></span>'
       + '<span class="emote-eye left"></span>'
