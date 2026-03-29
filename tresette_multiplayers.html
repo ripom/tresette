@@ -423,16 +423,6 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 }
 /* Deal & play flying card animations use inline styles for reliability */
 
-#scardone-banner{
-  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);
-  z-index:60;color:#ff2;font-size:clamp(28px, 8vw, 52px);font-weight:900;
-  text-shadow:0 0 20px rgba(255,0,0,0.8),0 0 40px rgba(255,100,0,0.6),2px 2px 4px #000;
-  pointer-events:none;opacity:0;
-  font-style:italic;letter-spacing:3px;
-  transition:transform 0.3s ease-out, opacity 0.3s;
-}
-#scardone-banner.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
-
 /* ════════════════════════════════════════════════════════════════
    MOBILE RESPONSIVE
    ════════════════════════════════════════════════════════════════ */
@@ -1112,7 +1102,6 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 
 <div id="lead-suit-badge"></div>
 <div id="trick-winner-badge"></div>
-<div id="scardone-banner">SCARDONE!</div>
 <div id="status-msg"></div>
 <div id="dealer-banner">
   <div class="dealer-banner-content">
@@ -1144,7 +1133,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 <button id="quit-btn" style="display:none">❌ Fine Partita</button>
 <button id="fullscreen-btn" onclick="toggleFullscreen()">⛶ Schermo intero</button>
 <button id="social-btn" onclick="_showSocialPanel()">👥<span class="social-badge" id="social-badge">0</span></button>
-<div id="user-badge" title="Profilo utente"><span class="ub-icon">👤</span><span id="ub-name">Ospite</span><button id="ub-auth-btn" onclick="_onAuthBtnClick(event)" style="margin-left:6px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#ccc;font-size:clamp(8px,1.6vw,10px);padding:2px 6px;border-radius:4px;cursor:pointer;touch-action:manipulation">🔑</button></div>
+<div id="user-badge" title="Profilo utente"><span class="ub-icon">👤</span><span id="ub-name">Ospite</span><span id="ub-skill" style="margin-left:5px;font-size:clamp(8px,1.5vw,10px);padding:1px 5px;border-radius:6px;font-weight:bold;display:none"></span><button id="ub-auth-btn" onclick="_onAuthBtnClick(event)" style="margin-left:6px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#ccc;font-size:clamp(8px,1.6vw,10px);padding:2px 6px;border-radius:4px;cursor:pointer;touch-action:manipulation">🔑</button></div>
 <div id="toast-container"></div>
 
 <div id="tournament-panel" style="display:none">
@@ -1183,12 +1172,12 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
       • <b>Asso</b> = 1 punto (3 terzi)<br>
       • <b>2, 3, Re, Cavallo, Fante</b> = ⅓ punto (1 terzo) ciascuno<br>
       • <b>4, 5, 6, 7</b> = 0 punti<br>
-      • <b>Ultima presa</b> = ⅓ punto bonus
+      • <b>Ultima presa</b> = 1 punto bonus (3 terzi)
     </p>
-    <p>Totale nel mazzo: <b>11 punti</b>.</p>
+    <p>Totale nel mazzo: <b>11⅔ punti</b> (10⅔ dalle carte + 1 dall'ultima presa).</p>
 
     <h3 style="color:#fa4;margin-top:16px">🎮 Modalità di Gioco</h3>
-    <p><b>🔻 A Perdere:</b> Vince chi fa <b>meno punti</b>. Attenzione agli Assi! Quando qualcuno gioca un Asso appare il banner "SCARDONE!" con un suono speciale.</p>
+    <p><b>🔻 A Perdere:</b> Vince chi fa <b>meno punti</b>. Attenzione agli Assi!</p>
     <p style="margin-left:12px;font-size:clamp(11px,2.2vw,12px);color:#bbb">
       • <b>Perde</b> chi ha totalizzato <b>più punti</b> di tutti.<br>
       • <b>Perde anche</b> chi non ha fatto almeno <b>1 punto intero</b> (un Asso o 3 figure).<br>
@@ -1223,6 +1212,45 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 
     <h3 style="color:#fa4;margin-top:16px">👤 Gioco Singolo</h3>
     <p>Giochi contro <b>3 avversari CPU</b>. Scegli la modalità (A Perdere o A Vincere), inserisci il tuo nome e clicca "Gioca da Solo".</p>
+
+    <h3 style="color:#fa4;margin-top:16px">🤖 Livelli di Difficoltà CPU</h3>
+    <p>Scegli il livello della CPU prima di iniziare:</p>
+    <p style="margin-left:12px;font-size:clamp(11px,2.2vw,12px);color:#bbb">
+      <b>😊 Facile:</b> La CPU gioca spesso a caso (80%). Ideale per imparare le regole.<br><br>
+      <b>🧠 Medio:</b> La CPU usa strategia base: crea vuoti di seme, evita di aprire con gli Assi, usa la tecnica del "sottogiocare" (giocare appena sotto la carta vincente) e scarica punti quando è vuota di seme.<br><br>
+      <b>🔥 Difficile:</b> La CPU conta le carte giocate, ricorda i semi vuoti degli avversari, analizza le carte non ancora viste e usa <b>11 strategie avanzate</b>:<br>
+      &nbsp;&nbsp;1. Apre con carte singole per creare vuoti<br>
+      &nbsp;&nbsp;2. Esaurisce i semi corti (doppioni)<br>
+      &nbsp;&nbsp;3. Evita semi dove ha solo carte alte ("trappola")<br>
+      &nbsp;&nbsp;4. Protegge le carte basse (4-5-6-7) come salvagente<br>
+      &nbsp;&nbsp;5. Sottogiocare strategico (appena sotto il vincitore)<br>
+      &nbsp;&nbsp;6. Scarica Assi e figure sotto prese di alto valore<br>
+      &nbsp;&nbsp;7. Analizza chi deve ancora giocare nel trick<br>
+      &nbsp;&nbsp;8. Minimizza il danno quando è costretta a vincere<br>
+      &nbsp;&nbsp;9. Da vuota di seme, scarica prima gli Assi (3 punti!)<br>
+      &nbsp;&nbsp;10. Previene il cappotto degli avversari<br>
+      &nbsp;&nbsp;11. Evita l'ultima presa (bonus 1 punto)<br><br>
+      <b>🎯 Adattivo:</b> La CPU <b>impara come giochi</b> e si adatta al tuo livello! Osserva le tue giocate (quali carte apri, quando vai sotto, come scarichi) e calcola un <b>punteggio di bravura</b> (0-100). Se sei principiante la CPU sarà più facile, se sei esperto userà strategie avanzate e contro-strategie mirate.
+    </p>
+
+    <h3 style="color:#fa4;margin-top:16px">🎯 Livello di Bravura</h3>
+    <p>Il sistema calcola automaticamente la tua bravura (visibile accanto al tuo nome, in alto a sinistra) basandosi su:</p>
+    <p style="margin-left:12px;font-size:clamp(11px,2.2vw,12px);color:#bbb">
+      <b>40%</b> — Quante partite vinci<br>
+      <b>35%</b> — Qualità delle giocate (a Perdere: sai andare sotto? Scarichi punti al momento giusto? Apri con carte basse? / a Vincere: prendi punti? Giochi aggressivo?)<br>
+      <b>15%</b> — Esperienza (partite giocate)<br>
+      <b>10%</b> — Efficienza del punteggio (a Perdere: meno punti prendi, meglio è)
+    </p>
+    <p>Le <b>6 categorie</b>:</p>
+    <p style="margin-left:12px;font-size:clamp(11px,2.2vw,12px);color:#bbb">
+      <span style="color:#e53935">●</span> <b>0-24:</b> Principiante &nbsp;
+      <span style="color:#ff9800">●</span> <b>25-39:</b> Base &nbsp;
+      <span style="color:#fdd835">●</span> <b>40-54:</b> Intermedio &nbsp;
+      <span style="color:#43a047">●</span> <b>55-69:</b> Avanzato &nbsp;
+      <span style="color:#1e88e5">●</span> <b>70-84:</b> Esperto &nbsp;
+      <span style="color:#7b1fa2">●</span> <b>85-100:</b> Maestro
+    </p>
+    <p>Per gli <b>ospiti</b> il livello si calcola ugualmente ma si perde chiudendo il browser. Per gli <b>utenti registrati</b> viene salvato permanentemente.</p>
 
     <h3 style="color:#fa4;margin-top:16px">🌐 Multiplayer Online</h3>
     <p>Gioca con un amico in tempo reale! Ecco come:</p>
@@ -1483,6 +1511,7 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
     <button class="diff-btn" id="diff-facile" onclick="selectDifficulty('facile')">😊 Facile</button>
     <button class="diff-btn selected" id="diff-medio" onclick="selectDifficulty('medio')">🧠 Medio</button>
     <button class="diff-btn" id="diff-difficile" onclick="selectDifficulty('difficile')">🔥 Difficile</button>
+    <button class="diff-btn" id="diff-adattivo" onclick="selectDifficulty('adattivo')">🎯 Adattivo</button>
   </div>
 
   <div class="preview-row" id="preview-row"></div>
@@ -1491,12 +1520,13 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
     <span id="info-objective"><b>🎯 Obiettivo:</b> Prendi MENO punti possibili!</span><br>
     <span id="info-suits"></span><br>
     <b>📊 Gerarchia:</b> 3 › 2 › A › Re › Cav › Fan › 7 › 6 › 5 › 4<br>
-    <b>💰 Punteggio:</b> Asso = 1 punto, 2/3/Re/Cav/Fan = ⅓ punto ciascuno. Ultima presa = ⅓ punto bonus. Totale: 11 punti.<br>
+    <b>💰 Punteggio:</b> Asso = 1 punto, 2/3/Re/Cav/Fan = ⅓ punto ciascuno. Ultima presa = 1 punto bonus. Totale: 11⅔ punti.<br>
     <b>🃏 Come giocare:</b> Clicca o tocca una carta per giocarla. Devi seguire il seme di mano se puoi!<br>
     <b>⚠️ A Perdere:</b> Perde chi fa più punti e chi non arriva a 1 punto intero.<br>
     <b>🚀 Volo:</b> Se i 3 con meno punti non arrivano a 3, chi ha più punti vince!<br>
     <b>🔺 A Vincere:</b> Si gioca a coppie! I punti interi di ogni mano si sommano al totale. Prima coppia a 31 punti vince! Buongioco: Napola, 3/4 uguali.<br>
     <b>🏆 Torneo:</b> A perdere: fino a 7 punti penalità. A vincere: prima coppia a 31 punti vince!<br>
+    <b>🤖 CPU:</b> 4 livelli: Facile, Medio, Difficile e <b>Adattivo</b> (impara il tuo stile!). Il 🎯 accanto al tuo nome è il tuo livello di bravura.<br>
     <b>👥 Multiplayer:</b> Gioca online con un amico! Crea o unisciti a una partita dalla lobby.<br>
   </div>
 
@@ -2021,10 +2051,10 @@ function sndTrickWon()  { playBuffer('trickWon'); }
 function sndWin()       { playBuffer('win'); }
 function sndLose()      { playBuffer('lose'); }
 function sndStart()     { playBuffer('start'); }
-function sndScardone()  { playBuffer('scardone'); }
+function sndScardone()  { /* removed */ }
 
 function showScardone() {
-  sndScardone();
+  /* removed */
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2040,6 +2070,8 @@ var _joinPreferredSeat = -1; // 0-indexed seat the client wants to sit in
 
 
 function selectMode(mode) {
+  // Switch skill profile to the new mode
+  if (_profileLoaded) _switchProfileToMode(mode);
   gameMode = mode;
   document.getElementById('mode-perdere').classList.toggle('selected', mode === 'perdere');
   document.getElementById('mode-vincere').classList.toggle('selected', mode === 'vincere');
@@ -2054,6 +2086,8 @@ function selectDifficulty(diff) {
   document.getElementById('diff-facile').classList.toggle('selected', diff === 'facile');
   document.getElementById('diff-medio').classList.toggle('selected', diff === 'medio');
   document.getElementById('diff-difficile').classList.toggle('selected', diff === 'difficile');
+  document.getElementById('diff-adattivo').classList.toggle('selected', diff === 'adattivo');
+  if (diff === 'adattivo' && !_profileLoaded) _loadPlayerProfile();
 }
 
 // ─── Constants ────────────────────────────────────────────────
@@ -2072,6 +2106,15 @@ const RANK_POWER = {4:0, 5:1, 6:2, 7:3, 8:4, 9:5, 10:6, 1:7, 2:8, 3:9};
 
 // Point values in "terzi" (thirds). 3 terzi = 1 punto.
 const RANK_POINTS = {1:3, 2:1, 3:1, 4:0, 5:0, 6:0, 7:0, 8:1, 9:1, 10:1};
+
+// ═══════════════════════════════════════════════════════════════
+//  ADAPTIVE AI — Player Profiling & Learning System (variables)
+// ═══════════════════════════════════════════════════════════════
+var _playerProfile = null;
+var _playerProfiles = { perdere: null, vincere: null };
+var _profileLoaded = false;
+var _currentGameObs = null;
+var _tournamentObs = null; // accumulates observations across hands in a tournament
 
 const PLAYER_NAMES = ['Tu','Giuseppe','Riccardo','Zio Checco'];
 
@@ -2738,6 +2781,9 @@ function initGame(startPlayer) {
     _suitVoid: [{},{},{},{}] // Hard AI: tracks which players are void in which suit
   };
 
+  // Adaptive AI: reset observations for new hand
+  _resetGameObservation();
+
   // Apply buongioco (accuse) for a vincere mode
   var decls = applyBuongioco();
   game._buongiocoDecls = decls;
@@ -3387,18 +3433,28 @@ function renderPlayerHand() {
       const playable = isCardPlayable(myIdx, card);
       if (playable) {
         el.classList.add('playable');
+        el._cardTouchFired = false;
         const playHandler = (e) => {
           e.preventDefault();
           e.stopPropagation();
+          // Guard: prevent double-play from touch+click or rapid taps
+          if (_humanPlayLock) return;
+          if (!game || game.currentPlayer !== myIdx || game.phase !== 'playing' || game.animating) return;
+          // Prevent touch+click double-fire: if touchend fired, skip the click
+          if (e.type === 'touchend') { el._cardTouchFired = true; }
+          if (e.type === 'click' && el._cardTouchFired) return;
+          _humanPlayLock = true;
+          // Disable all playable cards immediately
+          document.querySelectorAll('#player-hand .playable').forEach(function(c){ c.onclick=null; c.classList.remove('playable'); });
           if (mpMode && !isHost) {
             dbg('CLIENT click card='+card.id+' cp='+game.currentPlayer+' phase='+game.phase);
             el.style.opacity = '0.5';
-            document.querySelectorAll('#player-hand .playable').forEach(function(c){ c.onclick=null; });
             mpSend({t:'play', cardId: card.id});
             // Safety: if no response in 5s, show connection issue and retry
             setTimeout(function(){
               if(game && game.currentPlayer === myIdx && game.phase === 'playing'){
                 _discPlayRetryCount++;
+                _humanPlayLock = false;
                 dbg('CLIENT: play timeout #'+_discPlayRetryCount+', re-rendering hand');
                 if(_discPlayRetryCount >= 2) {
                   _showDiscBanner('⚠️ Nessuna risposta dall\'host', 1, 'Verifica connessione in corso...');
@@ -3537,7 +3593,7 @@ function renderTrick() {
       let currentPts = 0;
       game.trick.forEach(({ card }) => { currentPts += RANK_POINTS[card.rank]; });
       // Add last trick bonus if this is trick 10 and all 4 cards are played
-      if (game.trickNum === 9 && game.trick.length === 4) currentPts += 1;
+      if (game.trickNum === 9 && game.trick.length === 4) currentPts += 3;
       const winnerName = currentWinner === myIdx ? 'Prendi tu' : 'Prende ' + PLAYER_NAMES[currentWinner];
       const ptsLabel = currentPts > 0 ? ' (+' + formatPunti(currentPts) + ')' : ' (0)';
       trickWinnerBadge.textContent = '▶ ' + winnerName + ptsLabel;
@@ -3731,8 +3787,13 @@ function trickPoints() {
 }
 
 // ─── Play a card ──────────────────────────────────────────────
+var _humanPlayLock = false;
 async function playCard(playerIdx, card) {
   if (!game || game.animating || game.phase !== 'playing') return;
+  // Guard: must be current player's turn
+  if (playerIdx !== game.currentPlayer) { _humanPlayLock = false; return; }
+  // Guard: card must still be in hand
+  if (!game.hands[playerIdx].some(function(c){ return c.id === card.id; })) { _humanPlayLock = false; return; }
 
   // Animate card flying to trick area before removing from hand
   await animateCardToTrick(playerIdx, card);
@@ -3747,6 +3808,9 @@ async function playCard(playerIdx, card) {
   // Add to trick
   game.trick.push({ playerIdx, card });
 
+  // Adaptive AI: observe human play patterns (track in all modes for skill badge)
+  _observeHumanPlay(playerIdx, card);
+
   // Hard AI: track seen cards and suit voids
   if (game._seenCards) game._seenCards.push({suit: card.suit, rank: card.rank});
   if (game._suitVoid && game.trick.length > 1) {
@@ -3756,13 +3820,13 @@ async function playCard(playerIdx, card) {
     }
   }
 
-  // Scardone: Asso played in "a perdere" mode
-  if(card.rank === 1 && gameMode === 'perdere') {
-    showScardone();
-  }
+  // Scardone removed
 
   // Play card sound
   sndCardPlay();
+
+  // Release human play lock after card is committed
+  _humanPlayLock = false;
 
   const trickComplete = game.trick.length === 4;
   if (trickComplete) {
@@ -3783,7 +3847,7 @@ async function playCard(playerIdx, card) {
 
     // Last trick bonus
     game.trickNum++;
-    if (game.trickNum === 10) pts += 1; // 1 terzo for last trick
+    if (game.trickNum === 10) pts += 3; // 3 terzi (1 punto) for last trick
 
     game.scores[winner] += pts;
 
@@ -3862,6 +3926,7 @@ async function cpuTurn() {
 function cpuSelectCard(playerIdx, playable) {
   if (cpuDifficulty === 'facile') return cpuSelectEasy(playerIdx, playable);
   if (cpuDifficulty === 'difficile') return cpuSelectHard(playerIdx, playable);
+  if (cpuDifficulty === 'adattivo') return cpuSelectAdaptive(playerIdx, playable);
   // medio (default) — original logic
   if (gameMode === 'vincere') return cpuSelectCardVincere(playerIdx, playable);
   return cpuSelectCardPerdere(playerIdx, playable);
@@ -3884,25 +3949,25 @@ function cpuSelectEasy(playerIdx, playable) {
 
 // ─── AI: A Perdere (avoid taking points) ──────────────────────
 function cpuSelectCardPerdere(playerIdx, playable) {
+  var suitCounts = {};
+  game.hands[playerIdx].forEach(function(c) { suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1; });
+
   if (game.trick.length === 0) {
-    playable.sort((a, b) => {
-      const pa = RANK_POINTS[a.rank], pb = RANK_POINTS[b.rank];
-      if (pa !== pb) return pa - pb;
-      return RANK_POWER[a.rank] - RANK_POWER[b.rank];
+    // LEAD: Create voids by playing from shortest suits first
+    // Prefer 0-point cards, then low-power cards, from short suits
+    var candidates = playable.map(function(c) {
+      var pts = RANK_POINTS[c.rank];
+      var sLen = suitCounts[c.suit] || 0;
+      // Lower score = better: prefer zero points, short suits, low power
+      var score = (pts * 10) + (sLen * 3) + RANK_POWER[c.rank];
+      // Avoid leading Aces (3 pts danger)
+      if (c.rank === 1) score += 15;
+      return {card: c, score: score};
     });
-    const suitCounts = {};
-    game.hands[playerIdx].forEach(c => { suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1; });
-    const zeroPoint = playable.filter(c => RANK_POINTS[c.rank] === 0);
-    if (zeroPoint.length > 0) {
-      zeroPoint.sort((a, b) => {
-        const ca = suitCounts[a.suit] || 0, cb = suitCounts[b.suit] || 0;
-        if (ca !== cb) return ca - cb;
-        return RANK_POWER[a.rank] - RANK_POWER[b.rank];
-      });
-      return zeroPoint[0];
-    }
-    return playable[0];
+    candidates.sort(function(a,b){ return a.score - b.score; });
+    return candidates[0].card;
   }
+
   const leadSuit = game.trick[0].card.suit;
   const following = playable.filter(c => c.suit === leadSuit);
   if (following.length > 0) {
@@ -3913,13 +3978,24 @@ function cpuSelectCardPerdere(playerIdx, playable) {
     const under = following.filter(c => RANK_POWER[c.rank] < bestPower);
     const over = following.filter(c => RANK_POWER[c.rank] > bestPower);
     if (under.length > 0) {
-      under.sort((a, b) => {
-        const pa = RANK_POINTS[a.rank], pb = RANK_POINTS[b.rank];
-        if (pa !== pb) return pb - pa;
-        return RANK_POWER[b.rank] - RANK_POWER[a.rank];
-      });
+      // Undershoot: play just below the winner, dump highest-point under card
+      // If the trick already has high points, prioritize dumping Aces/figures
+      var trickPts = 0;
+      game.trick.forEach(function(t){ trickPts += RANK_POINTS[t.card.rank]; });
+      if (trickPts >= 3) {
+        // High-value trick — dump our highest point card safely
+        under.sort((a, b) => {
+          const pa = RANK_POINTS[a.rank], pb = RANK_POINTS[b.rank];
+          if (pa !== pb) return pb - pa; // dump Aces and figures first
+          return RANK_POWER[b.rank] - RANK_POWER[a.rank];
+        });
+      } else {
+        // Normal undershoot — play just below to preserve low cards
+        under.sort((a, b) => RANK_POWER[b.rank] - RANK_POWER[a.rank]);
+      }
       return under[0];
     }
+    // Must go over — play lowest power, lowest points
     over.sort((a, b) => {
       const pa = RANK_POINTS[a.rank], pb = RANK_POINTS[b.rank];
       if (pa !== pb) return pa - pb;
@@ -3927,6 +4003,7 @@ function cpuSelectCardPerdere(playerIdx, playable) {
     });
     return over[0];
   }
+  // Void: dump highest-point cards (Aces first, then figures)
   playable.sort((a, b) => {
     const pa = RANK_POINTS[a.rank], pb = RANK_POINTS[b.rank];
     if (pa !== pb) return pb - pa;
@@ -4048,76 +4125,199 @@ function _hardPerdere(playerIdx, playable) {
   var myHand = game.hands[playerIdx];
   var suitCounts = {};
   myHand.forEach(function(c){ suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1; });
+  var trickNum = game.trickNum || 0;
+  var isLastTrick = (trickNum >= 9);
+  var cardsLeftInHand = myHand.length;
 
+  // ── HELPER: count total points in a set of cards ──
+  function _sumPoints(cards) {
+    return cards.reduce(function(s,c){ return s + RANK_POINTS[c.rank]; }, 0);
+  }
+
+  // ── HELPER: find how many aces remain unseen ──
+  function _countUnseenAces() {
+    var unseen = _hardGetUnseen(playerIdx);
+    return unseen.filter(function(c){ return c.rank === 1; }).length;
+  }
+
+  // ── HELPER: does hand contain ONLY high cards in a suit (dangerous) ──
+  function _isTrappedInSuit(suit) {
+    var mySuitCards = myHand.filter(function(c){ return c.suit === suit; });
+    if (mySuitCards.length === 0) return false;
+    var lowestPower = Math.min.apply(null, mySuitCards.map(function(c){ return RANK_POWER[c.rank]; }));
+    var unseenLower = _hardGetUnseen(playerIdx).filter(function(c){
+      return c.suit === suit && RANK_POWER[c.rank] < lowestPower;
+    });
+    return unseenLower.length === 0; // all remaining are below us = we'll always win = BAD
+  }
+
+  // ── HELPER: count my "safe" cards (low power scartine) in a suit ──
+  function _safeCardsInSuit(suit) {
+    return myHand.filter(function(c){
+      return c.suit === suit && RANK_POWER[c.rank] <= 3; // 4,5,6,7
+    }).length;
+  }
+
+  // ═══════════════════════ LEADING ═══════════════════════
   if (game.trick.length === 0) {
-    // LEAD: choose suit where we're most likely to NOT win the trick later
-    // Prefer short suits with low-power zero-point cards
-    // Avoid leading suits where we hold the highest remaining card (we'd win points)
+    // STRATEGY 1: Create voids - play singleton from short suits to become void
+    // Being void lets you dump Aces (3pts!) and figures on others' tricks
+    var singletons = playable.filter(function(c) {
+      return (suitCounts[c.suit] || 0) === 1;
+    });
+    if (singletons.length > 0) {
+      // Prefer to void suits where we don't hold low safe cards
+      // But DON'T lead a singleton Ace (3 pts!) if someone can undershoot — better to void a figure
+      var safeSingletons = singletons.filter(function(c) { return c.rank !== 1; });
+      var target = safeSingletons.length > 0 ? safeSingletons : singletons;
+      target.sort(function(a,b){
+        // Prefer: low-point, low-power singletons
+        var pa = RANK_POINTS[a.rank], pb = RANK_POINTS[b.rank];
+        if (pa !== pb) return pa - pb;
+        return RANK_POWER[a.rank] - RANK_POWER[b.rank];
+      });
+      return target[0];
+    }
+
+    // STRATEGY 2: Lead from short suits (doubletons) to create voids fast
+    var doubletons = playable.filter(function(c) {
+      return (suitCounts[c.suit] || 0) === 2;
+    });
+    if (doubletons.length > 0) {
+      // From doubletons, lead the LOWER card first
+      doubletons.sort(function(a,b){
+        var pa = RANK_POINTS[a.rank], pb = RANK_POINTS[b.rank];
+        if (pa !== pb) return pa - pb;
+        return RANK_POWER[a.rank] - RANK_POWER[b.rank];
+      });
+      // Avoid leading from a doubleton where we'd win (we're top card in that suit)
+      var safeDubl = doubletons.filter(function(c){ return !_hardCanWinSafe(c, playerIdx); });
+      if (safeDubl.length > 0) return safeDubl[0];
+    }
+
+    // STRATEGY 3: Avoid leading suits where we're "trapped" (all remaining cards are below ours)
+    // STRATEGY 4: Prefer leading scartine (0-point cards) from suits with safe low cards
     var candidates = playable.map(function(c) {
       var isTop = _hardCanWinSafe(c, playerIdx);
+      var trapped = _isTrappedInSuit(c.suit);
       var pts = RANK_POINTS[c.rank];
       var sLen = suitCounts[c.suit] || 0;
       var unseenInSuit = _hardCountUnseenSuit(playerIdx, c.suit);
-      // Penalty for leading with top card (likely to win = bad in perdere)
-      // Prefer: 0 points, low power, short suits, not the highest card
-      var score = (pts * 10) + (RANK_POWER[c.rank]) + (isTop ? 20 : 0) - (sLen <= 1 ? 5 : 0) + (unseenInSuit === 0 ? 15 : 0);
+      var safeCards = _safeCardsInSuit(c.suit);
+
+      // Lower score = better to lead
+      var score = 0;
+      score += pts * 12;               // strongly avoid leading point cards
+      score += RANK_POWER[c.rank] * 1; // prefer low power
+      score += isTop ? 25 : 0;         // big penalty for leading the top card (we'll win the trick)
+      score += trapped ? 20 : 0;       // penalty for suits where we're trapped
+      score -= safeCards * 3;           // bonus if we have safe low cards in this suit
+      score += (unseenInSuit === 0) ? 18 : 0;  // penalty if no unseen cards (we'll win everything)
+      score -= (sLen <= 2) ? 6 : 0;    // bonus for short suits (will create void faster)
+      // Late game: avoid being last trick winner — lead from suits with many unseen
+      if (isLastTrick) score += isTop ? 30 : 0;
       return {card: c, score: score};
     });
     candidates.sort(function(a,b){ return a.score - b.score; });
     return candidates[0].card;
   }
 
+  // ═══════════════════════ FOLLOWING SUIT ═══════════════════════
   var leadSuit = game.trick[0].card.suit;
   var following = playable.filter(function(c){ return c.suit === leadSuit; });
 
   if (following.length > 0) {
     var bestPower = -1;
+    var currentWinnerIdx = -1;
     game.trick.forEach(function(t){
-      if (t.card.suit === leadSuit && RANK_POWER[t.card.rank] > bestPower) bestPower = RANK_POWER[t.card.rank];
+      if (t.card.suit === leadSuit && RANK_POWER[t.card.rank] > bestPower) {
+        bestPower = RANK_POWER[t.card.rank];
+        currentWinnerIdx = t.playerIdx;
+      }
     });
 
     var under = following.filter(function(c){ return RANK_POWER[c.rank] < bestPower; });
     var over = following.filter(function(c){ return RANK_POWER[c.rank] > bestPower; });
-
-    // Check: are there still players to play after us?
     var playersLeft = 4 - game.trick.length - 1;
+    var trickPts = _sumPoints(game.trick.map(function(t){ return t.card; }));
 
     if (under.length > 0) {
-      // We can duck — great. Dump the highest-point card we can safely lose
-      under.sort(function(a,b){
-        var pa = RANK_POINTS[a.rank], pb = RANK_POINTS[b.rank];
-        if (pa !== pb) return pb - pa; // dump high points under winning card
-        return RANK_POWER[b.rank] - RANK_POWER[a.rank];
-      });
-      return under[0];
+      // STRATEGY 5: Undershooting — play the card JUST below the current winner
+      // This preserves lower safe cards for later and dumps max points safely
+      under.sort(function(a,b){ return RANK_POWER[b.rank] - RANK_POWER[a.rank]; });
+      // The highest "under" card is the undershoot
+      var undershoot = under[0];
+
+      // STRATEGY 6: If the trick has high points AND someone already winning,
+      // dump our highest-point cards underneath (especially Aces under a 3 or 2)
+      if (trickPts >= 3) {
+        // Look for high-point cards we can safely dump
+        var highPtUnder = under.filter(function(c){ return RANK_POINTS[c.rank] >= 1; });
+        if (highPtUnder.length > 0) {
+          highPtUnder.sort(function(a,b){ return RANK_POINTS[b.rank] - RANK_POINTS[a.rank]; });
+          return highPtUnder[0]; // dump the Ace or highest figure under the winning card
+        }
+      }
+
+      // Normal undershoot: play highest safe card to preserve low cards
+      return undershoot;
     }
 
-    // Must go over — check if someone after us is likely to overtake
-    if (playersLeft > 0 && over.length > 0) {
-      // If highest unseen in this suit (held by others) is higher than our lowest over, play lowest
-      var highestUnseen = _hardHighestUnseenPower(playerIdx, leadSuit);
-      var lowestOver = over.slice().sort(function(a,b){ return RANK_POWER[a.rank] - RANK_POWER[b.rank]; })[0];
-      if (highestUnseen > RANK_POWER[lowestOver.rank]) {
-        // Someone else likely has a higher card — let them win, play our lowest
-        return lowestOver;
+    // Must go over — we're forced to take the trick (or someone after us might)
+    if (over.length > 0) {
+      // STRATEGY 7: If players still to play, check if they might overtake us
+      if (playersLeft > 0) {
+        var highestUnseen = _hardHighestUnseenPower(playerIdx, leadSuit);
+        // Also check if players after us are known to be void
+        var afterUs = [];
+        var curLead = game.leadPlayer;
+        for(var ai = game.trick.length + 1; ai < 4; ai++){
+          afterUs.push((curLead + ai) % 4);
+        }
+        var someoneCanBeat = afterUs.some(function(p){
+          return !_hardIsPlayerVoid(p, leadSuit);
+        }) && highestUnseen > RANK_POWER[over[0].rank];
+
+        if (someoneCanBeat) {
+          // Someone else will likely overtake — play our lowest over to save resources
+          over.sort(function(a,b){ return RANK_POWER[a.rank] - RANK_POWER[b.rank]; });
+          return over[0];
+        }
       }
+
+      // STRATEGY 8: We'll win this trick — minimize damage
+      // Play lowest POINT card that's over, not lowest POWER
+      over.sort(function(a,b){
+        var pa = RANK_POINTS[a.rank], pb = RANK_POINTS[b.rank];
+        if (pa !== pb) return pa - pb;
+        return RANK_POWER[a.rank] - RANK_POWER[b.rank];
+      });
+      return over[0];
     }
-    // No choice — play the lowest power card
-    over.sort(function(a,b){
-      var pa = RANK_POINTS[a.rank], pb = RANK_POINTS[b.rank];
-      if (pa !== pb) return pa - pb;
-      return RANK_POWER[a.rank] - RANK_POWER[b.rank];
-    });
-    return over[0];
+
+    // Edge case: exactly equal (shouldn't happen in tresette, but safety)
+    return following[0];
   }
 
-  // Can't follow suit — dump highest-point cards (opponents will win this trick)
-  // But check if all remaining players in this suit are void (then last player wins)
+  // ═══════════════════════ VOID — CAN'T FOLLOW SUIT ═══════════════════════
+  // STRATEGY 9: Dump the most dangerous cards from hand
+  // Priority: Aces (3pts) > Figures (1/3pt) > save scartine
+
+  // STRATEGY 10: Check if someone is about to "cappotto" (take all 21 points)
+  // If so, we MUST take at least ⅓ point or they get the cappotto bonus
+  // This is anti-sola strategy: ensure we capture at least one small point card
+
   playable.sort(function(a,b){
     var pa = RANK_POINTS[a.rank], pb = RANK_POINTS[b.rank];
-    if (pa !== pb) return pb - pa; // dump most points
+    if (pa !== pb) return pb - pa; // dump highest points (Aces first!)
+    // Among same-point cards, dump high power to keep safe lows
     return RANK_POWER[b.rank] - RANK_POWER[a.rank];
   });
+
+  // STRATEGY 11: DON'T dump an Ace if the current trick winner might be US 
+  // (edge case: if trick has 3 cards and we're the 4th, check who's winning)
+  // But if we're void we can't win anyway, so always dump the Ace
+
   return playable[0];
 }
 
@@ -4244,6 +4444,472 @@ function _hardVincere(playerIdx, playable) {
     return RANK_POWER[a.rank] - RANK_POWER[b.rank];
   });
   return playable[0];
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  AI ADATTIVO — Learns player behavior & adapts dynamically
+// ═══════════════════════════════════════════════════════════════
+
+function _initPlayerProfile() {
+  return {
+    gamesPlayed: 0,
+    gamesWon: 0,
+    totalScoreTerzi: 0,
+    leadPowerAvg: 0.5,
+    duckRate: 0.5,
+    pointDumpRate: 0.5,
+    longSuitLeadRate: 0.5,
+    avgScorePerGame: 16.5,
+    emaWinRate: 0.5,
+    skillLevel: 50,
+    lastUpdated: 0
+  };
+}
+
+function _resetGameObservation() {
+  // Merge current hand observations into tournament accumulator before resetting
+  if (_currentGameObs && _tournamentObs) {
+    _tournamentObs.leads = _tournamentObs.leads.concat(_currentGameObs.leads);
+    _tournamentObs.follows = _tournamentObs.follows.concat(_currentGameObs.follows);
+    _tournamentObs.voidPlays = _tournamentObs.voidPlays.concat(_currentGameObs.voidPlays);
+  }
+  _currentGameObs = {
+    leads: [],
+    follows: [],
+    voidPlays: [],
+    tricksWon: 0,
+    tricksSeen: 0
+  };
+  // Start fresh tournament accumulator if none exists
+  if (!_tournamentObs) {
+    _tournamentObs = { leads: [], follows: [], voidPlays: [] };
+  }
+}
+
+function _observeHumanPlay(playerIdx, card) {
+  var myIdx = mpMode ? (mySeat >= 0 ? mySeat : 0) : 0;
+  if (playerIdx !== myIdx || !_currentGameObs) return;
+
+  var trickLen = game.trick.length; // card already pushed
+
+  if (trickLen === 1) {
+    // LEAD: record card strength (only publicly visible info — the card played)
+    _currentGameObs.leads.push({
+      power: RANK_POWER[card.rank] / 9,
+      points: RANK_POINTS[card.rank],
+      suitLen: 0.5 // unknown — don't peek at hand
+    });
+  } else if (trickLen > 1) {
+    var leadSuit = game.trick[0].card.suit;
+
+    if (card.suit === leadSuit) {
+      // FOLLOWING: measure duck/overtake based only on what's visible on the table
+      var bestPower = -1;
+      for (var i = 0; i < trickLen - 1; i++) {
+        var tc = game.trick[i].card;
+        if (tc.suit === leadSuit && RANK_POWER[tc.rank] > bestPower)
+          bestPower = RANK_POWER[tc.rank];
+      }
+      var playedPower = RANK_POWER[card.rank];
+      var ducked = playedPower < bestPower;
+
+      // We don't know if player had a choice (can't see their hand)
+      // Estimate: assume they had a choice (slightly inaccurate but fair)
+      _currentGameObs.follows.push({
+        ducked: ducked,
+        hadChoice: true
+      });
+    } else {
+      // VOID: track point dumping (publicly visible — they didn't follow suit)
+      _currentGameObs.voidPlays.push({
+        pointsDumped: RANK_POINTS[card.rank]
+      });
+    }
+  }
+}
+
+function _updateProfileAfterGame(won, scoreTerzi) {
+  if (!_playerProfile) _playerProfile = _initPlayerProfile();
+  var p = _playerProfile;
+  var alpha = 0.15; // EMA smoothing factor
+
+  p.gamesPlayed++;
+  if (won) p.gamesWon++;
+  p.totalScoreTerzi += scoreTerzi;
+
+  // Win rate EMA
+  p.emaWinRate = p.emaWinRate * (1 - 0.2) + (won ? 1 : 0) * 0.2;
+
+  // Merge final hand into tournament accumulator
+  if (_currentGameObs && _tournamentObs) {
+    _tournamentObs.leads = _tournamentObs.leads.concat(_currentGameObs.leads);
+    _tournamentObs.follows = _tournamentObs.follows.concat(_currentGameObs.follows);
+    _tournamentObs.voidPlays = _tournamentObs.voidPlays.concat(_currentGameObs.voidPlays);
+  }
+  // Use all accumulated observations from the tournament
+  var obs = _tournamentObs || _currentGameObs;
+  if (obs) {
+    if (obs.leads.length > 0) {
+      var avgPow = obs.leads.reduce(function(s, l) { return s + l.power; }, 0) / obs.leads.length;
+      p.leadPowerAvg = p.leadPowerAvg * (1 - alpha) + avgPow * alpha;
+
+      var avgSL = obs.leads.reduce(function(s, l) { return s + l.suitLen; }, 0) / obs.leads.length;
+      p.longSuitLeadRate = p.longSuitLeadRate * (1 - alpha) + avgSL * alpha;
+    }
+
+    var choices = obs.follows.filter(function(f) { return f.hadChoice; });
+    if (choices.length > 0) {
+      var dPct = choices.filter(function(f) { return f.ducked; }).length / choices.length;
+      p.duckRate = p.duckRate * (1 - alpha) + dPct * alpha;
+    }
+
+    if (obs.voidPlays.length > 0) {
+      var avgDump = obs.voidPlays.reduce(function(s, v) {
+        return s + v.pointsDumped;
+      }, 0) / obs.voidPlays.length;
+      p.pointDumpRate = p.pointDumpRate * (1 - alpha) + Math.min(avgDump / 3, 1) * alpha;
+    }
+  }
+  // Reset tournament accumulator for next evaluation
+  _tournamentObs = { leads: [], follows: [], voidPlays: [] };
+
+  p.avgScorePerGame = p.avgScorePerGame * (1 - alpha) + scoreTerzi * alpha;
+
+  // Calculate skill level (0-100)
+  // Components:
+  // 1. Win rate (40%): weighted by how often the player wins
+  // 2. Strategic quality (35%): in perdere, good players duck when they CAN but also
+  //    dump aces when void and avoid leading point cards — a pure duckRate is too simple.
+  //    We combine duckRate (when they had choice) + pointDumpRate (dumping skills) + low leadPower (safe leads)
+  // 3. Experience bonus (15%): ramp up over first 30 games
+  // 4. Score efficiency (10%): lower avg score = better in perdere
+  var winSkill = Math.min(Math.max(p.emaWinRate * 1.3 - 0.15, 0), 1);
+
+  var stratSkill;
+  if (gameMode === 'perdere') {
+    // Good perdere player: ducks when possible, dumps points when void, leads low
+    var duckSkill = Math.min(p.duckRate * 1.2, 1); // ducking is good (0-1)
+    var dumpSkill = Math.min(p.pointDumpRate * 1.3, 1); // dumping points when void is good
+    var leadSkill = Math.max(1 - p.leadPowerAvg * 1.5, 0); // leading LOW is good (inverted)
+    stratSkill = duckSkill * 0.4 + dumpSkill * 0.3 + leadSkill * 0.3;
+  } else {
+    // Good vincere player: overtakes, captures points, leads strong
+    stratSkill = (1 - p.duckRate) * 0.4 + p.leadPowerAvg * 0.3 + (1 - p.pointDumpRate) * 0.3;
+  }
+
+  var expBonus = Math.min(p.gamesPlayed / 30, 1);
+
+  // In perdere: low avg score = good. Max ~33 terzi possible, average ~8.
+  var scoreSkill = 0;
+  if (gameMode === 'perdere' && p.gamesPlayed >= 3) {
+    scoreSkill = Math.max(1 - (p.avgScorePerGame / 16), 0); // 0 terzi = 1.0, 16+ terzi = 0
+  } else if (p.gamesPlayed >= 3) {
+    scoreSkill = Math.min(p.avgScorePerGame / 20, 1); // higher score = better in vincere
+  }
+
+  p.skillLevel = Math.round(winSkill * 40 + stratSkill * 35 + expBonus * 15 + scoreSkill * 10);
+  p.skillLevel = Math.min(100, Math.max(0, p.skillLevel));
+  p.lastUpdated = Date.now();
+
+  console.log('[ADAPTIVE] Profile updated: skill=' + p.skillLevel +
+    ' winRate=' + p.emaWinRate.toFixed(2) +
+    ' duckRate=' + p.duckRate.toFixed(2) +
+    ' leadPow=' + p.leadPowerAvg.toFixed(2) +
+    ' games=' + p.gamesPlayed);
+
+  _savePlayerProfile();
+}
+
+// ─── Adaptive AI card selection ───────────────────────────────
+// 6 skill tiers with progressive use of advanced strategies
+function cpuSelectAdaptive(playerIdx, playable) {
+  // Ensure profile exists
+  if (!_playerProfile) {
+    _playerProfile = _initPlayerProfile();
+    _profileLoaded = true;
+  }
+  var profile = _playerProfile;
+  var skill = profile.skillLevel;
+  var rand = Math.random() * 100;
+
+  // ── Tier 1: Principiante (0-24) — mostly random, occasional basic logic
+  if (skill < 25) {
+    if (rand < 80) return playable[Math.floor(Math.random() * playable.length)];
+    return _cpuMedioLogic(playerIdx, playable);
+  }
+  // ── Tier 2: Base (25-39) — more basic logic, less random
+  if (skill < 40) {
+    if (rand < 55) return playable[Math.floor(Math.random() * playable.length)];
+    return _cpuMedioLogic(playerIdx, playable);
+  }
+  // ── Tier 3: Intermedio (40-54) — full medium logic, occasional hard plays
+  if (skill < 55) {
+    if (rand < 20) return playable[Math.floor(Math.random() * playable.length)];
+    if (rand < 40) return cpuSelectHard(playerIdx, playable);
+    return _cpuMedioLogic(playerIdx, playable);
+  }
+  // ── Tier 4: Avanzato (55-69) — mostly hard AI with medium fallback
+  if (skill < 70) {
+    if (rand < 60) return cpuSelectHard(playerIdx, playable);
+    return _cpuMedioLogic(playerIdx, playable);
+  }
+  // ── Tier 5: Esperto (70-84) — hard AI + counter-strategies
+  if (skill < 85) {
+    if (rand < 35) return _adaptiveCounterPlay(playerIdx, playable, profile);
+    return cpuSelectHard(playerIdx, playable);
+  }
+  // ── Tier 6: Maestro (85-100) — heavy counter-strategies + hard AI
+  if (rand < 55) return _adaptiveCounterPlay(playerIdx, playable, profile);
+  return cpuSelectHard(playerIdx, playable);
+}
+
+function _cpuMedioLogic(playerIdx, playable) {
+  if (gameMode === 'vincere') return cpuSelectCardVincere(playerIdx, playable);
+  return cpuSelectCardPerdere(playerIdx, playable);
+}
+
+// ─── Counter-strategy: exploit player's known tendencies ──────
+function _adaptiveCounterPlay(playerIdx, playable, profile) {
+  var isPerdere = gameMode === 'perdere';
+  var myHand = game.hands[playerIdx];
+  var suitCounts = {};
+  myHand.forEach(function(c) { suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1; });
+  var humanIdx = mpMode ? (mySeat >= 0 ? mySeat : 0) : 0;
+
+  if (game.trick.length === 0) {
+    // ── LEADING ──
+    if (isPerdere) {
+      // COUNTER 1: Player always ducks → lead suits where they have cards but no safe lows
+      // Force them to take the trick by leading in suits where they're "trapped"
+      if (profile.duckRate > 0.6) {
+        var candidates = playable.map(function(c) {
+          var score = RANK_POWER[c.rank] + (RANK_POINTS[c.rank] * 8);
+          var unseenCount = _hardCountUnseenSuit(playerIdx, c.suit);
+          // Lead into suits with many unseen cards (human likely still has cards there)
+          score -= unseenCount * 3;
+          // Avoid suits where human is known void
+          if (_hardIsPlayerVoid(humanIdx, c.suit)) score += 30;
+          return { card: c, score: score };
+        });
+        candidates.sort(function(a, b) { return a.score - b.score; });
+        return candidates[0].card;
+      }
+      // COUNTER 2: Player leads from short suits (trying to create voids)
+      // → Lead from THEIR likely void suits to deny them the dump opportunity
+      if (profile.longSuitLeadRate < 0.4) {
+        // They lead short suits → we should lead suits where they're void
+        // so they can't dump Aces on us
+        var forceCards = playable.filter(function(c) {
+          return !_hardIsPlayerVoid(humanIdx, c.suit);
+        });
+        if (forceCards.length > 0) {
+          forceCards.sort(function(a, b) {
+            var pa = RANK_POINTS[a.rank], pb = RANK_POINTS[b.rank];
+            if (pa !== pb) return pa - pb;
+            return RANK_POWER[a.rank] - RANK_POWER[b.rank];
+          });
+          return forceCards[0];
+        }
+      }
+      // COUNTER 3: Player leads strong (high leadPowerAvg)
+      // → Lead low from short suits to become void faster ourselves
+      if (profile.leadPowerAvg > 0.6) {
+        var shortSuit = playable.slice().sort(function(a, b) {
+          var sa = suitCounts[a.suit] || 0, sb = suitCounts[b.suit] || 0;
+          if (sa !== sb) return sa - sb;
+          return RANK_POWER[a.rank] - RANK_POWER[b.rank];
+        });
+        var zeroCards = shortSuit.filter(function(c) { return RANK_POINTS[c.rank] === 0; });
+        return zeroCards.length > 0 ? zeroCards[0] : shortSuit[0];
+      }
+    } else {
+      // Vincere: exploit passive players
+      if (profile.duckRate > 0.6) {
+        var strong = playable.filter(function(c) { return RANK_POWER[c.rank] >= 7; });
+        if (strong.length > 0) {
+          strong.sort(function(a, b) { return RANK_POWER[b.rank] - RANK_POWER[a.rank]; });
+          return strong[0];
+        }
+      }
+      if (profile.pointDumpRate > 0.6) {
+        var candidates = playable.map(function(c) {
+          var unseen = _hardCountUnseenSuit(playerIdx, c.suit);
+          return { card: c, unseen: unseen };
+        });
+        candidates.sort(function(a, b) { return b.unseen - a.unseen; });
+        return candidates[0].card;
+      }
+    }
+    return cpuSelectHard(playerIdx, playable);
+  }
+
+  // ── FOLLOWING or VOID ──
+  var leadSuit = game.trick[0].card.suit;
+  var following = playable.filter(function(c) { return c.suit === leadSuit; });
+
+  if (following.length > 0) {
+    var bestPower = -1;
+    var currentWinner = -1;
+    game.trick.forEach(function(t) {
+      if (t.card.suit === leadSuit && RANK_POWER[t.card.rank] > bestPower) {
+        bestPower = RANK_POWER[t.card.rank];
+        currentWinner = t.playerIdx;
+      }
+    });
+
+    if (isPerdere) {
+      // COUNTER 4: Human is winning this trick → dump our highest-point cards on them
+      if (currentWinner === humanIdx) {
+        var under = following.filter(function(c) { return RANK_POWER[c.rank] < bestPower; });
+        if (under.length > 0) {
+          under.sort(function(a, b) { return RANK_POINTS[b.rank] - RANK_POINTS[a.rank]; });
+          return under[0]; // dump Aces/figures under human's winning card
+        }
+      }
+      // COUNTER 5: If human still has to play and tends to duck,
+      // play a medium card to force them to go over or take the points
+      var playersLeft = 4 - game.trick.length - 1;
+      if (playersLeft > 0 && currentWinner !== humanIdx && profile.duckRate > 0.5) {
+        // Human hasn't played yet — check if they'll be forced over
+        var humanMustPlay = !game.trick.some(function(t){ return t.playerIdx === humanIdx; });
+        if (humanMustPlay) {
+          // Play just high enough to force human to go over or take high points
+          following.sort(function(a,b){ return RANK_POWER[a.rank] - RANK_POWER[b.rank]; });
+          // Find card that's high enough to be a threat but not our highest
+          var midCard = following[Math.floor(following.length / 2)];
+          if (midCard && RANK_POWER[midCard.rank] > bestPower) return midCard;
+        }
+      }
+    } else {
+      if (currentWinner === humanIdx) {
+        var over = following.filter(function(c) { return RANK_POWER[c.rank] > bestPower; });
+        if (over.length > 0 && profile.duckRate > 0.5) {
+          over.sort(function(a, b) { return RANK_POWER[a.rank] - RANK_POWER[b.rank]; });
+          return over[0];
+        }
+      }
+    }
+  } else {
+    // VOID
+    if (isPerdere) {
+      // COUNTER 6: Human is winning → pile maximum points on them
+      var humanWinning = false;
+      if (game.trick.length > 0) {
+        var bestWP = -1; var winner = -1;
+        game.trick.forEach(function(t) {
+          if (t.card.suit === leadSuit && RANK_POWER[t.card.rank] > bestWP) {
+            bestWP = RANK_POWER[t.card.rank]; winner = t.playerIdx;
+          }
+        });
+        humanWinning = (winner === humanIdx);
+      }
+      if (humanWinning) {
+        // Dump Aces and highest point cards on them!
+        playable.sort(function(a, b) { return RANK_POINTS[b.rank] - RANK_POINTS[a.rank]; });
+        return playable[0];
+      }
+      // COUNTER 7: Anticipate human's void dump tendency
+      // If human likes to dump points when void, save our Aces for when THEY lead
+      if (profile.pointDumpRate > 0.6) {
+        // Don't dump Ace now — save it to dump when human takes a trick
+        var nonAces = playable.filter(function(c) { return c.rank !== 1; });
+        if (nonAces.length > 0) {
+          nonAces.sort(function(a, b) { return RANK_POINTS[b.rank] - RANK_POINTS[a.rank]; });
+          return nonAces[0];
+        }
+      }
+    }
+  }
+
+  // Fallback: use hard AI
+  return cpuSelectHard(playerIdx, playable);
+}
+
+// ─── Profile persistence (Firebase + localStorage) ────────────
+function _savePlayerProfile() {
+  if (!_playerProfile) return;
+  // Sync current profile back into the mode-specific slot
+  _playerProfiles[gameMode || 'perdere'] = _playerProfile;
+  try {
+    localStorage.setItem('tresette_player_profiles', JSON.stringify(_playerProfiles));
+  } catch(e) {}
+  if (_fbDb && _authUser && _authUser.uid) {
+    _fbDb.ref('users/' + _authUser.uid + '/playerProfiles').set(_playerProfiles)
+      .then(function() { console.log('[ADAPTIVE] Profiles saved to Firebase'); })
+      .catch(function(e) { console.warn('[ADAPTIVE] Firebase save failed:', e.message); });
+  }
+  // Update skill badge display
+  var skillEl = document.getElementById('ub-skill');
+  if (skillEl) _updateSkillBadge(skillEl);
+}
+
+function _loadPlayerProfile() {
+  // Try localStorage first (instant)
+  try {
+    var stored = localStorage.getItem('tresette_player_profiles');
+    if (stored) {
+      _playerProfiles = JSON.parse(stored);
+      _playerProfile = _playerProfiles[gameMode || 'perdere'] || _initPlayerProfile();
+      _profileLoaded = true;
+      console.log('[ADAPTIVE] Profiles loaded from localStorage, mode=' + gameMode + ' skill=' + _playerProfile.skillLevel);
+    } else {
+      // Migration: try old single-profile key
+      var oldStored = localStorage.getItem('tresette_player_profile');
+      if (oldStored) {
+        var oldProfile = JSON.parse(oldStored);
+        _playerProfiles.perdere = oldProfile;
+        _playerProfiles.vincere = _initPlayerProfile();
+        _playerProfile = _playerProfiles[gameMode || 'perdere'];
+        _profileLoaded = true;
+        localStorage.removeItem('tresette_player_profile');
+        localStorage.setItem('tresette_player_profiles', JSON.stringify(_playerProfiles));
+        console.log('[ADAPTIVE] Migrated old profile to per-mode profiles');
+      }
+    }
+  } catch(e) {}
+
+  // Then try Firebase (may overwrite with more recent data)
+  if (_fbDb && _authUser && _authUser.uid) {
+    _fbDb.ref('users/' + _authUser.uid + '/playerProfiles').once('value', function(snap) {
+      var data = snap.val();
+      if (data) {
+        if (data.perdere) _playerProfiles.perdere = data.perdere;
+        if (data.vincere) _playerProfiles.vincere = data.vincere;
+        _playerProfile = _playerProfiles[gameMode || 'perdere'] || _initPlayerProfile();
+        _profileLoaded = true;
+        console.log('[ADAPTIVE] Profiles loaded from Firebase, mode=' + gameMode + ' skill=' + _playerProfile.skillLevel);
+        try { localStorage.setItem('tresette_player_profiles', JSON.stringify(_playerProfiles)); } catch(e) {}
+      } else {
+        // Try old single-profile path for migration
+        _fbDb.ref('users/' + _authUser.uid + '/playerProfile').once('value', function(oldSnap) {
+          var oldData = oldSnap.val();
+          if (oldData && oldData.gamesPlayed > 0) {
+            _playerProfiles.perdere = oldData;
+            _playerProfile = _playerProfiles[gameMode || 'perdere'] || _initPlayerProfile();
+            _profileLoaded = true;
+            console.log('[ADAPTIVE] Migrated old Firebase profile to per-mode');
+          }
+          if (!_playerProfile) { _playerProfile = _initPlayerProfile(); _profileLoaded = true; }
+        });
+      }
+      if (!_playerProfile) { _playerProfile = _initPlayerProfile(); _profileLoaded = true; }
+    }, function(err) {
+      console.warn('[ADAPTIVE] Firebase load failed:', err.message);
+      if (!_playerProfile) { _playerProfile = _initPlayerProfile(); _profileLoaded = true; }
+    });
+  } else {
+    if (!_playerProfile) { _playerProfile = _initPlayerProfile(); _profileLoaded = true; }
+  }
+}
+
+function _switchProfileToMode(mode) {
+  // Save current profile to its mode slot
+  if (_playerProfile && gameMode) {
+    _playerProfiles[gameMode] = _playerProfile;
+  }
+  // Load profile for the new mode
+  _playerProfile = _playerProfiles[mode || 'perdere'] || _initPlayerProfile();
+  _playerProfiles[mode || 'perdere'] = _playerProfile;
 }
 
 // ─── Status Messages ─────────────────────────────────────────
@@ -4466,6 +5132,12 @@ function showGameOver() {
     _resultData.teamScores = [getTeamScore(0), getTeamScore(1)];
   }
   logGameStats(_goType, _goRole, true, _resultData);
+
+  // Update player skill profile after every game (all modes, not just adattivo)
+  _updateProfileAfterGame(
+    _resultStr === 'win',
+    game.scores[localSeat] || 0
+  );
 
   // --- Set title: if tournament just ended, reflect tournament result; otherwise hand result ---
   if (tournamentOver) {
@@ -4929,6 +5601,7 @@ function quitGame() {
   game = null;
   document.getElementById('quit-btn').style.display = 'none';
   document.getElementById('game-over').classList.remove('show');
+  _updateUserBadge(); // Hide skill badge when leaving game
   _hideDiscBanner();
   stopTurnTimer();
   hideBuongiocoBanners();
@@ -4998,6 +5671,9 @@ window.addEventListener('orientationchange', () => {
 
 function startGame() {
   initAudio();
+  // Switch skill profile to current game mode
+  if (_profileLoaded) _switchProfileToMode(gameMode);
+  _updateUserBadge();
   document.getElementById('overlay').classList.add('hidden');
   document.getElementById('lobby-overlay').classList.add('hidden');
   document.getElementById('game-over').classList.remove('show');
@@ -5094,7 +5770,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "2.4.5";
+const GAME_VERSION = "2.5.0";
 // Auto-sync version display everywhere from single GAME_VERSION constant
 (function(){ ['game-version-display','auth-version'].forEach(function(id){ var el = document.getElementById(id); if(el) el.textContent = 'v' + GAME_VERSION; }); })();
 
@@ -5235,6 +5911,8 @@ function _checkAuthState() {
       if (nameInput) nameInput.value = user.displayName || '';
       // Register user in DB for admin visibility
       _registerUserInDb(user);
+      // Load adaptive AI profile
+      _loadPlayerProfile();
       // Setup social: presence + listeners
       _setupPresence();
       _initSocialListeners();
@@ -5262,6 +5940,8 @@ function authAsGuest() {
 function proceedToGame() {
   document.getElementById('auth-overlay').classList.add('hidden');
   document.getElementById('overlay').classList.remove('hidden');
+  // Always load skill profile (works for both logged-in users and guests via localStorage)
+  if (!_profileLoaded) _loadPlayerProfile();
   _updateUserBadge();
   _syncNameFromAuth();
 }
@@ -5371,6 +6051,7 @@ function _updateUserBadge() {
   var badge = document.getElementById('user-badge');
   var nameEl = document.getElementById('ub-name');
   var authBtn = document.getElementById('ub-auth-btn');
+  var skillEl = document.getElementById('ub-skill');
   if (!badge || !nameEl) return;
   if (_authUser) {
     nameEl.textContent = _authUser.displayName || _authUser.email || 'Utente';
@@ -5384,6 +6065,43 @@ function _updateUserBadge() {
     if (authBtn) { authBtn.textContent = '🔑 Accedi'; authBtn.title = 'Login'; }
   } else {
     badge.style.display = 'none';
+  }
+  // Skill badge: only show during an active game
+  if (skillEl) {
+    if (game && game.phase) {
+      _updateSkillBadge(skillEl);
+    } else {
+      skillEl.style.display = 'none';
+    }
+  }
+}
+
+function _updateSkillBadge(el) {
+  if (!el) return;
+  var profile = _playerProfile;
+  // Try localStorage if not loaded yet
+  if (!profile) {
+    try {
+      var stored = localStorage.getItem('tresette_player_profiles');
+      if (stored) {
+        var profiles = JSON.parse(stored);
+        profile = profiles[gameMode || 'perdere'];
+      }
+    } catch(e) {}
+  }
+  if (profile && typeof profile.skillLevel === 'number' && profile.gamesPlayed > 0) {
+    var s = profile.skillLevel;
+    var label = s < 25 ? 'Princ.' : s < 40 ? 'Base' : s < 55 ? 'Inter.' : s < 70 ? 'Avanz.' : s < 85 ? 'Esperto' : 'Maestro';
+    var bg = s < 25 ? '#e53935' : s < 40 ? '#ff9800' : s < 55 ? '#fdd835' : s < 70 ? '#43a047' : s < 85 ? '#1e88e5' : '#7b1fa2';
+    var fg = (s >= 40 && s < 55) ? '#333' : '#fff';
+    var modeIcon = (gameMode === 'vincere') ? '🔺' : '🔻';
+    el.textContent = modeIcon + ' ' + s;
+    el.title = label + ' (' + s + '/100) — ' + (gameMode === 'vincere' ? 'A Vincere' : 'A Perdere');
+    el.style.background = bg;
+    el.style.color = fg;
+    el.style.display = 'inline-block';
+  } else {
+    el.style.display = 'none';
   }
 }
 
@@ -5460,7 +6178,9 @@ function logGameStats(gameType, playerRole, completed, resultData) {
         durationMs: durationMs,
         tricksPlayed: (game && game.trickNum) ? game.trickNum : 0,
         completed: !!completed,
-        uid: uid || null
+        uid: uid || null,
+        skillLevel: (_playerProfile && typeof _playerProfile.skillLevel === 'number') ? _playerProfile.skillLevel : null,
+        skillMode: gameMode || 'perdere'
       };
       // Attach result data if provided
       if (resultData) {
@@ -5471,12 +6191,18 @@ function logGameStats(gameType, playerRole, completed, resultData) {
         statData.volo = resultData.volo || false;
         if (resultData.teamScores) statData.teamScores = resultData.teamScores;
       }
-      var statsRef = firebase.database().ref('statistics/games').push();
-      statsRef.set(statData).then(function() {
-        console.log('[STATS] Global stat saved OK, uid=' + uid);
-      }).catch(function(e) {
-        console.error('[STATS] Global stat save FAILED:', e);
-      });
+      // In multiplayer, only the host writes to global stats to avoid duplicates
+      var shouldWriteGlobal = !mpMode || isHost;
+      if (shouldWriteGlobal) {
+        var statsRef = firebase.database().ref('statistics/games').push();
+        statsRef.set(statData).then(function() {
+          console.log('[STATS] Global stat saved OK, uid=' + uid);
+        }).catch(function(e) {
+          console.error('[STATS] Global stat save FAILED:', e);
+        });
+      } else {
+        console.log('[STATS] Skipping global stat (client in MP mode, host will write it)');
+      }
       // Also save per-user stats if logged in
       if (uid) {
         firebase.database().ref('users/' + uid + '/gameStats').push().set(statData)
@@ -6246,10 +6972,9 @@ function _listenState() {
     if(!_firstSnap){
       if(newTrickLen > _prevTrickLen && _prevTrickLen >= 0){
         sndCardPlay();
-        // Check if newly played card is Asso (scardone) in perdere mode
+        // Asso detection removed
         if(data.gm === 'perdere' && data.tr.length > 0){
-          var lastCard = data.tr[data.tr.length - 1].c;
-          if(lastCard.rank === 1) showScardone();
+          // scardone removed
         }
       }
       if(newTrickNum > _prevTrickNum && _prevTrickNum >= 0) sndTrickWon();
@@ -7385,20 +8110,20 @@ document.addEventListener('webkitfullscreenchange',_updateFsBtn);
     {id:'laugh',      emoji:'😂', label:'Ahahah',         sub:'questa era bella',    snd:'emoteLaugh'},
     {id:'noCards',    emoji:'🃏', label:'Non ne ho!',     sub:'non ho quel seme',    snd:'emoteSad'},
     {id:'yourTurn',   emoji:'⏳', label:'Tocca a te!',    sub:'muoviti dai!',        snd:'emoteBored'},
-    {id:'dammit',     emoji:'😤', label:'Mannaggia!',     sub:'che sfortuna!',       snd:'emoteAngry'},
+    {id:'dammit',     emoji:'🤬', label:'Mannaggia!',     sub:'e che ca@@o!',        snd:'emoteAngry'},
     {id:'applause',   emoji:'👏', label:'Bravo!',         sub:'bella giocata',       snd:'emoteApplause'},
     {id:'thumbsUp',   emoji:'👍', label:'Thumbs Up',      sub:'ottima mossa',        snd:'emoteThumbsUp'},
-    {id:'thumbsDown', emoji:'👎', label:'Thumbs Down',    sub:'non ci siamo',        snd:'emoteThumbsDown'},
+    {id:'thumbsDown', emoji:'👎', label:'Thumbs Down',    sub:'che combini',         snd:'emoteThumbsDown'},
     {id:'bored',      emoji:'🥱', label:'Annoiato',       sub:'muoviamoci un po\'',  snd:'emoteBored'},
     {id:'problem',    emoji:'⚠️', label:'Problema!',      sub:'c\'è qualche problema!', snd:'emoteAngry'},
-    {id:'sad',        emoji:'😔', label:'Mi dispiace!',   sub:'questa fa male',      snd:'emoteSad'}
+    {id:'sad',        emoji:'😔', label:'Mi dispiace!',   sub:'questa é sfortuna',   snd:'emoteSad'}
   ];
   var POSITIONS = ['south','east','north','west'];
   var emoteTimers = {};
   var openMenuPos = null;
 
   function renderEmoteAvatar(emote, wrapperClass){
-    if(emote.id === 'thumbsUp' || emote.id === 'thumbsDown' || emote.id === 'applause' || emote.id === 'hello' || emote.id === 'bye' || emote.id === 'noCards' || emote.id === 'yourTurn' || emote.id === 'problem') {
+    if(emote.id === 'thumbsUp' || emote.id === 'thumbsDown' || emote.id === 'applause' || emote.id === 'hello' || emote.id === 'bye' || emote.id === 'noCards' || emote.id === 'yourTurn' || emote.id === 'problem' || emote.id === 'dammit') {
       return '<span class="' + wrapperClass + '"><span class="emote-native-icon">' + emote.emoji + '</span></span>';
     }
     var extra = '';
