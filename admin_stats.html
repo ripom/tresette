@@ -1,0 +1,2443 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Statistiche Tresette & Social</title>
+  
+  <!-- Firebase SDKs compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f6f9;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #2a6a2a;
+      color: white;
+      padding: 1rem 20px;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    button {
+      background: #1a4a1a;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background: #0f2f0f; }
+    
+    #login-section {
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    #dashboard-section {
+      max-width: 1400px;
+      margin: 40px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    #dashboard-section { display: none; }
+    #user-section {
+      max-width: 1400px;
+      margin: 40px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .error-msg {
+      color: red;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+      display: none;
+    }
+    
+    .stats-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: #e8f5e9;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-card h3 { margin: 0 0 10px 0; color: #2a6a2a; }
+    .stat-card span { font-size: 2rem; font-weight: bold; }
+    
+    .chart-container {
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    /* Social section */
+    .social-section {
+      margin-top: 30px;
+      border-top: 2px solid #e0e0e0;
+      padding-top: 25px;
+    }
+    .social-section h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .friend-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      margin: 4px 0;
+      border-radius: 8px;
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+    }
+    .friend-item:hover { background: #f0f7f0; }
+    .friend-name { font-weight: bold; color: #333; }
+    .friend-status {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .friend-status.online { background: #4caf50; }
+    .friend-status.offline { background: #bbb; }
+    .friend-status.ingame { background: #ff9800; }
+    .social-list {
+      max-height: 350px;
+      overflow-y: auto;
+      padding: 4px;
+    }
+    .badge-online { background: #4caf50; }
+    .badge-offline { background: #9e9e9e; }
+    .badge-ingame { background: #ff9800; }
+    .badge-inlobby { background: #2196f3; }
+    .social-stat-card {
+      background: #e3f2fd;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .social-stat-card h3 { margin: 0 0 10px 0; color: #1565c0; }
+    .social-stat-card span { font-size: 2rem; font-weight: bold; }
+    .social-stat-card.presence { background: #e8f5e9; }
+    .social-stat-card.presence h3 { color: #2a6a2a; }
+    .social-stat-card.friends { background: #fff3e0; }
+    .social-stat-card.friends h3 { color: #e65100; }
+    .social-stat-card.requests { background: #fce4ec; }
+    .social-stat-card.requests h3 { color: #c62828; }
+    .social-stat-card.invitations { background: #f3e5f5; }
+    .social-stat-card.invitations h3 { color: #7b1fa2; }
+
+    /* Tabella ultime partite */
+    .games-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .games-table thead tr {
+      background: #2a6a2a;
+      color: #fff;
+    }
+    .games-table th, .games-table td {
+      padding: 8px 10px;
+      text-align: center;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .games-table tbody tr:hover {
+      background: #f0f7f0;
+    }
+    .games-table .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #fff;
+    }
+    .badge-cpu { background: #4caf50; }
+    .badge-host { background: #2196f3; }
+    .badge-client { background: #ff9800; }
+    .badge-completed { background: #43a047; }
+    .badge-incomplete { background: #e53935; }
+    .games-pager {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .games-pager button {
+      padding: 6px 14px;
+      font-size: 0.85rem;
+    }
+    .games-pager button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    /* Modal cambio nome */
+    .name-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .name-modal-overlay.active { display: flex; }
+    .name-modal {
+      background: #fff;
+      border-radius: 10px;
+      padding: 30px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    }
+    .name-modal h3 { margin: 0 0 15px 0; color: #2a6a2a; }
+    .name-modal input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+      box-sizing: border-box;
+      margin-bottom: 15px;
+    }
+    .name-modal .modal-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .name-modal .modal-buttons button { font-size: 0.9rem; padding: 8px 18px; }
+    .name-modal .btn-cancel { background: #888; }
+    .name-modal .btn-cancel:hover { background: #666; }
+    .name-modal .modal-msg { font-size: 0.85rem; margin-bottom: 10px; min-height: 20px; }
+    #header-display-name {
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      border-bottom: 1px dashed rgba(255,255,255,0.5);
+    }
+    #header-display-name:hover {
+      border-bottom-color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Statistiche Tresette Multiplayer</h1>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span id="header-display-name" style="display:none;" onclick="openNameModal()" title="Clicca per cambiare il tuo nome"></span>
+      <span id="user-email" style="display:none; font-size:0.85rem; opacity:0.85;"></span>
+      <button id="logout-btn" style="display:none;" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- MODAL CAMBIO NOME -->
+  <div class="name-modal-overlay" id="name-modal-overlay" onclick="if(event.target===this)closeNameModal()">
+    <div class="name-modal">
+      <h3>✏️ Cambia il tuo Nome</h3>
+      <div class="modal-msg" id="name-modal-msg"></div>
+      <input type="text" id="name-modal-input" placeholder="Inserisci il nuovo nome" maxlength="30" onkeydown="if(event.key==='Enter')saveDisplayName()">
+      <div class="modal-buttons">
+        <button class="btn-cancel" onclick="closeNameModal()">Annulla</button>
+        <button onclick="saveDisplayName()">Salva</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEZIONE LOGIN -->
+  <div id="login-section">
+    <h2 style="text-align: center;">Accedi alle Statistiche</h2>
+    <div class="error-msg" id="login-error"></div>
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="email@esempio.com">
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="••••••••">
+    </div>
+    <button style="width: 100%; padding: 10px;" onclick="login()">Accedi</button>
+  </div>
+
+  <!-- SEZIONE UTENTE NORMALE -->
+  <div id="user-section" style="display:none">
+    <div style="text-align:center;margin-bottom:20px">
+      <h2>🎮 Le Tue Statistiche</h2>
+      <p style="color:#666" id="user-welcome">Bentornato!</p>
+    </div>
+    <div class="stats-cards">
+      <div class="stat-card">
+        <h3>Partite Giocate</h3>
+        <span id="user-total">0</span>
+      </div>
+      <div class="stat-card">
+        <h3>vs CPU</h3>
+        <span id="user-cpu">0</span>
+      </div>
+      <div class="stat-card">
+        <h3>Multiplayer</h3>
+        <span id="user-mp">0</span>
+      </div>
+      <div class="stat-card" style="background:#fff3e0">
+        <h3 style="color:#e65100">🎯 Livello Bravura</h3>
+        <span id="user-skill">—</span>
+        <div id="user-skill-detail" style="font-size:0.75rem;color:#888;margin-top:4px"></div>
+      </div>
+    </div>
+    <p id="user-stats-error" style="display:none;text-align:center;color:#c62828;font-size:0.85rem;margin-top:10px">⚠️ Impossibile caricare le statistiche. Potresti non avere i permessi necessari.</p>
+    <div style="margin-top:20px;max-width:500px;margin-left:auto;margin-right:auto">
+      <canvas id="userChart"></canvas>
+    </div>
+
+    <!-- GRAFICO ANDAMENTO BRAVURA -->
+    <div style="margin-top:20px;max-width:600px;margin-left:auto;margin-right:auto">
+      <h3 style="text-align:center;color:#e65100;margin-bottom:10px">🎯 Andamento Livello Bravura</h3>
+      <canvas id="userSkillChart"></canvas>
+      <p id="user-skill-chart-msg" style="text-align:center;color:#888;font-size:0.8rem;margin-top:6px"></p>
+    </div>
+
+    <!-- SEZIONE LISTA PARTITE UTENTE -->
+    <div style="margin-top:30px">
+      <h2 style="text-align:center">📋 Le Tue Partite</h2>
+      <p style="text-align:center;color:#666;margin-bottom:15px">Storico delle tue partite registrate.</p>
+      <div style="overflow-x:auto">
+        <table class="games-table" id="user-games-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Modalità</th>
+              <th>Difficoltà</th>
+              <th>Risultato</th>
+              <th>Punteggio</th>
+              <th>🎯 Bravura</th>
+              <th>Mani</th>
+              <th>Durata</th>
+              <th>Stato</th>
+            </tr>
+          </thead>
+          <tbody id="user-games-tbody">
+            <tr><td colspan="11" style="padding:16px;color:#888">Caricamento...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="games-pager">
+        <button id="user-games-prev" onclick="userGamesPagePrev()" disabled>◀ Precedenti</button>
+        <span id="user-games-page-info" style="font-size:0.85rem;color:#666"></span>
+        <button id="user-games-next" onclick="userGamesPageNext()" disabled>Successive ▶</button>
+      </div>
+    </div>
+
+    <!-- SEZIONE SOCIAL UTENTE -->
+    <div class="social-section">
+      <h2>👥 Social</h2>
+      <div class="stats-cards">
+        <div class="social-stat-card presence">
+          <h3>Stato</h3>
+          <span id="user-presence-status">—</span>
+        </div>
+        <div class="social-stat-card friends">
+          <h3>Amici</h3>
+          <span id="user-friends-count">0</span>
+        </div>
+        <div class="social-stat-card requests">
+          <h3>Richieste Ricevute</h3>
+          <span id="user-requests-count">0</span>
+        </div>
+      </div>
+
+      <div style="margin-top:20px">
+        <h3 style="text-align:center;color:#2a6a2a">⭐ I Tuoi Amici</h3>
+        <div class="social-list" id="user-friends-list">
+          <p style="text-align:center;color:#888;padding:20px">Caricamento...</p>
+        </div>
+      </div>
+
+      <div style="margin-top:20px">
+        <h3 style="text-align:center;color:#c62828">📨 Richieste di Amicizia</h3>
+        <div class="social-list" id="user-friend-requests-list">
+          <p style="text-align:center;color:#888;padding:20px">Caricamento...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEZIONE DASHBOARD -->
+  <div id="dashboard-section">
+    <div class="stats-cards">
+      <div class="stat-card">
+        <h3>Partite CPU</h3>
+        <span id="count-cpu">0</span>
+      </div>
+      <div class="stat-card">
+        <h3>Multiplayer Host</h3>
+        <span id="count-host">0</span>
+      </div>
+      <div class="stat-card">
+        <h3>Multiplayer Client</h3>
+        <span id="count-client">0</span>
+      </div>
+      <div class="stat-card">
+        <h3>Totale Eventi</h3>
+        <span id="count-total">0</span>
+      </div>
+    </div>
+    
+    <!-- DURATA PARTITE -->
+    <div class="stats-cards" style="margin-bottom:10px">
+      <div class="stat-card" style="background:#e3f2fd">
+        <h3 style="color:#1565c0">Durata Media</h3>
+        <span id="dur-avg" style="font-size:1.4rem">—</span>
+      </div>
+      <div class="stat-card" style="background:#fff3e0">
+        <h3 style="color:#e65100">Più Breve</h3>
+        <span id="dur-min" style="font-size:1.1rem">—</span>
+        <div id="dur-min-info" style="font-size:0.75rem;color:#888;margin-top:4px"></div>
+      </div>
+      <div class="stat-card" style="background:#fce4ec">
+        <h3 style="color:#c62828">Più Lunga</h3>
+        <span id="dur-max" style="font-size:1.1rem">—</span>
+        <div id="dur-max-info" style="font-size:0.75rem;color:#888;margin-top:4px"></div>
+      </div>
+      <div class="stat-card" style="background:#e8f5e9">
+        <h3 style="color:#2a6a2a">Durata Totale</h3>
+        <span id="dur-total" style="font-size:1.1rem">—</span>
+      </div>
+    </div>
+
+    <!-- FILTRO DATE -->
+    <div style="text-align:center; margin-bottom:20px; display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap;">
+      <label style="font-weight:bold;">Da:</label>
+      <input type="date" id="filter-from" style="padding:6px 10px; border:1px solid #ccc; border-radius:4px; font-size:0.95rem;">
+      <label style="font-weight:bold;">A:</label>
+      <input type="date" id="filter-to" style="padding:6px 10px; border:1px solid #ccc; border-radius:4px; font-size:0.95rem;">
+      <button onclick="applyDateFilter()" style="padding:8px 18px;">Filtra</button>
+      <button onclick="resetDateFilter()" style="padding:8px 18px; background:#666;">Reset</button>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
+      <div class="chart-container">
+        <canvas id="statsChart"></canvas>
+      </div>
+
+      <div class="stat-card" style="min-width: 250px;">
+        <h3>Sessioni per Versione</h3>
+        <ul id="version-list" style="list-style: none; padding: 0; text-align: left; font-size: 1.2rem; margin-top: 15px;">
+        </ul>
+      </div>
+    </div>
+
+    <!-- CHART ANDAMENTO GIORNALIERO -->
+    <div style="margin-top: 40px;">
+      <h2 style="text-align: center;">Andamento Giornaliero</h2>
+      <div style="max-width: 750px; margin: 0 auto;">
+        <canvas id="dailyChart"></canvas>
+      </div>
+    </div>
+
+    <!-- SEZIONE LISTA ULTIME PARTITE -->
+    <div style="margin-top: 40px;">
+      <h2 style="text-align: center;">📋 Lista Ultime Partite</h2>
+      <p style="text-align: center; color: #666; margin-bottom: 15px;">Le partite più recenti registrate nel sistema.</p>
+      <div style="max-width: 1200px; margin: 0 auto; overflow-x: auto;">
+        <table class="games-table" id="games-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Data / Ora</th>
+              <th>Tipo</th>
+              <th>Modalità</th>
+              <th>Ruolo</th>
+              <th>Difficoltà</th>
+              <th>Risultato</th>
+              <th>Punteggio</th>
+              <th>🎯 Bravura</th>
+              <th>Mani</th>
+              <th>Durata</th>
+              <th>Stato</th>
+              <th>Versione</th>
+            </tr>
+          </thead>
+          <tbody id="games-tbody">
+            <tr><td colspan="13" style="padding:16px;color:#888">Caricamento...</td></tr>
+          </tbody>
+        </table>
+        <div class="games-pager">
+          <button id="games-prev" onclick="gamesPagePrev()" disabled>◀ Precedenti</button>
+          <span id="games-page-info" style="font-size:0.85rem;color:#666"></span>
+          <button id="games-next" onclick="gamesPageNext()" disabled>Successive ▶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEZIONE LIVE DATA EXPLORER -->
+    <div style="margin-top: 40px;">
+      <h2 style="text-align: center;">Live Database Explorer</h2>
+      <div class="stats-cards">
+        <div class="stat-card" style="background:#e3f2fd;">
+          <h3 style="color:#1565c0;">Stanze Attive (rooms)</h3>
+          <span id="count-rooms">0</span>
+        </div>
+        <div class="stat-card" style="background:#fff3e0;">
+          <h3 style="color:#e65100;">Giocatori in Lobby</h3>
+          <span id="count-lobby">0</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <div class="stat-card" style="flex: 1; min-width: 300px; background:#fafafa; text-align: left;">
+          <h3 style="color:#333;">Dettaglio Stanze (rooms)</h3>
+          <pre id="rooms-json" style="font-size:0.85rem; max-height: 400px; overflow: auto; background: #eee; padding: 10px; border-radius: 4px;">In attesa...</pre>
+        </div>
+        <div class="stat-card" style="flex: 1; min-width: 300px; background:#fafafa; text-align: left;">
+          <h3 style="color:#333;">Dettaglio Lobby</h3>
+          <pre id="lobby-json" style="font-size:0.85rem; max-height: 400px; overflow: auto; background: #eee; padding: 10px; border-radius: 4px;">In attesa...</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEZIONE PULIZIA -->
+    <div style="margin-top: 40px; border-top: 2px solid #e0e0e0; padding-top: 30px;">
+      <h2 style="text-align: center;">🧹 Pulizia Database</h2>
+      <p style="text-align: center; color: #666; margin-bottom: 15px;">Rimuovi stanze e lobby più vecchie di 24 ore. Le partite attive non verranno toccate.</p>
+      <div style="text-align: center; margin-bottom: 15px;">
+        <button id="cleanup-btn" onclick="cleanupOldEntries()" style="background:#c62828; padding: 12px 24px; font-size: 1rem;">🗑️ Pulisci Rooms e Lobby (&gt; 24h)</button>
+      </div>
+      <pre id="cleanup-log" style="max-width: 700px; margin: 0 auto; font-size: 0.85rem; max-height: 300px; overflow: auto; background: #fafafa; padding: 12px; border-radius: 4px; border: 1px solid #ddd; display: none;"></pre>
+
+      <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+        <h3 style="text-align: center; color: #e65100;">🔄 Pulizia Partite Duplicate</h3>
+        <p style="text-align: center; color: #666; margin-bottom: 15px; font-size: 0.9rem;">In multiplayer, tutti i giocatori salvano la stessa partita. Questo rimuove le entry duplicate (stessi punteggi e timestamp), mantenendo solo una entry per partita.</p>
+        <div style="text-align: center; margin-bottom: 15px;">
+          <button id="cleanup-dupes-btn" onclick="cleanupDuplicateGames()" style="background:#e65100; padding: 12px 24px; font-size: 1rem;">🔄 Trova e Rimuovi Partite Duplicate</button>
+        </div>
+        <pre id="cleanup-dupes-log" style="max-width: 700px; margin: 0 auto; font-size: 0.85rem; max-height: 400px; overflow: auto; background: #fafafa; padding: 12px; border-radius: 4px; border: 1px solid #ddd; display: none;"></pre>
+      </div>
+    </div>
+
+    <!-- SEZIONE GESTIONE ADMIN -->
+    <div style="margin-top: 40px; border-top: 2px solid #e0e0e0; padding-top: 30px;">
+      <h2 style="text-align: center;">👑 Gestione Utenti e Amministratori</h2>
+      <p style="text-align: center; color: #666; margin-bottom: 15px;">Tutti gli utenti registrati nel gioco. Clicca per promuovere o degradare un utente.</p>
+      <div id="admin-msg" style="text-align: center; margin-bottom: 10px; font-size: 0.9rem; min-height: 20px;"></div>
+      <div style="max-width: 700px; margin: 0 auto; overflow-x: auto;">
+        <table id="users-table" style="width:100%;border-collapse:collapse;font-size:0.9rem">
+          <thead>
+            <tr style="background:#2a6a2a;color:#fff">
+              <th style="padding:10px;text-align:left">Nome</th>
+              <th style="padding:10px;text-align:left">Email</th>
+              <th style="padding:10px;text-align:center">Ruolo</th>
+              <th style="padding:10px;text-align:center">🎯 Bravura</th>
+              <th style="padding:10px;text-align:center">Ultimo Accesso</th>
+              <th style="padding:10px;text-align:center">Azioni</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="6" style="padding:16px;text-align:center;color:#888">Caricamento...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="text-align:center;color:#999;font-size:0.75rem;margin-top:6px">Gli utenti appariranno automaticamente dopo il loro primo login nel gioco.</p>
+    </div>
+
+    <!-- SEZIONE SOCIAL ADMIN -->
+    <div style="margin-top: 40px; border-top: 2px solid #e0e0e0; padding-top: 30px;">
+      <h2 style="text-align: center;">👥 Social — Panoramica Completa</h2>
+      <p style="text-align: center; color: #666; margin-bottom: 15px;">Dati in tempo reale dal sistema sociale: presenze, amicizie, richieste e inviti.</p>
+
+      <div class="stats-cards">
+        <div class="social-stat-card presence">
+          <h3>🟢 Giocatori Online</h3>
+          <span id="admin-online-count">0</span>
+        </div>
+        <div class="social-stat-card friends">
+          <h3>⭐ Amicizie Totali</h3>
+          <span id="admin-friends-total">0</span>
+        </div>
+        <div class="social-stat-card requests">
+          <h3>📨 Richieste Pendenti</h3>
+          <span id="admin-requests-total">0</span>
+        </div>
+        <div class="social-stat-card invitations">
+          <h3>🎮 Inviti Attivi</h3>
+          <span id="admin-invitations-total">0</span>
+        </div>
+      </div>
+
+      <!-- Giocatori Online -->
+      <div style="margin-top:25px">
+        <h3 style="text-align:center;color:#2a6a2a">🟢 Giocatori Online Ora</h3>
+        <div style="max-width:700px;margin:0 auto;overflow-x:auto">
+          <table class="games-table" id="online-players-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Stato</th>
+                <th>Stanza</th>
+                <th>Tipo</th>
+                <th>Ultimo Aggiornamento</th>
+              </tr>
+            </thead>
+            <tbody id="online-players-tbody">
+              <tr><td colspan="5" style="padding:16px;color:#888">Caricamento...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Rete Amicizie -->
+      <div style="margin-top:25px">
+        <h3 style="text-align:center;color:#e65100">⭐ Rete Amicizie</h3>
+        <p style="text-align:center;color:#888;font-size:0.85rem;margin-bottom:10px">Tutti i legami di amicizia registrati nel sistema.</p>
+        <div style="max-width:700px;margin:0 auto;overflow-x:auto">
+          <table class="games-table" id="friends-network-table">
+            <thead>
+              <tr>
+                <th>Giocatore</th>
+                <th>Amico</th>
+                <th>Data Amicizia</th>
+              </tr>
+            </thead>
+            <tbody id="friends-network-tbody">
+              <tr><td colspan="3" style="padding:16px;color:#888">Caricamento...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Richieste Pendenti -->
+      <div style="margin-top:25px">
+        <h3 style="text-align:center;color:#c62828">📨 Richieste di Amicizia Pendenti</h3>
+        <div style="max-width:700px;margin:0 auto;overflow-x:auto">
+          <table class="games-table" id="requests-table">
+            <thead>
+              <tr>
+                <th>Da</th>
+                <th>A</th>
+                <th>Messaggio</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody id="requests-tbody">
+              <tr><td colspan="4" style="padding:16px;color:#888">Caricamento...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Inviti Attivi -->
+      <div style="margin-top:25px">
+        <h3 style="text-align:center;color:#7b1fa2">🎮 Inviti di Gioco Attivi</h3>
+        <div style="max-width:700px;margin:0 auto;overflow-x:auto">
+          <table class="games-table" id="invitations-table">
+            <thead>
+              <tr>
+                <th>Da</th>
+                <th>A</th>
+                <th>Stanza</th>
+                <th>Posto</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody id="invitations-tbody">
+              <tr><td colspan="5" style="padding:16px;color:#888">Caricamento...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Chart Social -->
+      <div style="margin-top:25px;display:flex;flex-wrap:wrap;gap:20px;justify-content:center">
+        <div class="chart-container">
+          <canvas id="socialChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Inizializza Firebase (usa le stesse credenziali del gioco principale)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDftiPN3z_W1Q1J8sX3gjbChKbemlqpuUw",
+      authDomain: "tresette-game.firebaseapp.com",
+      databaseURL: "https://tresette-game-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "tresette-game",
+      storageBucket: "tresette-game.firebasestorage.app",
+      messagingSenderId: "94037476114",
+      appId: "1:94037476114:web:3d0310ac29e7a9590269cb"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+    let statsChartInstance = null;
+    let dailyChartInstance = null;
+
+    function _fmtDuration(ms) {
+      if (!ms || ms <= 0) return '—';
+      var sec = Math.floor(ms / 1000);
+      var min = Math.floor(sec / 60);
+      sec = sec % 60;
+      var hrs = Math.floor(min / 60);
+      min = min % 60;
+      if (hrs > 0) return hrs + 'h ' + min + 'm ' + sec + 's';
+      if (min > 0) return min + 'm ' + sec + 's';
+      return sec + 's';
+    }
+
+    // Ascolta lo stato di autenticazione
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        // Loggato — check if admin
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('logout-btn').style.display = 'block';
+        document.getElementById('user-email').style.display = 'inline';
+        document.getElementById('user-email').textContent = user.email;
+        _loadHeaderDisplayName(user);
+        _checkAdminRole(user);
+      } else {
+        // Disconnesso
+        document.getElementById('login-section').style.display = 'block';
+        document.getElementById('dashboard-section').style.display = 'none';
+        document.getElementById('user-section').style.display = 'none';
+        document.getElementById('logout-btn').style.display = 'none';
+        document.getElementById('user-email').style.display = 'none';
+        document.getElementById('user-email').textContent = '';
+        document.getElementById('header-display-name').style.display = 'none';
+      }
+    });
+
+    // Display name in header
+    function _loadHeaderDisplayName(user) {
+      var el = document.getElementById('header-display-name');
+      // Listen for changes to display name in DB
+      db.ref('users/' + user.uid + '/displayName').on('value', function(snap) {
+        var name = snap.val() || user.displayName || '';
+        if (name) {
+          el.textContent = '👤 ' + name;
+          el.style.display = 'inline';
+        } else {
+          el.textContent = '👤 ' + (user.email ? user.email.split('@')[0] : '');
+          el.style.display = 'inline';
+        }
+      }, function() {
+        // fallback if can't read
+        var name = user.displayName || (user.email ? user.email.split('@')[0] : '');
+        if (name) {
+          el.textContent = '👤 ' + name;
+          el.style.display = 'inline';
+        }
+      });
+    }
+
+    // Modal cambio nome
+    function openNameModal() {
+      var user = auth.currentUser;
+      if (!user) return;
+      var el = document.getElementById('header-display-name');
+      var currentName = (el.textContent || '').replace(/^👤\s*/, '');
+      document.getElementById('name-modal-input').value = currentName;
+      document.getElementById('name-modal-msg').textContent = '';
+      document.getElementById('name-modal-overlay').classList.add('active');
+      document.getElementById('name-modal-input').focus();
+    }
+
+    function closeNameModal() {
+      document.getElementById('name-modal-overlay').classList.remove('active');
+    }
+
+    function saveDisplayName() {
+      var user = auth.currentUser;
+      if (!user) return;
+      var newName = document.getElementById('name-modal-input').value.trim();
+      var msgEl = document.getElementById('name-modal-msg');
+      if (!newName) {
+        msgEl.style.color = 'red';
+        msgEl.textContent = 'Il nome non può essere vuoto.';
+        return;
+      }
+      if (newName.length > 30) {
+        msgEl.style.color = 'red';
+        msgEl.textContent = 'Il nome non può superare i 30 caratteri.';
+        return;
+      }
+      msgEl.style.color = '#888';
+      msgEl.textContent = 'Salvataggio...';
+
+      // Update in Firebase DB
+      var updates = {};
+      updates['users/' + user.uid + '/displayName'] = newName;
+      // Also update in admins if the user is admin
+      if (_admins[user.uid]) {
+        updates['admins/' + user.uid + '/displayName'] = newName;
+      }
+      db.ref().update(updates).then(function() {
+        // Also update Firebase Auth profile
+        return user.updateProfile({ displayName: newName });
+      }).then(function() {
+        msgEl.style.color = 'green';
+        msgEl.textContent = '✅ Nome aggiornato!';
+        // Update welcome message if in user section
+        var welcomeEl = document.getElementById('user-welcome');
+        if (welcomeEl && document.getElementById('user-section').style.display !== 'none') {
+          welcomeEl.textContent = 'Ciao ' + newName + '!';
+        }
+        setTimeout(closeNameModal, 800);
+      }).catch(function(e) {
+        msgEl.style.color = 'red';
+        msgEl.textContent = 'Errore: ' + e.message;
+      });
+    }
+
+    // Funzione Login
+    function login() {
+      const email = document.getElementById('email').value;
+      const pwd = document.getElementById('password').value;
+      const errEl = document.getElementById('login-error');
+      
+      auth.signInWithEmailAndPassword(email, pwd)
+        .catch(error => {
+          errEl.style.display = 'block';
+          errEl.textContent = 'Errore di accesso: ' + error.message;
+        });
+    }
+
+    // Funzione Logout
+    function logout() {
+      auth.signOut();
+    }
+
+    // Check admin role and show appropriate dashboard
+    var _isAdmin = false;
+    var _userChartInstance = null;
+
+    function _checkAdminRole(user) {
+      db.ref('admins/' + user.uid).once('value', function(snap) {
+        if (snap.exists()) {
+          // ADMIN — show full dashboard AND personal stats
+          _isAdmin = true;
+          document.getElementById('dashboard-section').style.display = 'block';
+          document.getElementById('user-section').style.display = 'block';
+          document.getElementById('user-welcome').textContent = 'Ciao ' + (user.displayName || user.email) + '!';
+          loadData();
+          loadLiveData();
+          loadAdmins();
+          loadAdminSocial();
+          loadUserStats(user);
+          loadUserSocial(user);
+        } else {
+          _showNormalUser(user);
+        }
+      }, function(err) {
+        // Permission denied or network error — treat as normal user
+        _showNormalUser(user);
+      });
+    }
+
+    function _showNormalUser(user) {
+      _isAdmin = false;
+      document.getElementById('dashboard-section').style.display = 'none';
+      document.getElementById('user-section').style.display = 'block';
+      document.getElementById('user-welcome').textContent = 'Ciao ' + (user.displayName || user.email) + '!';
+      loadUserStats(user);
+      loadUserSocial(user);
+    }
+
+        function _skillLabel(s) { return s < 25 ? 'Principiante' : s < 40 ? 'Base' : s < 55 ? 'Intermedio' : s < 70 ? 'Avanzato' : s < 85 ? 'Esperto' : 'Maestro'; }
+    function _skillColor(s) { return s < 25 ? '#e53935' : s < 40 ? '#ff9800' : s < 55 ? '#fdd835' : s < 70 ? '#43a047' : s < 85 ? '#1e88e5' : s < 100 ? '#7b1fa2' : '#7b1fa2'; }
+    function _showSkillCard(el, detEl, profiles) {
+      var parts = [];
+      ['perdere','vincere'].forEach(function(mode) {
+        var p = profiles ? profiles[mode] : null;
+        if (p && typeof p.skillLevel === 'number' && p.gamesPlayed > 0) {
+          var icon = mode === 'vincere' ? '\uD83D\uDD3A' : '\uD83D\uDD3B';
+          var winPct = Math.round(p.gamesWon / p.gamesPlayed * 100);
+          parts.push(icon + ' ' + p.skillLevel + '/100 <span style="font-size:0.7rem;color:#888">(' + _skillLabel(p.skillLevel) + ', ' + winPct + '% vitt., ' + p.gamesPlayed + ' part.)</span>');
+        }
+      });
+      if (parts.length > 0) {
+        el.innerHTML = parts.join('<br>');
+        var best = Math.max((profiles && profiles.perdere && profiles.perdere.skillLevel) || 0, (profiles && profiles.vincere && profiles.vincere.skillLevel) || 0);
+        el.style.color = _skillColor(best);
+        if (detEl) detEl.textContent = '';
+      } else {
+        el.textContent = '\u2014';
+        el.style.color = '';
+        if (detEl) detEl.textContent = 'Gioca qualche partita per attivare';
+      }
+    }
+
+    function loadUserStats(user) {
+      db.ref('users/' + user.uid + '/playerProfiles').on('value', function(snap) {
+        var profiles = snap.val();
+        var skillEl = document.getElementById('user-skill');
+        var detailEl = document.getElementById('user-skill-detail');
+        if (profiles) {
+          _showSkillCard(skillEl, detailEl, profiles);
+        } else {
+          db.ref('users/' + user.uid + '/playerProfile').once('value', function(oldSnap) {
+            var old = oldSnap.val();
+            if (old && typeof old.skillLevel === 'number') {
+              _showSkillCard(skillEl, detailEl, { perdere: old, vincere: null });
+            } else {
+              skillEl.textContent = '\u2014'; skillEl.style.color = '';
+              detailEl.textContent = 'Gioca qualche partita per attivare';
+            }
+          });
+        }
+      }, function() {});
+
+      // Try loading user's own profile data first
+      db.ref('users/' + user.uid).once('value', function(profileSnap) {
+        var profile = profileSnap.val();
+        if (profile && profile.displayName) {
+          document.getElementById('user-welcome').textContent = 'Ciao ' + profile.displayName + '!';
+        }
+      }, function() { /* ignore profile read errors */ });
+
+      // Strategy: load from BOTH per-user path AND global path, merge, deduplicate.
+      // We load global games fully (not via query index, which may not exist) and filter client-side.
+      var perUserEntries = [];
+      var globalMatchingEntries = [];
+      var perUserDone = false;
+      var globalDone = false;
+
+      function _onBothLoaded() {
+        if (!perUserDone || !globalDone) return;
+
+        // Merge: deduplicate by timestamp+type+duration
+        var merged = {};
+        perUserEntries.forEach(function(e) {
+          var key = (e.timestamp || 0) + '_' + (e.type || '') + '_' + (e.durationMs || 0);
+          merged[key] = e;
+        });
+        globalMatchingEntries.forEach(function(e) {
+          var key = (e.timestamp || 0) + '_' + (e.type || '') + '_' + (e.durationMs || 0);
+          if (!merged[key]) merged[key] = e;
+        });
+
+        var allEntries = Object.values(merged);
+        var total = allEntries.length, cpu = 0, mp = 0;
+        allEntries.forEach(function(entry) {
+          if (entry.type === 'CPU') cpu++;
+          else mp++;
+        });
+
+        // If global had extra entries not in per-user, backfill them now
+        if (allEntries.length > perUserEntries.length) {
+          globalMatchingEntries.forEach(function(e) {
+            var key = (e.timestamp || 0) + '_' + (e.type || '') + '_' + (e.durationMs || 0);
+            var alreadyInUser = perUserEntries.some(function(pu) {
+              return (pu.timestamp || 0) + '_' + (pu.type || '') + '_' + (pu.durationMs || 0) === key;
+            });
+            if (!alreadyInUser) {
+              db.ref('users/' + user.uid + '/gameStats').push().set(e).catch(function(){});
+            }
+          });
+        }
+
+        document.getElementById('user-total').textContent = total;
+        document.getElementById('user-cpu').textContent = cpu;
+        document.getElementById('user-mp').textContent = mp;
+        document.getElementById('user-stats-error').style.display = 'none';
+
+        if (total === 0) {
+          document.getElementById('user-stats-error').style.display = 'block';
+          document.getElementById('user-stats-error').textContent = 'Nessuna partita registrata ancora. Gioca una partita per vedere le tue statistiche!';
+          document.getElementById('user-stats-error').style.color = '#888';
+        }
+
+        // Chart
+        if (total > 0) {
+          var ctx = document.getElementById('userChart').getContext('2d');
+          if (_userChartInstance) _userChartInstance.destroy();
+          _userChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: ['CPU', 'Multiplayer'],
+              datasets: [{ data: [cpu, mp], backgroundColor: ['#4caf50', '#2196f3'] }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+          });
+        }
+
+        // Render game history table
+        _renderUserGameHistory(allEntries);
+      }
+
+      // 1. Per-user stats
+      db.ref('users/' + user.uid + '/gameStats').once('value', function(snap) {
+        var data = snap.val() || {};
+        perUserEntries = Object.values(data);
+        console.log('[STATS] Per-user entries found:', perUserEntries.length);
+        perUserDone = true;
+        _onBothLoaded();
+      }, function(err) {
+        console.warn('[STATS] Per-user read failed:', err.message);
+        perUserEntries = [];
+        perUserDone = true;
+        _onBothLoaded();
+      });
+
+      // 2. Global stats — load ALL and filter client-side by uid
+      //    (orderByChild requires .indexOn in Firebase rules which may not be configured)
+      db.ref('statistics/games').once('value', function(globalSnap) {
+        var allGlobal = globalSnap.val() || {};
+        globalMatchingEntries = [];
+        Object.values(allGlobal).forEach(function(entry) {
+          if (entry && entry.uid === user.uid) {
+            globalMatchingEntries.push(entry);
+          }
+        });
+        console.log('[STATS] Global entries matching uid:', globalMatchingEntries.length, '(total global:', Object.keys(allGlobal).length + ')');
+        globalDone = true;
+        _onBothLoaded();
+      }, function(err) {
+        console.warn('[STATS] Global stats read failed:', err.message);
+        globalMatchingEntries = [];
+        globalDone = true;
+        _onBothLoaded();
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  USER GAME HISTORY TABLE
+    // ═══════════════════════════════════════════════════════════
+    var _userGamesList = [];
+    var _userGamesPage = 0;
+    var _userGamesPerPage = 10;
+
+    var _userSkillChartInstance = null;
+
+    function _renderUserGameHistory(entries) {
+      _userGamesList = entries.slice().sort(function(a, b) {
+        return (b.timestamp || 0) - (a.timestamp || 0);
+      });
+      _userGamesPage = 0;
+      _renderUserGamesPage();
+      _renderUserSkillChart(entries);
+    }
+
+    function _renderUserSkillChart(entries) {
+      var canvas = document.getElementById('userSkillChart');
+      var msgEl = document.getElementById('user-skill-chart-msg');
+      if (!canvas) return;
+
+      // Split entries by mode (perdere/vincere)
+      var perdereData = entries.filter(function(e) {
+        return typeof e.skillLevel === 'number' && e.timestamp && (e.skillMode === 'perdere' || (!e.skillMode && e.gameMode === 'perdere') || !e.skillMode);
+      }).sort(function(a, b) { return (a.timestamp || 0) - (b.timestamp || 0); });
+
+      var vincereData = entries.filter(function(e) {
+        return typeof e.skillLevel === 'number' && e.timestamp && (e.skillMode === 'vincere' || (!e.skillMode && e.gameMode === 'vincere'));
+      }).sort(function(a, b) { return (a.timestamp || 0) - (b.timestamp || 0); });
+
+      var totalData = perdereData.length + vincereData.length;
+      if (totalData < 2) {
+        if (msgEl) msgEl.textContent = totalData === 0
+          ? 'Nessun dato di bravura disponibile. Gioca qualche partita!'
+          : 'Servono almeno 2 partite per mostrare il grafico.';
+        if (_userSkillChartInstance) { _userSkillChartInstance.destroy(); _userSkillChartInstance = null; }
+        return;
+      }
+      if (msgEl) msgEl.textContent = '';
+
+      // Build datasets
+      var datasets = [];
+      if (perdereData.length >= 2) {
+        datasets.push({
+          label: '🔻 A Perdere',
+          data: perdereData.map(function(e) { return { x: new Date(e.timestamp), y: e.skillLevel }; }),
+          borderColor: '#e65100',
+          backgroundColor: 'rgba(230, 81, 0, 0.08)',
+          fill: false,
+          tension: 0.3,
+          pointBackgroundColor: perdereData.map(function(e) {
+            var v = e.skillLevel;
+            return v < 25 ? '#e53935' : v < 40 ? '#ff9800' : v < 55 ? '#fdd835' : v < 70 ? '#43a047' : v < 85 ? '#1e88e5' : '#7b1fa2';
+          }),
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 2
+        });
+      }
+      if (vincereData.length >= 2) {
+        datasets.push({
+          label: '🔺 A Vincere',
+          data: vincereData.map(function(e) { return { x: new Date(e.timestamp), y: e.skillLevel }; }),
+          borderColor: '#7b1fa2',
+          backgroundColor: 'rgba(123, 31, 162, 0.08)',
+          fill: false,
+          tension: 0.3,
+          pointBackgroundColor: vincereData.map(function(e) {
+            var v = e.skillLevel;
+            return v < 25 ? '#e53935' : v < 40 ? '#ff9800' : v < 55 ? '#fdd835' : v < 70 ? '#43a047' : v < 85 ? '#1e88e5' : '#7b1fa2';
+          }),
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+          borderDash: [5, 3]
+        });
+      }
+
+      if (datasets.length === 0) {
+        if (msgEl) msgEl.textContent = 'Servono almeno 2 partite nella stessa modalità per mostrare il grafico.';
+        if (_userSkillChartInstance) { _userSkillChartInstance.destroy(); _userSkillChartInstance = null; }
+        return;
+      }
+
+      var ctx = canvas.getContext('2d');
+      if (_userSkillChartInstance) _userSkillChartInstance.destroy();
+
+      _userSkillChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { datasets: datasets },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: datasets.length > 1 },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  var v = ctx.parsed.y;
+                  var label = v < 25 ? 'Principiante' : v < 40 ? 'Base' : v < 55 ? 'Intermedio' : v < 70 ? 'Avanzato' : v < 85 ? 'Esperto' : 'Maestro';
+                  return ctx.dataset.label + ': ' + v + '/100 (' + label + ')';
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              min: 0, max: 100,
+              title: { display: true, text: 'Livello Bravura' },
+              ticks: { stepSize: 10 }
+            },
+            x: {
+              type: 'time',
+              time: { unit: 'day', displayFormats: { day: 'dd/MM', hour: 'dd/MM HH:mm' } },
+              title: { display: true, text: 'Data' },
+              ticks: { maxRotation: 45, font: { size: 9 } }
+            }
+          }
+        }
+      });
+    }
+
+    function _renderUserGamesPage() {
+      var tbody = document.getElementById('user-games-tbody');
+      if (!tbody) return;
+      var total = _userGamesList.length;
+      if (total === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" style="padding:16px;color:#888">Nessuna partita trovata.</td></tr>';
+        document.getElementById('user-games-page-info').textContent = '';
+        document.getElementById('user-games-prev').disabled = true;
+        document.getElementById('user-games-next').disabled = true;
+        return;
+      }
+      var start = _userGamesPage * _userGamesPerPage;
+      var end = Math.min(start + _userGamesPerPage, total);
+      var pageItems = _userGamesList.slice(start, end);
+      var html = '';
+      pageItems.forEach(function(entry, idx) {
+        var num = start + idx + 1;
+        var dateStr = entry.timestamp ? new Date(entry.timestamp).toLocaleString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+        var typeBadge = entry.type === 'CPU'
+          ? '<span class="badge badge-cpu">CPU</span>'
+          : '<span class="badge badge-host">Multiplayer</span>';
+        var modeStr = (entry.gameMode === 'vincere') ? 'A Vincere' : 'A Perdere';
+        var diffStr = (entry.difficulty || 'medio').charAt(0).toUpperCase() + (entry.difficulty || 'medio').slice(1);
+        var tricks = entry.tricksPlayed || 0;
+        var durStr = '—';
+        if (entry.durationMs && entry.durationMs > 0) {
+          var secs = Math.floor(entry.durationMs / 1000);
+          var mins = Math.floor(secs / 60);
+          var remSecs = secs % 60;
+          durStr = mins + ':' + (remSecs < 10 ? '0' : '') + remSecs;
+        }
+        // Result badge
+        var resultBadge = '—';
+        if (entry.completed) {
+          if (entry.result === 'win') {
+            resultBadge = '<span class="badge badge-completed">' + (entry.volo ? '🚀 Volo!' : '✅ Vittoria') + '</span>';
+          } else if (entry.result === 'lose') {
+            resultBadge = '<span class="badge badge-incomplete">❌ Sconfitta</span>';
+          } else if (entry.result === 'draw') {
+            resultBadge = '<span class="badge" style="background:#ff9800;color:#fff">🤝 Parità</span>';
+          } else {
+            resultBadge = '<span class="badge" style="background:#888;color:#fff">—</span>';
+          }
+        } else {
+          resultBadge = '<span style="color:#999;font-size:0.8rem">—</span>';
+        }
+        // Score display
+        var scoreStr = '—';
+        if (entry.completed && entry.scores && entry.playerNames) {
+          var parts = [];
+          for (var si = 0; si < entry.scores.length; si++) {
+            var t = entry.scores[si];
+            var w = Math.floor(t / 3);
+            var f = t % 3;
+            var ps = '' + w;
+            if (f === 1) ps = w > 0 ? w + '⅓' : '⅓';
+            else if (f === 2) ps = w > 0 ? w + '⅔' : '⅔';
+            parts.push((entry.playerNames[si] || ('P'+(si+1))) + ' ' + ps);
+          }
+          scoreStr = '<span style="font-size:0.75rem">' + parts.join(', ') + '</span>';
+        } else if (entry.completed && typeof entry.playerScore === 'number') {
+          var t2 = entry.playerScore;
+          var w2 = Math.floor(t2 / 3);
+          var f2 = t2 % 3;
+          var ps2 = '' + w2;
+          if (f2 === 1) ps2 = w2 > 0 ? w2 + '⅓' : '⅓';
+          else if (f2 === 2) ps2 = w2 > 0 ? w2 + '⅔' : '⅔';
+          scoreStr = 'Tu: ' + ps2 + ' pt';
+        }
+        var statusBadge = entry.completed
+          ? '<span class="badge badge-completed">Completata</span>'
+          : '<span class="badge badge-incomplete">Abbandonata</span>';
+        html += '<tr>';
+        html += '<td>' + num + '</td>';
+        html += '<td style="font-size:0.8rem">' + dateStr + '</td>';
+        html += '<td>' + typeBadge + '</td>';
+        html += '<td>' + modeStr + '</td>';
+        html += '<td>' + diffStr + '</td>';
+        html += '<td>' + resultBadge + '</td>';
+        html += '<td>' + scoreStr + '</td>';
+        // Skill level badge
+        var skillBadge1 = '\u2014';
+        if (typeof entry.skillLevel === 'number') {
+          var sk1 = entry.skillLevel;
+          var skC1 = sk1 < 25 ? '#e53935' : sk1 < 40 ? '#ff9800' : sk1 < 55 ? '#fdd835' : sk1 < 70 ? '#43a047' : sk1 < 85 ? '#1e88e5' : '#7b1fa2';
+          var skFg1 = (sk1 >= 40 && sk1 < 55) ? '#333' : '#fff';
+          var skMode1 = entry.skillMode === 'vincere' ? '\ud83d\udd3a' : '\ud83d\udd3b';
+          skillBadge1 = '<span class=\"badge\" style=\"background:' + skC1 + ';color:' + skFg1 + '\">' + skMode1 + ' ' + sk1 + '</span>';
+        }
+        html += '<td>' + skillBadge1 + '</td>';
+        html += '<td>' + tricks + '</td>';
+        html += '<td>' + durStr + '</td>';
+        html += '<td>' + statusBadge + '</td>';
+        html += '</tr>';
+      });
+      tbody.innerHTML = html;
+      var totalPages = Math.ceil(total / _userGamesPerPage);
+      document.getElementById('user-games-page-info').textContent = 'Pagina ' + (_userGamesPage + 1) + ' di ' + totalPages + ' (' + total + ' partite)';
+      document.getElementById('user-games-prev').disabled = (_userGamesPage <= 0);
+      document.getElementById('user-games-next').disabled = (end >= total);
+    }
+
+    function userGamesPagePrev() {
+      if (_userGamesPage > 0) { _userGamesPage--; _renderUserGamesPage(); }
+    }
+    function userGamesPageNext() {
+      var maxPage = Math.ceil(_userGamesList.length / _userGamesPerPage) - 1;
+      if (_userGamesPage < maxPage) { _userGamesPage++; _renderUserGamesPage(); }
+    }
+
+    // Caricamento Dati
+    var _rawGames = [];
+    var _rawGamesKeyed = []; // entries with Firebase keys for deletion
+
+    function loadData() {
+      db.ref('statistics/games').on('value', snapshot => {
+        _rawGames = [];
+        _rawGamesKeyed = [];
+        snapshot.forEach(child => {
+          var val = child.val();
+          _rawGames.push(val);
+          _rawGamesKeyed.push({ key: child.key, val: val });
+        });
+        renderFilteredData();
+      }, error => {
+        alert('Errore nel caricamento dei dati: per favore controlla le Security Rules di Firebase. \n' + error.message);
+      });
+    }
+
+    function applyDateFilter() {
+      renderFilteredData();
+      renderFilteredLiveData();
+    }
+
+    function resetDateFilter() {
+      document.getElementById('filter-from').value = '';
+      document.getElementById('filter-to').value = '';
+      renderFilteredData();
+      renderFilteredLiveData();
+    }
+
+    function renderFilteredData() {
+      var fromVal = document.getElementById('filter-from').value;
+      var toVal = document.getElementById('filter-to').value;
+      var fromTs = fromVal ? new Date(fromVal).getTime() : 0;
+      var toTs = toVal ? new Date(toVal + 'T23:59:59').getTime() : Infinity;
+
+      let cpu = 0, host = 0, client = 0, total = 0;
+      let versions = {};
+      let dailyCpu = {}, dailyMp = {};
+      let durations = [];
+      let minDur = null, maxDur = null;
+
+      _rawGames.forEach(data => {
+        var ts = data.timestamp ? new Date(data.timestamp).getTime() : 0;
+        if (ts < fromTs || ts > toTs) return;
+
+        total++;
+        if (data.type === 'CPU') cpu++;
+        if (data.type === 'Multiplayer') {
+          if (data.role === 'Host') host++;
+          if (data.role === 'Client') client++;
+        }
+
+        // Duration tracking
+        if (data.durationMs && data.durationMs > 0) {
+          durations.push(data.durationMs);
+          if (!minDur || data.durationMs < minDur.durationMs) minDur = data;
+          if (!maxDur || data.durationMs > maxDur.durationMs) maxDur = data;
+        }
+
+        let v = data.version || 'sviluppo';
+        versions[v] = (versions[v] || 0) + 1;
+
+        if (data.timestamp) {
+          let d = new Date(data.timestamp);
+          let key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + 'T' + String(d.getHours()).padStart(2,'0');
+          if (data.type === 'CPU') {
+            dailyCpu[key] = (dailyCpu[key] || 0) + 1;
+          } else {
+            dailyMp[key] = (dailyMp[key] || 0) + 1;
+          }
+        }
+      });
+
+      document.getElementById('count-cpu').textContent = cpu;
+      document.getElementById('count-host').textContent = host;
+      document.getElementById('count-client').textContent = client;
+      document.getElementById('count-total').textContent = total;
+
+      // Duration stats
+      if (durations.length > 0) {
+        var totalDurMs = durations.reduce(function(a, b){ return a + b; }, 0);
+        var avgMs = totalDurMs / durations.length;
+        document.getElementById('dur-avg').textContent = _fmtDuration(avgMs);
+        document.getElementById('dur-total').textContent = _fmtDuration(totalDurMs);
+        document.getElementById('dur-min').textContent = _fmtDuration(minDur.durationMs);
+        document.getElementById('dur-min-info').textContent = (minDur.type || '') + (minDur.role ? ' ' + minDur.role : '') + ' — ' + (minDur.tricksPlayed != null ? minDur.tricksPlayed + '/10 mani' : '') + (minDur.timestamp ? ' — ' + new Date(minDur.timestamp).toLocaleDateString('it-IT') : '');
+        document.getElementById('dur-max').textContent = _fmtDuration(maxDur.durationMs);
+        document.getElementById('dur-max-info').textContent = (maxDur.type || '') + (maxDur.role ? ' ' + maxDur.role : '') + ' — ' + (maxDur.tricksPlayed != null ? maxDur.tricksPlayed + '/10 mani' : '') + (maxDur.timestamp ? ' — ' + new Date(maxDur.timestamp).toLocaleDateString('it-IT') : '');
+      } else {
+        document.getElementById('dur-avg').textContent = '—';
+        document.getElementById('dur-total').textContent = '—';
+        document.getElementById('dur-min').textContent = '—';
+        document.getElementById('dur-min-info').textContent = 'Nessun dato';
+        document.getElementById('dur-max').textContent = '—';
+        document.getElementById('dur-max-info').textContent = 'Nessun dato';
+      }
+
+      let ul = document.getElementById('version-list');
+      ul.innerHTML = '';
+      let sortedVersions = Object.entries(versions).sort((a, b) => b[1] - a[1]);
+      for(let [v, count] of sortedVersions) {
+         let li = document.createElement('li');
+         li.style.padding = "5px 0";
+         li.style.borderBottom = "1px solid #ccc";
+         li.style.display = "flex";
+         li.style.justifyContent = "space-between";
+         li.style.alignItems = "center";
+         li.innerHTML = `<strong>v${v}</strong><span style="min-width:40px;text-align:right;font-variant-numeric:tabular-nums">${count}</span>`;
+         ul.appendChild(li);
+      }
+
+      renderChart(cpu, host, client);
+      renderDailyChart(dailyCpu, dailyMp);
+      renderGamesTable();
+    }
+
+  // ═══════════════════════════════════════════════════════════
+  //  LISTA ULTIME PARTITE — paginated table
+  // ═══════════════════════════════════════════════════════════
+  var _gamesPage = 0;
+  var _gamesPerPage = 20;
+  var _filteredGames = [];
+
+  function renderGamesTable() {
+    var fromVal = document.getElementById('filter-from').value;
+    var toVal = document.getElementById('filter-to').value;
+    var fromTs = fromVal ? new Date(fromVal).getTime() : 0;
+    var toTs = toVal ? new Date(toVal + 'T23:59:59').getTime() : Infinity;
+
+    _filteredGames = _rawGames.filter(function(g) {
+      var ts = g.timestamp ? new Date(g.timestamp).getTime() : 0;
+      return ts >= fromTs && ts <= toTs;
+    });
+    // Sort descending by timestamp (most recent first)
+    _filteredGames.sort(function(a, b) {
+      return (b.timestamp || 0) - (a.timestamp || 0);
+    });
+    _gamesPage = 0;
+    _renderGamesPage();
+  }
+
+  function _renderGamesPage() {
+    var tbody = document.getElementById('games-tbody');
+    var total = _filteredGames.length;
+    var totalPages = Math.max(1, Math.ceil(total / _gamesPerPage));
+    var start = _gamesPage * _gamesPerPage;
+    var end = Math.min(start + _gamesPerPage, total);
+    var pageGames = _filteredGames.slice(start, end);
+
+    if (total === 0) {
+      tbody.innerHTML = '<tr><td colspan="13" style="padding:16px;color:#888">Nessuna partita trovata.</td></tr>';
+    } else {
+      var html = '';
+      pageGames.forEach(function(g, idx) {
+        var num = total - start - idx;
+        var dateStr = g.timestamp ? new Date(g.timestamp).toLocaleString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+        var typeBadge = g.type === 'CPU'
+          ? '<span class="badge badge-cpu">CPU</span>'
+          : '<span class="badge badge-host">MP</span>';
+        var modeBadge = g.gameMode === 'vincere'
+          ? '<span class="badge" style="background:#7b1fa2">🔺 Vincere</span>'
+          : '<span class="badge" style="background:#e65100">🔻 Perdere</span>';
+        var roleBadge = '';
+        if (g.type === 'Multiplayer') {
+          roleBadge = g.role === 'Host'
+            ? '<span class="badge badge-host">Host</span>'
+            : '<span class="badge badge-client">Client</span>';
+        } else {
+          roleBadge = '<span style="color:#888">—</span>';
+        }
+        var diff = g.type === 'CPU' ? (g.difficulty || '—') : '<span style="color:#888">—</span>';
+        // Risultato
+        var resultBadge = '—';
+        if (g.completed) {
+          if (g.result === 'win') {
+            resultBadge = '<span class="badge badge-completed">' + (g.volo ? '🚀 Volo!' : '✅ Vittoria') + '</span>';
+          } else if (g.result === 'lose') {
+            resultBadge = '<span class="badge badge-incomplete">❌ Sconfitta</span>';
+          } else if (g.result === 'draw') {
+            resultBadge = '<span class="badge" style="background:#ff9800;color:#fff">🤝 Parità</span>';
+          } else {
+            resultBadge = '<span class="badge" style="background:#888;color:#fff">—</span>';
+          }
+        } else {
+          resultBadge = '<span style="color:#999;font-size:0.8rem">—</span>';
+        }
+        // Punteggio
+        var scoreStr = '—';
+        if (g.completed && g.scores && g.playerNames) {
+          var parts = [];
+          for (var si = 0; si < g.scores.length; si++) {
+            var t = g.scores[si];
+            var w = Math.floor(t / 3);
+            var f = t % 3;
+            var ps = '' + w;
+            if (f === 1) ps = w > 0 ? w + '⅓' : '⅓';
+            else if (f === 2) ps = w > 0 ? w + '⅔' : '⅔';
+            parts.push((g.playerNames[si] || ('P'+(si+1))) + ' ' + ps);
+          }
+          scoreStr = '<span style="font-size:0.75rem">' + parts.join(', ') + '</span>';
+        } else if (g.completed && typeof g.playerScore === 'number') {
+          var t2 = g.playerScore;
+          var w2 = Math.floor(t2 / 3);
+          var f2 = t2 % 3;
+          var ps2 = '' + w2;
+          if (f2 === 1) ps2 = w2 > 0 ? w2 + '⅓' : '⅓';
+          else if (f2 === 2) ps2 = w2 > 0 ? w2 + '⅔' : '⅔';
+          scoreStr = 'Tu: ' + ps2 + ' pt';
+        }
+        var tricks = g.tricksPlayed != null ? g.tricksPlayed + '/10' : '—';
+        var dur = _fmtDuration(g.durationMs);
+        var statusBadge = g.completed
+          ? '<span class="badge badge-completed">Completata</span>'
+          : '<span class="badge badge-incomplete">Abbandonata</span>';
+        var ver = g.version || '—';
+
+        html += '<tr>';
+        html += '<td>' + num + '</td>';
+        html += '<td style="white-space:nowrap">' + dateStr + '</td>';
+        html += '<td>' + typeBadge + '</td>';
+        html += '<td>' + modeBadge + '</td>';
+        html += '<td>' + roleBadge + '</td>';
+        html += '<td>' + diff + '</td>';
+        html += '<td>' + resultBadge + '</td>';
+        html += '<td>' + scoreStr + '</td>';
+        // Skill level badge
+        var skillBadge2 = '\u2014';
+        if (typeof g.skillLevel === 'number') {
+          var sk2 = g.skillLevel;
+          var skC2 = sk2 < 25 ? '#e53935' : sk2 < 40 ? '#ff9800' : sk2 < 55 ? '#fdd835' : sk2 < 70 ? '#43a047' : sk2 < 85 ? '#1e88e5' : '#7b1fa2';
+          var skFg2 = (sk2 >= 40 && sk2 < 55) ? '#333' : '#fff';
+          var skMode2 = g.skillMode === 'vincere' ? '\ud83d\udd3a' : '\ud83d\udd3b';
+          skillBadge2 = '<span class=\"badge\" style=\"background:' + skC2 + ';color:' + skFg2 + '\">' + skMode2 + ' ' + sk2 + '</span>';
+        }
+        html += '<td>' + skillBadge2 + '</td>';
+        html += '<td>' + tricks + '</td>';
+        html += '<td>' + dur + '</td>';
+        html += '<td>' + statusBadge + '</td>';
+        html += '<td>' + ver + '</td>';
+        html += '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+
+    // Pager
+    document.getElementById('games-page-info').textContent = 'Pagina ' + (_gamesPage + 1) + ' di ' + totalPages + ' (' + total + ' partite)';
+    document.getElementById('games-prev').disabled = (_gamesPage <= 0);
+    document.getElementById('games-next').disabled = (_gamesPage >= totalPages - 1);
+  }
+
+  function gamesPagePrev() {
+    if (_gamesPage > 0) { _gamesPage--; _renderGamesPage(); }
+  }
+  function gamesPageNext() {
+    var totalPages = Math.ceil(_filteredGames.length / _gamesPerPage);
+    if (_gamesPage < totalPages - 1) { _gamesPage++; _renderGamesPage(); }
+  }
+
+  var _rawRooms = {};
+  var _rawLobby = {};
+
+  function loadLiveData() {
+    // Ascolta le stanze attive
+    db.ref('rooms').on('value', snapshot => {
+      _rawRooms = snapshot.val() || {};
+      renderFilteredLiveData();
+    });
+
+    // Ascolta i giocatori in lobby
+    db.ref('lobby').on('value', snapshot => {
+      _rawLobby = snapshot.val() || {};
+      renderFilteredLiveData();
+    });
+  }
+
+  function renderFilteredLiveData() {
+    var fromVal = document.getElementById('filter-from').value;
+    var toVal = document.getElementById('filter-to').value;
+    var fromTs = fromVal ? new Date(fromVal).getTime() : 0;
+    var toTs = toVal ? new Date(toVal + 'T23:59:59').getTime() : Infinity;
+
+    // Filter rooms by meta.hostLease
+    var filteredRooms = {};
+    for (var code in _rawRooms) {
+      var room = _rawRooms[code];
+      var lease = (room.meta && room.meta.hostLease) ? room.meta.hostLease : 0;
+      if (lease === 0 || (lease >= fromTs && lease <= toTs)) {
+        filteredRooms[code] = room;
+      }
+    }
+
+    // Filter lobby by time
+    var filteredLobby = {};
+    for (var lcode in _rawLobby) {
+      var entry = _rawLobby[lcode];
+      var ts = entry.time || 0;
+      if (ts === 0 || (ts >= fromTs && ts <= toTs)) {
+        filteredLobby[lcode] = entry;
+      }
+    }
+
+    document.getElementById('count-rooms').textContent = Object.keys(filteredRooms).length;
+    document.getElementById('rooms-json').textContent = JSON.stringify(filteredRooms, null, 2);
+    document.getElementById('count-lobby').textContent = Object.keys(filteredLobby).length;
+    document.getElementById('lobby-json').textContent = JSON.stringify(filteredLobby, null, 2);
+  }
+
+  function cleanupOldEntries() {
+    var btn = document.getElementById('cleanup-btn');
+    var log = document.getElementById('cleanup-log');
+    log.style.display = 'block';
+    log.textContent = 'Avvio pulizia...\n';
+    btn.disabled = true;
+    btn.textContent = '⏳ Pulizia in corso...';
+
+    var cutoff = Date.now() - (24 * 60 * 60 * 1000);
+    var removedRooms = 0, removedLobby = 0, keptRooms = 0, keptLobby = 0;
+
+    function finish() {
+      log.textContent += '\n--- Risultato ---\n';
+      log.textContent += 'Rooms rimosse: ' + removedRooms + ' | mantenute: ' + keptRooms + '\n';
+      log.textContent += 'Lobby rimosse: ' + removedLobby + ' | mantenute: ' + keptLobby + '\n';
+      log.textContent += 'Pulizia completata.';
+      btn.disabled = false;
+      btn.textContent = '🗑️ Pulisci Rooms e Lobby (> 24h)';
+    }
+
+    // Clean rooms
+    db.ref('rooms').once('value', function(snap) {
+      var rooms = snap.val() || {};
+      var roomKeys = Object.keys(rooms);
+      log.textContent += 'Trovate ' + roomKeys.length + ' stanze.\n';
+
+      var roomsDone = 0;
+      if (roomKeys.length === 0) {
+        // proceed to lobby
+        cleanLobby();
+        return;
+      }
+
+      roomKeys.forEach(function(code) {
+        var room = rooms[code];
+        var lease = (room.meta && room.meta.hostLease) ? room.meta.hostLease : 0;
+        if (lease > 0 && lease < cutoff) {
+          log.textContent += '  [ROOM] ' + code + ' — lease ' + new Date(lease).toLocaleString() + ' → RIMOSSA\n';
+          db.ref('rooms/' + code).remove();
+          removedRooms++;
+        } else if (lease === 0) {
+          // No lease at all — orphan, remove it
+          log.textContent += '  [ROOM] ' + code + ' — nessun lease → RIMOSSA\n';
+          db.ref('rooms/' + code).remove();
+          removedRooms++;
+        } else {
+          log.textContent += '  [ROOM] ' + code + ' — lease ' + new Date(lease).toLocaleString() + ' → OK\n';
+          keptRooms++;
+        }
+        roomsDone++;
+        if (roomsDone === roomKeys.length) cleanLobby();
+      });
+    });
+
+    function cleanLobby() {
+      db.ref('lobby').once('value', function(snap) {
+        var lobbies = snap.val() || {};
+        var lobbyKeys = Object.keys(lobbies);
+        log.textContent += 'Trovate ' + lobbyKeys.length + ' voci in lobby.\n';
+
+        lobbyKeys.forEach(function(code) {
+          var entry = lobbies[code];
+          var ts = entry.time || 0;
+          if (ts > 0 && ts < cutoff) {
+            log.textContent += '  [LOBBY] ' + code + ' — ' + new Date(ts).toLocaleString() + ' → RIMOSSA\n';
+            db.ref('lobby/' + code).remove();
+            removedLobby++;
+          } else if (ts === 0) {
+            log.textContent += '  [LOBBY] ' + code + ' — nessun timestamp → RIMOSSA\n';
+            db.ref('lobby/' + code).remove();
+            removedLobby++;
+          } else {
+            log.textContent += '  [LOBBY] ' + code + ' — ' + new Date(ts).toLocaleString() + ' → OK\n';
+            keptLobby++;
+          }
+        });
+
+        finish();
+      });
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  PULIZIA PARTITE DUPLICATE
+  //  In multiplayer, each player writes to statistics/games.
+  //  This finds entries with the same scores+timestamp and keeps only one per group.
+  // ═══════════════════════════════════════════════════════════
+  function cleanupDuplicateGames() {
+    var btn = document.getElementById('cleanup-dupes-btn');
+    var log = document.getElementById('cleanup-dupes-log');
+    log.style.display = 'block';
+    log.textContent = 'Analisi partite duplicate in corso...\n';
+    btn.disabled = true;
+    btn.textContent = '⏳ Analisi in corso...';
+
+    db.ref('statistics/games').once('value', function(snapshot) {
+      var entries = [];
+      snapshot.forEach(function(child) {
+        entries.push({ key: child.key, val: child.val() });
+      });
+
+      log.textContent += 'Totale entry nel database: ' + entries.length + '\n';
+
+      // Build a fingerprint for each entry to detect duplicates.
+      // Duplicates share the same: type=Multiplayer, scores, playerNames, tricksPlayed,
+      // gameMode, and timestamps within 5 seconds of each other.
+      function fingerprint(e) {
+        var v = e.val;
+        var scores = (v.scores && v.scores.length) ? v.scores.join(',') : '';
+        var names = (v.playerNames && v.playerNames.length) ? v.playerNames.join(',') : '';
+        return [v.type || '', v.gameMode || '', scores, names, v.tricksPlayed || 0, v.completed ? '1' : '0'].join('|');
+      }
+
+      // Group entries by fingerprint, then within each group cluster by close timestamps
+      var groups = {};
+      entries.forEach(function(e) {
+        var fp = fingerprint(e);
+        if (!groups[fp]) groups[fp] = [];
+        groups[fp].push(e);
+      });
+
+      var keysToRemove = [];
+      var groupsFound = 0;
+
+      Object.keys(groups).forEach(function(fp) {
+        var group = groups[fp];
+        if (group.length <= 1) return; // no duplicates
+
+        // Sort by timestamp
+        group.sort(function(a, b) { return (a.val.timestamp || 0) - (b.val.timestamp || 0); });
+
+        // Cluster entries within 10 seconds of each other
+        var clusters = [];
+        var currentCluster = [group[0]];
+        for (var i = 1; i < group.length; i++) {
+          var prevTs = group[i-1].val.timestamp || 0;
+          var curTs = group[i].val.timestamp || 0;
+          if (curTs - prevTs <= 10000) { // 10 seconds
+            currentCluster.push(group[i]);
+          } else {
+            clusters.push(currentCluster);
+            currentCluster = [group[i]];
+          }
+        }
+        clusters.push(currentCluster);
+
+        // For each cluster with >1 entry, keep the best one (prefer Host, or the one with duration)
+        clusters.forEach(function(cluster) {
+          if (cluster.length <= 1) return;
+          groupsFound++;
+
+          // Pick best: prefer Host role, then one with durationMs
+          cluster.sort(function(a, b) {
+            var aHost = (a.val.role === 'Host') ? 1 : 0;
+            var bHost = (b.val.role === 'Host') ? 1 : 0;
+            if (bHost !== aHost) return bHost - aHost;
+            var aDur = (a.val.durationMs && a.val.durationMs > 0) ? 1 : 0;
+            var bDur = (b.val.durationMs && b.val.durationMs > 0) ? 1 : 0;
+            return bDur - aDur;
+          });
+
+          var kept = cluster[0];
+          var dateStr = kept.val.timestamp ? new Date(kept.val.timestamp).toLocaleString('it-IT') : '?';
+          var namesStr = (kept.val.playerNames || []).join(', ');
+          log.textContent += '\n📋 Gruppo: ' + dateStr + ' — ' + namesStr + '\n';
+          log.textContent += '   Mantenuta: [' + kept.key.substring(0,8) + '...] ' + (kept.val.role || kept.val.type) + '\n';
+
+          for (var j = 1; j < cluster.length; j++) {
+            var dup = cluster[j];
+            log.textContent += '   Rimossa:   [' + dup.key.substring(0,8) + '...] ' + (dup.val.role || dup.val.type) + '\n';
+            keysToRemove.push(dup.key);
+          }
+        });
+      });
+
+      log.textContent += '\n--- Risultato ---\n';
+      log.textContent += 'Gruppi di duplicati trovati: ' + groupsFound + '\n';
+      log.textContent += 'Entry da rimuovere: ' + keysToRemove.length + '\n';
+
+      if (keysToRemove.length === 0) {
+        log.textContent += 'Nessuna entry duplicata trovata. ✅\n';
+        btn.disabled = false;
+        btn.textContent = '🔄 Trova e Rimuovi Partite Duplicate';
+        return;
+      }
+
+      log.textContent += '\nRimozione in corso...\n';
+
+      var removed = 0;
+      var errors = 0;
+      var total = keysToRemove.length;
+
+      // Build a multi-path update for atomic deletion
+      var updates = {};
+      keysToRemove.forEach(function(key) {
+        updates[key] = null;
+      });
+
+      db.ref('statistics/games').update(updates).then(function() {
+        removed = total;
+        log.textContent += 'Rimosse ' + removed + ' entry duplicate con successo. ✅\n';
+        btn.disabled = false;
+        btn.textContent = '🔄 Trova e Rimuovi Partite Duplicate';
+      }).catch(function(err) {
+        log.textContent += 'Errore durante la rimozione: ' + err.message + '\n';
+        log.textContent += 'Tentativo rimozione singola...\n';
+        // Fallback: remove one by one
+        var promises = keysToRemove.map(function(key) {
+          return db.ref('statistics/games/' + key).remove().then(function() {
+            removed++;
+          }).catch(function() {
+            errors++;
+          });
+        });
+        Promise.all(promises).then(function() {
+          log.textContent += 'Rimosse: ' + removed + ' | Errori: ' + errors + '\n';
+          btn.disabled = false;
+          btn.textContent = '🔄 Trova e Rimuovi Partite Duplicate';
+        });
+      });
+    }, function(err) {
+      log.textContent += 'Errore lettura database: ' + err.message + '\n';
+      btn.disabled = false;
+      btn.textContent = '🔄 Trova e Rimuovi Partite Duplicate';
+    });
+  }
+
+  function renderChart(cpu, host, client) {
+    const ctx = document.getElementById('statsChart').getContext('2d');
+      if (statsChartInstance) {
+        statsChartInstance.destroy();
+      }
+      statsChartInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: ['CPU', 'Multiplay Host', 'Multiplay Client'],
+          datasets: [{
+            data: [cpu, host, client],
+            backgroundColor: ['#4caf50', '#2196f3', '#ff9800']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
+      });
+    }
+
+    function renderDailyChart(dailyCpu, dailyMp) {
+      // Unisci tutte le chiavi orarie e ordina
+      let allKeys = new Set([...Object.keys(dailyCpu), ...Object.keys(dailyMp)]);
+      let sortedKeys = Array.from(allKeys).sort();
+
+      let cpuData = sortedKeys.map(k => dailyCpu[k] || 0);
+      let mpData = sortedKeys.map(k => dailyMp[k] || 0);
+      let totalData = sortedKeys.map((k, i) => cpuData[i] + mpData[i]);
+
+      // Etichette: DD/MM HH:00
+      let labels = sortedKeys.map(k => {
+        let parts = k.split('T');
+        let dp = parts[0].split('-');
+        return dp[2] + '/' + dp[1] + ' ' + parts[1] + ':00';
+      });
+
+      const ctx = document.getElementById('dailyChart').getContext('2d');
+      if (dailyChartInstance) dailyChartInstance.destroy();
+      dailyChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'CPU',
+              data: cpuData,
+              backgroundColor: 'rgba(76, 175, 80, 0.7)',
+              borderColor: '#4caf50',
+              borderWidth: 1
+            },
+            {
+              label: 'Multiplayer',
+              data: mpData,
+              backgroundColor: 'rgba(33, 150, 243, 0.7)',
+              borderColor: '#2196f3',
+              borderWidth: 1
+            },
+            {
+              label: 'Totale',
+              data: totalData,
+              type: 'line',
+              borderColor: '#ff9800',
+              backgroundColor: 'rgba(255, 152, 0, 0.1)',
+              borderWidth: 2,
+              pointRadius: 3,
+              fill: true,
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { stacked: true, title: { display: true, text: 'Ora' }, ticks: { maxRotation: 60, autoSkip: true, maxTicksLimit: 24 } },
+            y: { stacked: false, beginAtZero: true, title: { display: true, text: 'Partite' }, ticks: { stepSize: 1 } }
+          },
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: { mode: 'index', intersect: false }
+          }
+        }
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  ADMIN MANAGEMENT — auto-bootstrap + user table
+    // ═══════════════════════════════════════════════════════════
+    var _admins = {};
+    var _allUsers = {};
+
+    function loadAdmins() {
+      // First: auto-bootstrap — if no admins exist, make current user admin
+      db.ref('admins').once('value', function(snap) {
+        var admins = snap.val();
+        if (!admins || Object.keys(admins).length === 0) {
+          var user = auth.currentUser;
+          if (user) {
+            db.ref('admins/' + user.uid).set({
+              email: user.email || '',
+              displayName: user.displayName || '',
+              addedBy: 'auto-bootstrap',
+              addedAt: firebase.database.ServerValue.TIMESTAMP
+            }).then(function() {
+              _showAdminMsg('✅ Sei diventato il primo amministratore!', 'green');
+              _startAdminListeners();
+            });
+            return;
+          }
+        }
+        _startAdminListeners();
+      });
+    }
+
+    function _startAdminListeners() {
+      // Listen to admins
+      db.ref('admins').on('value', function(snap) {
+        _admins = snap.val() || {};
+        _renderUsersTable();
+      }, function(err) {
+        _showAdminMsg('Errore caricamento admin: ' + err.message, 'red');
+      });
+
+      // Listen to users
+      db.ref('users').on('value', function(snap) {
+        _allUsers = snap.val() || {};
+        _renderUsersTable();
+      }, function(err) {
+        _showAdminMsg('Errore caricamento utenti: ' + err.message, 'red');
+      });
+    }
+
+    function _renderUsersTable() {
+      var tbody = document.getElementById('users-tbody');
+      if (!tbody) return;
+      var currentUid = auth.currentUser ? auth.currentUser.uid : '';
+      var uids = Object.keys(_allUsers);
+
+      // Also include admins that might not be in _allUsers
+      Object.keys(_admins).forEach(function(uid) {
+        if (uids.indexOf(uid) === -1) uids.push(uid);
+      });
+
+      if (uids.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;text-align:center;color:#888">Nessun utente registrato.</td></tr>';
+        return;
+      }
+
+      // Sort: admins first, then by name
+      uids.sort(function(a, b) {
+        var aAdmin = _admins[a] ? 0 : 1;
+        var bAdmin = _admins[b] ? 0 : 1;
+        if (aAdmin !== bAdmin) return aAdmin - bAdmin;
+        var aName = (_allUsers[a] && _allUsers[a].displayName) || '';
+        var bName = (_allUsers[b] && _allUsers[b].displayName) || '';
+        return aName.localeCompare(bName);
+      });
+
+      var html = '';
+      uids.forEach(function(uid) {
+        var user = _allUsers[uid] || {};
+        var admin = _admins[uid];
+        var isAdmin = !!admin;
+        var isMe = uid === currentUid;
+        var name = user.displayName || (admin && admin.displayName) || '';
+        var email = user.email || (admin && admin.email) || '—';
+        if (!name) name = email.split('@')[0] || uid.substring(0, 8);
+        var lastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleString('it-IT') : (admin && admin.addedAt ? new Date(admin.addedAt).toLocaleString('it-IT') : '—');
+        var roleColor = isAdmin ? '#2a6a2a' : '#666';
+        var roleLabel = isAdmin ? '👑 Admin' : '👤 Utente';
+        var rowBg = isAdmin ? '#e8f5e9' : (isMe ? '#e3f2fd' : '#fff');
+
+        html += '<tr style="background:' + rowBg + ';border-bottom:1px solid #ddd">';
+        html += '<td style="padding:8px"><strong>' + name + '</strong>' + (isMe ? ' <span style="color:#1565c0;font-size:0.8rem">(Tu)</span>' : '') + '</td>';
+        html += '<td style="padding:8px;color:#555">' + email + '</td>';
+        html += '<td style="padding:8px;text-align:center;color:' + roleColor + ';font-weight:bold">' + roleLabel + '</td>';
+        // Skill levels from playerProfiles (per-mode: perdere/vincere)
+        var profiles = user.playerProfiles || null;
+        // Fallback to legacy single profile
+        if (!profiles && user.playerProfile && typeof user.playerProfile.skillLevel === 'number') {
+          profiles = { perdere: user.playerProfile, vincere: null };
+        }
+        var skillDisplay = '—';
+        if (profiles) {
+          var skillParts = [];
+          ['perdere','vincere'].forEach(function(mode) {
+            var p = profiles[mode];
+            if (p && typeof p.skillLevel === 'number' && p.gamesPlayed > 0) {
+              var sv = p.skillLevel;
+              var sc = sv < 25 ? '#e53935' : sv < 40 ? '#ff9800' : sv < 55 ? '#fdd835' : sv < 70 ? '#43a047' : sv < 85 ? '#1e88e5' : '#7b1fa2';
+              var sfg = (sv >= 40 && sv < 55) ? '#333' : '#fff';
+              var icon = mode === 'vincere' ? '🔺' : '🔻';
+              skillParts.push('<span class="badge" style="background:' + sc + ';color:' + sfg + '">' + icon + ' ' + sv + '</span>');
+            }
+          });
+          if (skillParts.length > 0) skillDisplay = skillParts.join(' ');
+        }
+        html += '<td style="padding:8px;text-align:center">' + skillDisplay + '</td>';
+        html += '<td style="padding:8px;text-align:center;color:#888;font-size:0.85rem">' + lastLogin + '</td>';
+        html += '<td style="padding:8px;text-align:center">';
+        if (isMe) {
+          html += '<span style="color:#888;font-size:0.8rem">—</span>';
+        } else if (isAdmin) {
+          html += '<button onclick="toggleAdmin(\'' + uid + '\', false)" style="background:#c62828;padding:4px 12px;font-size:0.8rem;border:none;color:#fff;border-radius:4px;cursor:pointer">Rimuovi Admin</button>';
+        } else {
+          html += '<button onclick="toggleAdmin(\'' + uid + '\', true)" style="background:#2a6a2a;padding:4px 12px;font-size:0.8rem;border:none;color:#fff;border-radius:4px;cursor:pointer">Rendi Admin</button>';
+        }
+        html += '</td></tr>';
+      });
+      tbody.innerHTML = html;
+    }
+
+    function toggleAdmin(uid, makeAdmin) {
+      var user = _allUsers[uid] || {};
+      var label = user.displayName || user.email || uid;
+      if (makeAdmin) {
+        if (!confirm('Rendere "' + label + '" amministratore?')) return;
+        db.ref('admins/' + uid).set({
+          email: user.email || '',
+          displayName: user.displayName || '',
+          addedBy: auth.currentUser ? auth.currentUser.email : 'unknown',
+          addedAt: firebase.database.ServerValue.TIMESTAMP
+        }).then(function() {
+          _showAdminMsg('✅ ' + label + ' è ora admin', 'green');
+        }).catch(function(e) {
+          _showAdminMsg('Errore: ' + e.message, 'red');
+        });
+      } else {
+        if (!confirm('Rimuovere "' + label + '" dagli amministratori?')) return;
+        db.ref('admins/' + uid).remove().then(function() {
+          _showAdminMsg('✅ ' + label + ' non è più admin', 'green');
+        }).catch(function(e) {
+          _showAdminMsg('Errore: ' + e.message, 'red');
+        });
+      }
+    }
+
+    function _showAdminMsg(text, color) {
+      var el = document.getElementById('admin-msg');
+      if (el) { el.style.color = color || '#333'; el.textContent = text; }
+    }
+
+    function manualAddUser() {
+      var name = document.getElementById('manual-user-name').value.trim();
+      var email = document.getElementById('manual-user-email').value.trim();
+      var uid = document.getElementById('manual-user-uid').value.trim();
+      if (!email) { _showAdminMsg('Inserisci almeno l\'email.', 'red'); return; }
+      if (!uid) { _showAdminMsg('Inserisci lo UID (lo trovi in Firebase Console → Authentication → Users).', 'red'); return; }
+      db.ref('users/' + uid).set({
+        email: email,
+        displayName: name || email.split('@')[0],
+        lastLogin: firebase.database.ServerValue.TIMESTAMP,
+        addedManually: true
+      }).then(function() {
+        _showAdminMsg('✅ Utente aggiunto: ' + (name || email), 'green');
+        document.getElementById('manual-user-name').value = '';
+        document.getElementById('manual-user-email').value = '';
+        document.getElementById('manual-user-uid').value = '';
+      }).catch(function(e) {
+        _showAdminMsg('Errore: ' + e.message, 'red');
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  SOCIAL STATS — User view
+    // ═══════════════════════════════════════════════════════════
+    var _userFriendsRef = null;
+    var _userReqRef = null;
+    var _userPresRef = null;
+
+    function loadUserSocial(user) {
+      var uid = user.uid;
+
+      // Presence status
+      db.ref('presence/' + uid).on('value', function(snap) {
+        var data = snap.val();
+        var el = document.getElementById('user-presence-status');
+        if (data && data.online) {
+          el.textContent = '🟢';
+          el.title = 'Online';
+        } else {
+          el.textContent = '⚫';
+          el.title = 'Offline';
+        }
+      }, function() {
+        document.getElementById('user-presence-status').textContent = '—';
+      });
+
+      // Friends list
+      if (_userFriendsRef) _userFriendsRef.off();
+      _userFriendsRef = db.ref('friends/' + uid);
+      _userFriendsRef.on('value', function(snap) {
+        var friends = snap.val() || {};
+        var keys = Object.keys(friends);
+        document.getElementById('user-friends-count').textContent = keys.length;
+        var listEl = document.getElementById('user-friends-list');
+        if (keys.length === 0) {
+          listEl.innerHTML = '<p style="text-align:center;color:#888;padding:20px">Nessun amico ancora. Gioca e aggiungi amici dal pannello Social!</p>';
+          return;
+        }
+        // Check online status for each friend
+        var html = '';
+        var pending = keys.length;
+        var friendData = [];
+        keys.forEach(function(fUid) {
+          var f = friends[fUid];
+          db.ref('presence/' + fUid).once('value', function(pSnap) {
+            var pres = pSnap.val();
+            var isOnline = pres && pres.online;
+            var inGame = pres && pres.inGame;
+            var inLobby = pres && pres.currentRoom && !pres.inGame;
+            friendData.push({ uid: fUid, name: f.displayName || fUid.substring(0, 8), since: f.since, online: isOnline, inGame: inGame, inLobby: inLobby });
+            pending--;
+            if (pending === 0) {
+              friendData.sort(function(a, b) { return (a.online === b.online) ? a.name.localeCompare(b.name) : (b.online ? 1 : -1); });
+              html = '';
+              friendData.forEach(function(fd) {
+                var statusClass = fd.inGame ? 'ingame' : (fd.online ? 'online' : 'offline');
+                var statusText = fd.inGame ? 'In partita' : (fd.inLobby ? 'In lobby' : (fd.online ? 'Online' : 'Offline'));
+                var badgeClass = fd.inGame ? 'badge-ingame' : (fd.inLobby ? 'badge-inlobby' : (fd.online ? 'badge-online' : 'badge-offline'));
+                html += '<div class="friend-item">';
+                html += '<div style="display:flex;align-items:center;gap:8px"><span class="friend-status ' + statusClass + '"></span><span class="friend-name">' + _escH(fd.name) + '</span></div>';
+                html += '<span class="badge ' + badgeClass + '" style="color:#fff;padding:2px 8px;border-radius:10px;font-size:0.75rem">' + statusText + '</span>';
+                html += '</div>';
+              });
+              listEl.innerHTML = html;
+            }
+          }, function() { pending--; });
+        });
+      }, function() {
+        document.getElementById('user-friends-count').textContent = '—';
+        document.getElementById('user-friends-list').innerHTML = '<p style="text-align:center;color:#c62828;padding:20px">Impossibile caricare la lista amici.</p>';
+      });
+
+      // Friend requests
+      if (_userReqRef) _userReqRef.off();
+      _userReqRef = db.ref('friendRequests/' + uid);
+      _userReqRef.on('value', function(snap) {
+        var reqs = snap.val() || {};
+        var keys = Object.keys(reqs);
+        document.getElementById('user-requests-count').textContent = keys.length;
+        var listEl = document.getElementById('user-friend-requests-list');
+        if (keys.length === 0) {
+          listEl.innerHTML = '<p style="text-align:center;color:#888;padding:20px">Nessuna richiesta di amicizia in sospeso.</p>';
+          return;
+        }
+        var html = '';
+        keys.forEach(function(senderUid) {
+          var req = reqs[senderUid];
+          var dateStr = req.timestamp ? new Date(req.timestamp).toLocaleString('it-IT') : '—';
+          html += '<div class="friend-item" style="flex-direction:column;align-items:stretch;gap:6px">';
+          html += '<div style="display:flex;align-items:center;justify-content:space-between">';
+          html += '<span class="friend-name">📨 ' + _escH(req.fromName || senderUid.substring(0, 8)) + '</span>';
+          html += '<span style="font-size:0.75rem;color:#888">' + dateStr + '</span>';
+          html += '</div>';
+          if (req.message) {
+            html += '<div style="font-size:0.85rem;color:#666;font-style:italic;padding:4px 8px;background:#f0f0f0;border-radius:4px">"' + _escH(req.message) + '"</div>';
+          }
+          html += '</div>';
+        });
+        listEl.innerHTML = html;
+      }, function() {
+        document.getElementById('user-requests-count').textContent = '—';
+        document.getElementById('user-friend-requests-list').innerHTML = '<p style="text-align:center;color:#c62828;padding:20px">Impossibile caricare le richieste.</p>';
+      });
+    }
+
+    function _escH(s) {
+      var d = document.createElement('div');
+      d.textContent = s || '';
+      return d.innerHTML;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  SOCIAL STATS — Admin view
+    // ═══════════════════════════════════════════════════════════
+    var _socialChartInstance = null;
+    var _adminPresenceRef = null;
+    var _adminFriendsRef = null;
+    var _adminReqsRef = null;
+    var _adminInvRef = null;
+
+    function loadAdminSocial() {
+      // 1. Online players (presence)
+      if (_adminPresenceRef) _adminPresenceRef.off();
+      _adminPresenceRef = db.ref('presence');
+      _adminPresenceRef.on('value', function(snap) {
+        var all = snap.val() || {};
+        var now = Date.now();
+        var STALE_MS = 2 * 60 * 1000; // 2 minutes
+        var onlineList = [];
+        for (var uid in all) {
+          if (all[uid] && all[uid].online) {
+            var lastSeen = all[uid].lastSeen || 0;
+            if (now - lastSeen < STALE_MS) {
+              onlineList.push({ uid: uid, data: all[uid] });
+            } else {
+              // Stale entry — clean it up
+              db.ref('presence/' + uid).remove().catch(function(){});
+            }
+          }
+        }
+        document.getElementById('admin-online-count').textContent = onlineList.length;
+        _renderAdminOnlineTable(onlineList);
+        _renderSocialChart();
+      }, function() {
+        document.getElementById('admin-online-count').textContent = '—';
+      });
+
+      // 2. Friends network
+      if (_adminFriendsRef) _adminFriendsRef.off();
+      _adminFriendsRef = db.ref('friends');
+      _adminFriendsRef.on('value', function(snap) {
+        var all = snap.val() || {};
+        var pairs = [];
+        var seen = {};
+        var totalLinks = 0;
+        for (var uid in all) {
+          var friends = all[uid];
+          for (var fUid in friends) {
+            var pairKey = uid < fUid ? uid + ':' + fUid : fUid + ':' + uid;
+            if (!seen[pairKey]) {
+              seen[pairKey] = true;
+              totalLinks++;
+              var uName = (_allUsers[uid] && _allUsers[uid].displayName) || uid.substring(0, 8);
+              var fName = friends[fUid].displayName || (_allUsers[fUid] && _allUsers[fUid].displayName) || fUid.substring(0, 8);
+              pairs.push({ user: uName, friend: fName, since: friends[fUid].since });
+            }
+          }
+        }
+        document.getElementById('admin-friends-total').textContent = totalLinks;
+        _renderAdminFriendsTable(pairs);
+        _renderSocialChart();
+      }, function() {
+        document.getElementById('admin-friends-total').textContent = '—';
+      });
+
+      // 3. All pending friend requests
+      if (_adminReqsRef) _adminReqsRef.off();
+      _adminReqsRef = db.ref('friendRequests');
+      _adminReqsRef.on('value', function(snap) {
+        var all = snap.val() || {};
+        var reqs = [];
+        var total = 0;
+        for (var targetUid in all) {
+          var senders = all[targetUid];
+          for (var senderUid in senders) {
+            total++;
+            var targetName = (_allUsers[targetUid] && _allUsers[targetUid].displayName) || targetUid.substring(0, 8);
+            reqs.push({
+              from: senders[senderUid].fromName || senderUid.substring(0, 8),
+              to: targetName,
+              message: senders[senderUid].message || '',
+              timestamp: senders[senderUid].timestamp
+            });
+          }
+        }
+        document.getElementById('admin-requests-total').textContent = total;
+        _renderAdminRequestsTable(reqs);
+        _renderSocialChart();
+      }, function() {
+        document.getElementById('admin-requests-total').textContent = '—';
+      });
+
+      // 4. Active invitations
+      if (_adminInvRef) _adminInvRef.off();
+      _adminInvRef = db.ref('invitations');
+      _adminInvRef.on('value', function(snap) {
+        var all = snap.val() || {};
+        var invites = [];
+        var total = 0;
+        for (var targetUid in all) {
+          var senders = all[targetUid];
+          for (var senderUid in senders) {
+            total++;
+            var inv = senders[senderUid];
+            var targetName = (_allUsers[targetUid] && _allUsers[targetUid].displayName) || targetUid.substring(0, 8);
+            invites.push({
+              from: inv.fromName || senderUid.substring(0, 8),
+              to: targetName,
+              room: inv.roomCode || '—',
+              seat: inv.seatIndex != null ? (inv.seatIndex + 1) : '—',
+              timestamp: inv.timestamp
+            });
+          }
+        }
+        document.getElementById('admin-invitations-total').textContent = total;
+        _renderAdminInvitationsTable(invites);
+        _renderSocialChart();
+      }, function() {
+        document.getElementById('admin-invitations-total').textContent = '—';
+      });
+    }
+
+    function _renderAdminOnlineTable(list) {
+      var tbody = document.getElementById('online-players-tbody');
+      if (!tbody) return;
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#888">Nessun giocatore online al momento.</td></tr>';
+        return;
+      }
+      list.sort(function(a, b) { return (a.data.displayName || '').localeCompare(b.data.displayName || ''); });
+      var html = '';
+      list.forEach(function(item) {
+        var d = item.data;
+        var statusBadge, statusText;
+        if (d.inGame) { statusBadge = 'badge-ingame'; statusText = 'In Partita'; }
+        else if (d.currentRoom) { statusBadge = 'badge-inlobby'; statusText = 'In Lobby'; }
+        else { statusBadge = 'badge-online'; statusText = 'Online'; }
+        var typeBadge = d.isGuest ? '<span class="badge badge-client">Ospite</span>' : '<span class="badge badge-host">Registrato</span>';
+        var lastSeen = d.lastSeen ? new Date(d.lastSeen).toLocaleString('it-IT') : '—';
+        html += '<tr>';
+        html += '<td><strong>' + _escH(d.displayName || 'Sconosciuto') + '</strong></td>';
+        html += '<td><span class="badge ' + statusBadge + '">' + statusText + '</span></td>';
+        html += '<td>' + (d.currentRoom || '—') + '</td>';
+        html += '<td>' + typeBadge + '</td>';
+        html += '<td style="font-size:0.8rem;color:#888">' + lastSeen + '</td>';
+        html += '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+
+    function _renderAdminFriendsTable(pairs) {
+      var tbody = document.getElementById('friends-network-tbody');
+      if (!tbody) return;
+      if (pairs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="padding:16px;color:#888">Nessuna amicizia registrata.</td></tr>';
+        return;
+      }
+      pairs.sort(function(a, b) { return (b.since || 0) - (a.since || 0); });
+      var html = '';
+      pairs.forEach(function(p) {
+        var dateStr = p.since ? new Date(p.since).toLocaleString('it-IT') : '—';
+        html += '<tr>';
+        html += '<td><strong>' + _escH(p.user) + '</strong></td>';
+        html += '<td><strong>' + _escH(p.friend) + '</strong></td>';
+        html += '<td style="font-size:0.85rem;color:#888">' + dateStr + '</td>';
+        html += '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+
+    function _renderAdminRequestsTable(reqs) {
+      var tbody = document.getElementById('requests-tbody');
+      if (!tbody) return;
+      if (reqs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="padding:16px;color:#888">Nessuna richiesta pendente.</td></tr>';
+        return;
+      }
+      reqs.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
+      var html = '';
+      reqs.forEach(function(r) {
+        var dateStr = r.timestamp ? new Date(r.timestamp).toLocaleString('it-IT') : '—';
+        html += '<tr>';
+        html += '<td><strong>' + _escH(r.from) + '</strong></td>';
+        html += '<td><strong>' + _escH(r.to) + '</strong></td>';
+        html += '<td style="font-size:0.85rem;color:#666;max-width:200px;overflow:hidden;text-overflow:ellipsis">' + _escH(r.message || '—') + '</td>';
+        html += '<td style="font-size:0.85rem;color:#888">' + dateStr + '</td>';
+        html += '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+
+    function _renderAdminInvitationsTable(invites) {
+      var tbody = document.getElementById('invitations-tbody');
+      if (!tbody) return;
+      if (invites.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#888">Nessun invito attivo.</td></tr>';
+        return;
+      }
+      invites.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
+      var html = '';
+      invites.forEach(function(inv) {
+        var dateStr = inv.timestamp ? new Date(inv.timestamp).toLocaleString('it-IT') : '—';
+        html += '<tr>';
+        html += '<td><strong>' + _escH(inv.from) + '</strong></td>';
+        html += '<td><strong>' + _escH(inv.to) + '</strong></td>';
+        html += '<td>' + _escH(inv.room) + '</td>';
+        html += '<td>' + inv.seat + '</td>';
+        html += '<td style="font-size:0.85rem;color:#888">' + dateStr + '</td>';
+        html += '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+
+    function _renderSocialChart() {
+      var online = parseInt(document.getElementById('admin-online-count').textContent) || 0;
+      var friends = parseInt(document.getElementById('admin-friends-total').textContent) || 0;
+      var reqs = parseInt(document.getElementById('admin-requests-total').textContent) || 0;
+      var invites = parseInt(document.getElementById('admin-invitations-total').textContent) || 0;
+      if (online + friends + reqs + invites === 0) return;
+      var ctx = document.getElementById('socialChart');
+      if (!ctx) return;
+      ctx = ctx.getContext('2d');
+      if (_socialChartInstance) _socialChartInstance.destroy();
+      _socialChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Online', 'Amicizie', 'Richieste', 'Inviti'],
+          datasets: [{
+            label: 'Social',
+            data: [online, friends, reqs, invites],
+            backgroundColor: ['#4caf50', '#ff9800', '#e53935', '#7b1fa2']
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+          },
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'Panoramica Social' }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
