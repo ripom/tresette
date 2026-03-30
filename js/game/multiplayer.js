@@ -1,4 +1,4 @@
-﻿// ─── Firebase Init (SDK loaded externally) ───
+// ─── Firebase Init (SDK loaded externally) ───
 (function initFirebaseApp(){
   try {
     if(typeof firebase === 'undefined' || typeof FIREBASE_CONFIG === 'undefined') {
@@ -487,6 +487,7 @@ var _clientWatchdogTimer = null;
 function _fbCleanup(){
   _fbListeners.forEach(function(r){ try{r.off();}catch(e){} });
   _fbListeners = [];
+  _processedMsgKeys = {};
   _stateRef = null;
   _latestAppliedStateSeq = 0;
   _stateSeq = 0;
@@ -507,7 +508,7 @@ function _cleanOldMessages(){
   ref.orderByChild('_ts').limitToFirst(50).once('value', function(snap){
     var count = snap.numChildren();
     if(count > 30){
-      var toDelete = count - 10; // keep last 10
+      var toDelete = count - 15; // keep last 15
       var i = 0;
       snap.forEach(function(child){
         if(i < toDelete){ child.ref.remove(); }
@@ -525,25 +526,47 @@ function mpSend(data) {
   dbg('SEND t='+data.t);
   // Clean up old messages periodically (keep DB lean)
   _msgCount++;
-  if(_msgCount % 20 === 0 && isHost){
+  if(_msgCount % 25 === 0 && isHost){
     _cleanOldMessages();
+  }
+  // Prune processed message keys to prevent memory leak in long sessions
+  if(_msgCount % 50 === 0){
+    var keys = Object.keys(_processedMsgKeys);
+    if(keys.length > 100){
+      keys.slice(0, keys.length - 30).forEach(function(k){ delete _processedMsgKeys[k]; });
+    }
   }
   _fbDb.ref('rooms/'+mpRoom+'/messages').push(data)
     .catch(function(e){ dbg('SEND ERR: '+e); });
 }
 
+var _processedMsgKeys = {};  // track processed message keys to avoid duplicates
+
 function mpListen(handler) {
   if(!_fbDb || !mpRoom) return;
-  var startTime = Date.now();
   var ref = _fbDb.ref('rooms/'+mpRoom+'/messages');
-  ref.limitToLast(1).on('child_added', function(snap){
-    var data = snap.val();
-    if(!data || data._from === MY_ID) return;
-    if(data._ts && data._ts < startTime) return;
-    dbg('RECV t='+data.t);
-    handler(data);
+  // Use a 'value' listener on the last 5 messages instead of 'child_added'.
+  // 'child_added' with limitToLast can silently lose messages when:
+  // - multiple messages arrive in the same Firebase batch
+  // - messages are deleted by _cleanOldMessages shifting the window
+  // A 'value' listener always sees the complete current window.
+  var query = ref.orderByKey().limitToLast(5);
+  
+  query.on('value', function(snap) {
+    if(!snap.exists()) return;
+    snap.forEach(function(child) {
+      var key = child.key;
+      if(_processedMsgKeys[key]) return; // already handled
+      _processedMsgKeys[key] = true;
+      var data = child.val();
+      if(!data || data._from === MY_ID) return;
+      dbg('RECV t='+data.t+' key='+key.substring(key.length-6));
+      handler(data);
+    });
   });
-  _fbListeners.push(ref);
+  
+  // Push the QUERY so _fbCleanup can detach it properly
+  _fbListeners.push(query);
   dbg('Listening on rooms/'+mpRoom);
 }
 
@@ -609,7 +632,7 @@ function _startHostLease() {
     }
   });
 
-  // Backup split-brain self-check every 6s (handles edge cases where real-time listener misses)
+  // Backup split-brain self-check every 20s (handles edge cases where real-time listener misses)
   _stopHostSelfCheck();
   _hostSelfCheckTimer = setInterval(function() {
     if(!isHost || !mpMode || !_fbDb || !mpRoom) return;
@@ -643,7 +666,7 @@ function _startHostLease() {
         }
       }
     });
-  }, 6000);
+  }, 20000);
 }
 function _stopHostSelfCheck() {
   if(_hostSelfCheckTimer){ clearInterval(_hostSelfCheckTimer); _hostSelfCheckTimer = null; }
@@ -676,7 +699,7 @@ function _startMetaWatch() {
     }
   });
   _fbListeners.push(_metaRef);
-  // Periodic check for lease expiry
+  // Periodic check for lease expiry (every 15s — real-time listener handles most cases)
   _metaWatchTimer = setInterval(function() {
     if(!mpMode || !game || isHost) return;
     _fbDb.ref('rooms/'+mpRoom+'/meta').once('value', function(snap) {
@@ -689,7 +712,7 @@ function _startMetaWatch() {
         _attemptPromotion(meta);
       }
     });
-  }, 8000);
+  }, 15000);
 }
 function _stopMetaWatch() {
   if(_metaWatchTimer){ dbg('[WATCH] Stopping meta watch timer'); clearInterval(_metaWatchTimer); _metaWatchTimer = null; }
@@ -828,7 +851,7 @@ function _becomeHost() {
 
     // Now that _humanSeats is rebuilt, sync state to clients with correct humanSeatSet
     dbg('[BECOME] Syncing state as new host (after seats rebuilt)...');
-    syncState();
+    syncState(true);
 
     // Explicit render to make sure UI is up to date
     if(game) {
@@ -938,7 +961,7 @@ function _becomeHost() {
       _showDiscBanner('⚠️ Un giocatore disconnesso...', 0, 'In attesa di riconnessione...');
       startHostHeartbeat();
     }
-  }, 5000);
+  }, 8000);
 
   // Hide disconnect banner with success message
   _showDiscSuccess('✅ Sei diventato il nuovo host!');
@@ -1022,7 +1045,9 @@ function makeStateSnapshot(seq) {
   };
 }
 
-function syncState() {
+var _syncDebounceTimer = null;
+var _syncImmediate = false; // set true for must-send-now calls
+function syncState(immediate) {
   if(!mpMode || !isHost || !_fbDb || !mpRoom) return;
   // Split-brain guard: don't write if we know a higher epoch exists
   if(_lastSeenEpoch > _hostEpoch) {
@@ -1030,6 +1055,23 @@ function syncState() {
     _demoteToClient();
     return;
   }
+  if(immediate) {
+    // Cancel any pending debounce and write now
+    if(_syncDebounceTimer) { clearTimeout(_syncDebounceTimer); _syncDebounceTimer = null; }
+    return _doSyncStateNow();
+  }
+  // Debounce: collapse rapid calls into one write (120ms window)
+  if(!_syncDebounceTimer) {
+    _syncDebounceTimer = setTimeout(function() {
+      _syncDebounceTimer = null;
+      _doSyncStateNow();
+    }, 120);
+  }
+  return null;
+}
+function _doSyncStateNow() {
+  if(!mpMode || !isHost || !_fbDb || !mpRoom) return null;
+  if(_lastSeenEpoch > _hostEpoch) return null;
   _stateSeq++;
   var state = makeStateSnapshot(_stateSeq);
   _fbDb.ref('rooms/'+mpRoom+'/state').set(state)
@@ -1041,6 +1083,8 @@ function applyRemoteState(data) {
   var seq = data.seq || 0;
   if(seq && seq < _latestAppliedStateSeq) return false;
   _latestAppliedStateSeq = Math.max(_latestAppliedStateSeq, seq);
+  // Clear client play lock: new state from host means any pending play is resolved
+  _humanPlayLock = false;
   // Firebase drops empty arrays as null — treat null/missing hand entries as []
   var rawHands = data.h || [];
   game.hands = [0,1,2,3].map(function(i){
@@ -1133,7 +1177,7 @@ function _listenState() {
       mpMode = true; gameMode = data.gm||gameMode||'perdere';
       if(data.diff) cpuDifficulty = data.diff;
       if(data.names) for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
-      if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 15000);
+      if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 25000);
       initAudio();
     }
     document.getElementById('lobby-overlay').classList.add('hidden');
@@ -1376,16 +1420,21 @@ function _updateSeatUI(){
     statusEl.textContent = 'Tavolo pieno! Partita in partenza...';
     setTimeout(function(){ if(!mpMode) startMultiplayerGame(); }, 1500);
   }
-  // Publish seat info to Firebase so joining clients can see who’s where
+  // Publish seat info to Firebase (debounced to avoid rapid writes)
   if(_fbDb && mpRoom && isHost){
-    var seatInfo = {};
-    for(var si=0;si<4;si++){
-      var key = 's' + si; // use string keys to avoid Firebase array coercion
-      if(si===0) seatInfo[key] = {name: PLAYER_NAMES[0], taken: true};
-      else if(_humanSeats[si]) seatInfo[key] = {name: _humanSeats[si].name, taken: true};
-      else seatInfo[key] = {name: '', taken: false};
-    }
-    _fbDb.ref('rooms/'+mpRoom+'/seatInfo').set(seatInfo);
+    if(typeof _seatInfoDebounce !== 'undefined' && _seatInfoDebounce) clearTimeout(_seatInfoDebounce);
+    _seatInfoDebounce = setTimeout(function(){
+      _seatInfoDebounce = null;
+      if(!_fbDb || !mpRoom || !isHost) return;
+      var sInfo = {};
+      for(var si=0;si<4;si++){
+        var key = 's' + si;
+        if(si===0) sInfo[key] = {name: PLAYER_NAMES[0], taken: true};
+        else if(_humanSeats[si]) sInfo[key] = {name: _humanSeats[si].name, taken: true};
+        else sInfo[key] = {name: '', taken: false};
+      }
+      _fbDb.ref('rooms/'+mpRoom+'/seatInfo').set(sInfo);
+    }, 300);
   }
 }
 
@@ -1501,12 +1550,12 @@ function hostGame() {
       // Find which seat this player is
       var playSeat = -1;
       for(var k2 in _humanSeats){ if(_humanSeats[k2].id === data._from){ playSeat = parseInt(k2); break; } }
-      if(playSeat < 0) return;
+      if(playSeat < 0) { dbg('HOST play REJECTED: unknown player _from='+data._from); return; }
       _humanSeats[playSeat].lastPing = Date.now();
-      dbg('HOST play seat='+playSeat+' cardId='+data.cardId+' cp='+game.currentPlayer);
-      if(game.currentPlayer !== playSeat) return;
+      dbg('HOST play seat='+playSeat+' cardId='+data.cardId+' cp='+game.currentPlayer+' anim='+game.animating+' phase='+game.phase);
+      if(game.currentPlayer !== playSeat) { dbg('HOST play REJECTED: not their turn (cp='+game.currentPlayer+' playSeat='+playSeat+')'); return; }
       var card = game.hands[playSeat].find(function(c){return c.id===data.cardId;});
-      if(!card || !isCardPlayable(playSeat,card)) return;
+      if(!card || !isCardPlayable(playSeat,card)) { dbg('HOST play REJECTED: card not found or not playable cardId='+data.cardId); return; }
       _origPlayCard(playSeat, card).catch(function(e){ dbg('playCard ERR: '+e); });
     }
     if(data.t==='emote' && data.eid && typeof data.pidx==='number'){
@@ -1533,7 +1582,7 @@ function hostGame() {
       _showDiscBanner('⚠️ Un giocatore disconnesso...', 0, 'In attesa di riconnessione...');
       startHostHeartbeat();
     }
-  }, 5000);
+  }, 8000);
 }
 
 var _startingGame = false; // guard against double-calls
@@ -1543,7 +1592,7 @@ function startMultiplayerGame() {
   mpMode = true;
   // Ensure host lease is running (may have been stopped if lobby took >10s)
   if(!_metaLeaseTimer) _startHostLease();
-  _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 15000);
+  _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 25000);
   PLAYER_NAMES[0] = document.getElementById('host-name-input').value.trim() || 'Tu';
   // Fill seats: human players get their names, empty seats become CPU with random names
   var usedNames = [PLAYER_NAMES[0]];
@@ -1592,7 +1641,7 @@ function startMultiplayerGame() {
     renderAll(); renderTournament();
     dbg('HOST startGame cp='+game.currentPlayer);
     mpSend({t:'start',gm:gameMode,diff:cpuDifficulty,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
-    syncState();
+    syncState(true);
     _updatePresenceInGame(true);
     sndStart(); showStatus('Partita iniziata!',1500);    showBuongiocoAndStart(function(){
       if(game && !isHumanSeat(game.currentPlayer)) setTimeout(function(){cpuTurn();},400);
@@ -1732,6 +1781,7 @@ function _doActualJoin(myName, code, prefSeat) {
   // Clean up listeners from any previous join attempt
   _fbListeners.forEach(function(r){ try{r.off();}catch(e){} });
   _fbListeners = [];
+  _processedMsgKeys = {};
   _stateRef = null;
   _latestAppliedStateSeq = 0;
   _stateSeq = 0;
@@ -1789,7 +1839,7 @@ function _doActualJoin(myName, code, prefSeat) {
     document.getElementById('overlay').classList.add('hidden');
     document.getElementById('game-over').classList.remove('show');
     document.getElementById('quit-btn').style.display = '';
-    if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 15000);
+    if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 25000);
     if (!tournamentActive) {
       resetTournament();
     }
@@ -1944,7 +1994,7 @@ function _doActualJoin(myName, code, prefSeat) {
         }
       }, 3000);
     }
-  }, 5000);
+  }, 8000);
 
   showLobbySection('lobby-waiting');
   document.getElementById('wait-status').textContent='Connesso! In attesa dell\'host...';
@@ -2129,7 +2179,7 @@ function _doHostAutoRejoin(sess, meta) {
       document.getElementById('join-code-input').value = sess.room;
       _doActualJoin(sess.name, sess.room, undefined);
     }
-    if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 15000);
+    if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 25000);
   });
 }
 
@@ -2185,10 +2235,10 @@ function bcastGS(){
   if(!mpMode||!isHost) return;
   syncState();
 }
-function bcastGSNow(){ syncState(); }
+function bcastGSNow(){ syncState(true); }
 function _bcastGSNow(){
   if(!mpMode||!isHost) return;
-  syncState();
+  syncState(true);
 }
 
 

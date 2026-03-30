@@ -469,7 +469,7 @@ function handleContinueTournament(e) {
     renderAll();
     renderTournament();
     mpSend({t:'start',gm:gameMode,diff:cpuDifficulty,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
-    syncState();
+    syncState(true);
     sndStart();
     showStatus('Nuova mano!',1500);
     showBuongiocoAndStart(function(){
@@ -539,7 +539,7 @@ function handleRetryGame(e) {
       renderAll();
       renderTournament();
       mpSend({t:'start',gm:gameMode,diff:cpuDifficulty,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
-      syncState();
+      syncState(true);
       sndStart();
       showStatus('Nuovo torneo!',1500);
       showBuongiocoAndStart(function(){
@@ -856,7 +856,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "3.0.0";
+const GAME_VERSION = "3.0.1";
 // Auto-sync version display everywhere from single GAME_VERSION constant
 (function(){ ['game-version-display','auth-version'].forEach(function(id){ var el = document.getElementById(id); if(el) el.textContent = 'v' + GAME_VERSION; }); })();
 

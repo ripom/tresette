@@ -184,7 +184,7 @@
     }
     positionBtn();
     window.addEventListener('resize', positionBtn);
-    setInterval(positionBtn, 2000);
+    setInterval(positionBtn, 5000);
 
     btn.addEventListener('click', function(ev){
       ev.stopPropagation();
@@ -305,32 +305,50 @@ function _updatePresenceInGame(playing) {
 
 // ────── Online Players Listener ──────
 
+var _presenceThrottleTimer = null;
+var _presencePendingSnap = null;
+
+function _processPresenceSnapshot(all) {
+  var now = Date.now();
+  dbg('[SOCIAL] Presence snapshot: ' + Object.keys(all).length + ' entries');
+  _onlinePlayers = {};
+  for (var uid in all) {
+    if (all[uid] && all[uid].online === true) {
+      var lastSeen = all[uid].lastSeen || 0;
+      if (now - lastSeen < PRESENCE_STALE_MS) {
+        _onlinePlayers[uid] = all[uid];
+      } else {
+        _fbDb.ref('presence/' + uid).remove().catch(function(){});
+      }
+    }
+  }
+  var myUid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
+  delete _onlinePlayers[myUid];
+  dbg('[SOCIAL] Online players (excluding self, after stale filter): ' + Object.keys(_onlinePlayers).length);
+  _renderOnlinePlayersPanel();
+  _checkFriendOnlineNotifications();
+}
+
 function _startOnlinePlayersListener() {
   if (!_fbDb) return;
   if (_onlinePlayersRef) _onlinePlayersRef.off();
   _onlinePlayersRef = _fbDb.ref('presence');
   _onlinePlayersRef.on('value', function(snap) {
     var all = snap.val() || {};
-    var now = Date.now();
-    dbg('[SOCIAL] Presence snapshot: ' + Object.keys(all).length + ' entries');
-    // Filter: only entries with online === true AND lastSeen within PRESENCE_STALE_MS
-    _onlinePlayers = {};
-    for (var uid in all) {
-      if (all[uid] && all[uid].online === true) {
-        var lastSeen = all[uid].lastSeen || 0;
-        if (now - lastSeen < PRESENCE_STALE_MS) {
-          _onlinePlayers[uid] = all[uid];
-        } else {
-          // Stale entry — remove it from Firebase so it doesn't linger
-          _fbDb.ref('presence/' + uid).remove().catch(function(){});
-        }
-      }
+    // Throttle: process at most once every 3s to avoid cascade
+    if (_presenceThrottleTimer) {
+      _presencePendingSnap = all;
+      return;
     }
-    var myUid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
-    delete _onlinePlayers[myUid];
-    dbg('[SOCIAL] Online players (excluding self, after stale filter): ' + Object.keys(_onlinePlayers).length);
-    _renderOnlinePlayersPanel();
-    _checkFriendOnlineNotifications();
+    _processPresenceSnapshot(all);
+    _presenceThrottleTimer = setTimeout(function() {
+      _presenceThrottleTimer = null;
+      if (_presencePendingSnap) {
+        var pending = _presencePendingSnap;
+        _presencePendingSnap = null;
+        _processPresenceSnapshot(pending);
+      }
+    }, 3000);
   }, function(err) {
     dbg('[SOCIAL] Presence listener ERROR: ' + err.message);
   });

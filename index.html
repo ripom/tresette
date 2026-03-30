@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
@@ -3534,8 +3534,14 @@ function renderPlayerHand() {
           e.preventDefault();
           e.stopPropagation();
           // Guard: prevent double-play from touch+click or rapid taps
-          if (_humanPlayLock) return;
-          if (!game || game.currentPlayer !== myIdx || game.phase !== 'playing' || game.animating) return;
+          if (_humanPlayLock) {
+            dbg('[CLICK-GUARD] BLOCKED by _humanPlayLock');
+            return;
+          }
+          if (!game || game.currentPlayer !== myIdx || game.phase !== 'playing' || game.animating) {
+            dbg('[CLICK-GUARD] BLOCKED: game='+(!!game)+' cp='+(game?game.currentPlayer:'?')+' myIdx='+myIdx+' phase='+(game?game.phase:'?')+' anim='+(game?game.animating:'?'));
+            return;
+          }
           // Prevent touch+click double-fire: if touchend fired, skip the click
           if (e.type === 'touchend') { el._cardTouchFired = true; }
           if (e.type === 'click' && el._cardTouchFired) return;
@@ -3546,14 +3552,23 @@ function renderPlayerHand() {
             dbg('CLIENT click card='+card.id+' cp='+game.currentPlayer+' phase='+game.phase);
             el.style.opacity = '0.5';
             mpSend({t:'play', cardId: card.id});
-            // Safety: if no response in 5s, show connection issue and retry
+            // Auto-retry after 2s if host hasn't processed yet
+            var _playCardId = card.id;
+            var _playMyIdx = myIdx;
             setTimeout(function(){
-              if(game && game.currentPlayer === myIdx && game.phase === 'playing'){
+              if(game && game.currentPlayer === _playMyIdx && game.phase === 'playing'){
+                dbg('CLIENT: auto-retry play card='+_playCardId+' (2s, no state change)');
+                mpSend({t:'play', cardId: _playCardId});
+              }
+            }, 2000);
+            // Safety: if no response in 5s, unlock and allow manual retry
+            setTimeout(function(){
+              _humanPlayLock = false;
+              if(game && game.currentPlayer === _playMyIdx && game.phase === 'playing'){
                 _discPlayRetryCount++;
-                _humanPlayLock = false;
                 dbg('CLIENT: play timeout #'+_discPlayRetryCount+', re-rendering hand');
                 if(_discPlayRetryCount >= 2) {
-                  _showDiscBanner('⚠️ Nessuna risposta dall\'host', 1, 'Verifica connessione in corso...');
+                  _showDiscBanner('⚠️ Nessuna risposta dall\u0027host', 1, 'Verifica connessione in corso...');
                 }
                 renderPlayerHand();
               }
@@ -3689,7 +3704,7 @@ function renderTrick() {
       let currentPts = 0;
       game.trick.forEach(({ card }) => { currentPts += RANK_POINTS[card.rank]; });
       // Add last trick bonus if this is trick 10 and all 4 cards are played
-      if (game.trickNum === 9 && game.trick.length === 4) currentPts += 3;
+      if ((game.trickNum === 9 || game.trickNum === 10) && game.trick.length === 4) currentPts += 3;
       const winnerName = currentWinner === myIdx ? 'Prendi tu' : 'Prende ' + PLAYER_NAMES[currentWinner];
       const ptsLabel = currentPts > 0 ? ' (+' + formatPunti(currentPts) + ')' : ' (0)';
       trickWinnerBadge.textContent = '▶ ' + winnerName + ptsLabel;
@@ -3885,7 +3900,19 @@ function trickPoints() {
 // ─── Play a card ──────────────────────────────────────────────
 var _humanPlayLock = false;
 async function playCard(playerIdx, card) {
-  if (!game || game.animating || game.phase !== 'playing') return;
+  if (!game || game.phase !== 'playing') return;
+  // If animating, queue the play and retry shortly (host may receive client play during trick eval)
+  if (game.animating) {
+    dbg('[PLAY] BLOCKED by animation, queueing retry for seat='+playerIdx+' card='+card.id);
+    setTimeout(function(){
+      if(game && game.phase === 'playing' && game.currentPlayer === playerIdx) {
+        playCard(playerIdx, card);
+      } else {
+        dbg('[PLAY] Queued play discarded: cp='+(game?game.currentPlayer:'null')+' seat='+playerIdx);
+      }
+    }, 500);
+    return;
+  }
   // Guard: must be current player's turn
   if (playerIdx !== game.currentPlayer) { _humanPlayLock = false; return; }
   // Guard: card must still be in hand
@@ -3931,7 +3958,7 @@ async function playCard(playerIdx, card) {
 
   // Render — and sync state so client sees the card in the trick
   renderAll();
-  if(mpMode && isHost) syncState();
+  if(mpMode && isHost) syncState(true);
 
   // Check if trick is complete
   if (trickComplete) {
@@ -3964,11 +3991,11 @@ async function playCard(playerIdx, card) {
       game.phase = 'done';
       renderAll();
       if(mpMode && isHost) {
-        var finalState = syncState();
+        var finalState = syncState(true);
         mpSend({t:'final', seq:finalState.seq, state:finalState});
         setTimeout(function(){
           if(mpMode && isHost && game && game.phase === 'done'){
-            var retryFinalState = syncState();
+            var retryFinalState = syncState(true);
             mpSend({t:'final', seq:retryFinalState.seq, state:retryFinalState});
           }
         }, 350);
@@ -5870,7 +5897,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "3.0.0";
+const GAME_VERSION = "3.0.1";
 // Auto-sync version display everywhere from single GAME_VERSION constant
 (function(){ ['game-version-display','auth-version'].forEach(function(id){ var el = document.getElementById(id); if(el) el.textContent = 'v' + GAME_VERSION; }); })();
 
@@ -6450,25 +6477,47 @@ function mpSend(data) {
   dbg('SEND t='+data.t);
   // Clean up old messages periodically (keep DB lean)
   _msgCount++;
-  if(_msgCount % 20 === 0 && isHost){
+  if(_msgCount % 25 === 0 && isHost){
     _cleanOldMessages();
+  }
+  // Prune processed message keys to prevent memory leak in long sessions
+  if(_msgCount % 50 === 0){
+    var keys = Object.keys(_processedMsgKeys);
+    if(keys.length > 100){
+      keys.slice(0, keys.length - 30).forEach(function(k){ delete _processedMsgKeys[k]; });
+    }
   }
   _fbDb.ref('rooms/'+mpRoom+'/messages').push(data)
     .catch(function(e){ dbg('SEND ERR: '+e); });
 }
 
+var _processedMsgKeys = {};  // track processed message keys to avoid duplicates
+
 function mpListen(handler) {
   if(!_fbDb || !mpRoom) return;
-  var startTime = Date.now();
   var ref = _fbDb.ref('rooms/'+mpRoom+'/messages');
-  ref.limitToLast(1).on('child_added', function(snap){
-    var data = snap.val();
-    if(!data || data._from === MY_ID) return;
-    if(data._ts && data._ts < startTime) return;
-    dbg('RECV t='+data.t);
-    handler(data);
+  // Use a 'value' listener on the last 5 messages instead of 'child_added'.
+  // 'child_added' with limitToLast can silently lose messages when:
+  // - multiple messages arrive in the same Firebase batch
+  // - messages are deleted by _cleanOldMessages shifting the window
+  // A 'value' listener always sees the complete current window.
+  var query = ref.orderByKey().limitToLast(5);
+
+  query.on('value', function(snap) {
+    if(!snap.exists()) return;
+    snap.forEach(function(child) {
+      var key = child.key;
+      if(_processedMsgKeys[key]) return; // already handled
+      _processedMsgKeys[key] = true;
+      var data = child.val();
+      if(!data || data._from === MY_ID) return;
+      dbg('RECV t='+data.t+' key='+key.substring(key.length-6));
+      handler(data);
+    });
   });
-  _fbListeners.push(ref);
+
+  // Push the QUERY so _fbCleanup can detach it properly
+  _fbListeners.push(query);
   dbg('Listening on rooms/'+mpRoom);
 }
 
@@ -6947,7 +6996,10 @@ function makeStateSnapshot(seq) {
   };
 }
 
-function syncState() {
+var _syncDebounceTimer = null;
+var _syncImmediate = false; // set true for must-send-now calls
+
+function syncState(immediate) {
   if(!mpMode || !isHost || !_fbDb || !mpRoom) return;
   // Split-brain guard: don't write if we know a higher epoch exists
   if(_lastSeenEpoch > _hostEpoch) {
@@ -6955,6 +7007,24 @@ function syncState() {
     _demoteToClient();
     return;
   }
+  if(immediate) {
+    // Cancel any pending debounce and write now
+    if(_syncDebounceTimer) { clearTimeout(_syncDebounceTimer); _syncDebounceTimer = null; }
+    return _doSyncStateNow();
+  }
+  // Debounce: collapse rapid calls into one write (120ms window)
+  if(!_syncDebounceTimer) {
+    _syncDebounceTimer = setTimeout(function() {
+      _syncDebounceTimer = null;
+      _doSyncStateNow();
+    }, 120);
+  }
+  return null;
+}
+
+function _doSyncStateNow() {
+  if(!mpMode || !isHost || !_fbDb || !mpRoom) return null;
+  if(_lastSeenEpoch > _hostEpoch) return null;
   _stateSeq++;
   var state = makeStateSnapshot(_stateSeq);
   _fbDb.ref('rooms/'+mpRoom+'/state').set(state)
@@ -6966,6 +7036,8 @@ function applyRemoteState(data) {
   var seq = data.seq || 0;
   if(seq && seq < _latestAppliedStateSeq) return false;
   _latestAppliedStateSeq = Math.max(_latestAppliedStateSeq, seq);
+  // Clear client play lock: new state from host means any pending play is resolved
+  _humanPlayLock = false;
   // Firebase drops empty arrays as null — treat null/missing hand entries as []
   var rawHands = data.h || [];
   game.hands = [0,1,2,3].map(function(i){

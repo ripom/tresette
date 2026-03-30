@@ -1,4 +1,4 @@
-﻿// ─── Tournament State ─────────────────────────────────────────
+// ─── Tournament State ─────────────────────────────────────────
 var tournamentScores = [0, 0, 0, 0]; // penalty points per player (perdere) or per team (vincere: [team0, team1])
 var tournamentActive = false;
 var TOURNAMENT_LIMIT = 7; // first to reach this loses the tournament (a perdere)
@@ -869,6 +869,7 @@ function renderPlayerHand() {
     dbg('[RENDER] renderPlayerHand SKIP: myIdx='+myIdx+' mySeat='+mySeat+' isHost='+isHost);
     return;
   }
+  if(mpMode) dbg('[RENDER] renderPlayerHand: myIdx='+myIdx+' cp='+game.currentPlayer+' phase='+game.phase+' anim='+game.animating+' lock='+_humanPlayLock+' cards='+game.hands[myIdx].length);
   const hand = game.hands[myIdx];
   const total = hand.length;
   const { cw, ch } = getCardSize();
@@ -900,8 +901,14 @@ function renderPlayerHand() {
           e.preventDefault();
           e.stopPropagation();
           // Guard: prevent double-play from touch+click or rapid taps
-          if (_humanPlayLock) return;
-          if (!game || game.currentPlayer !== myIdx || game.phase !== 'playing' || game.animating) return;
+          if (_humanPlayLock) {
+            dbg('[CLICK-GUARD] BLOCKED by _humanPlayLock');
+            return;
+          }
+          if (!game || game.currentPlayer !== myIdx || game.phase !== 'playing' || game.animating) {
+            dbg('[CLICK-GUARD] BLOCKED: game='+(!!game)+' cp='+(game?game.currentPlayer:'?')+' myIdx='+myIdx+' phase='+(game?game.phase:'?')+' anim='+(game?game.animating:'?'));
+            return;
+          }
           // Prevent touch+click double-fire: if touchend fired, skip the click
           if (e.type === 'touchend') { el._cardTouchFired = true; }
           if (e.type === 'click' && el._cardTouchFired) return;
@@ -912,14 +919,23 @@ function renderPlayerHand() {
             dbg('CLIENT click card='+card.id+' cp='+game.currentPlayer+' phase='+game.phase);
             el.style.opacity = '0.5';
             mpSend({t:'play', cardId: card.id});
-            // Safety: if no response in 5s, show connection issue and retry
+            // Auto-retry after 2s if host hasn't processed yet
+            var _playCardId = card.id;
+            var _playMyIdx = myIdx;
             setTimeout(function(){
-              if(game && game.currentPlayer === myIdx && game.phase === 'playing'){
+              if(game && game.currentPlayer === _playMyIdx && game.phase === 'playing'){
+                dbg('CLIENT: auto-retry play card='+_playCardId+' (2s, no state change)');
+                mpSend({t:'play', cardId: _playCardId});
+              }
+            }, 2000);
+            // Safety: if no response in 5s, unlock and allow manual retry
+            setTimeout(function(){
+              _humanPlayLock = false;
+              if(game && game.currentPlayer === _playMyIdx && game.phase === 'playing'){
                 _discPlayRetryCount++;
-                _humanPlayLock = false;
                 dbg('CLIENT: play timeout #'+_discPlayRetryCount+', re-rendering hand');
                 if(_discPlayRetryCount >= 2) {
-                  _showDiscBanner('⚠️ Nessuna risposta dall\'host', 1, 'Verifica connessione in corso...');
+                  _showDiscBanner('⚠️ Nessuna risposta dall\u0027host', 1, 'Verifica connessione in corso...');
                 }
                 renderPlayerHand();
               }
@@ -1251,7 +1267,19 @@ function trickPoints() {
 // ─── Play a card ──────────────────────────────────────────────
 var _humanPlayLock = false;
 async function playCard(playerIdx, card) {
-  if (!game || game.animating || game.phase !== 'playing') return;
+  if (!game || game.phase !== 'playing') return;
+  // If animating, queue the play and retry shortly (host may receive client play during trick eval)
+  if (game.animating) {
+    dbg('[PLAY] BLOCKED by animation, queueing retry for seat='+playerIdx+' card='+card.id);
+    setTimeout(function(){
+      if(game && game.phase === 'playing' && game.currentPlayer === playerIdx) {
+        playCard(playerIdx, card);
+      } else {
+        dbg('[PLAY] Queued play discarded: cp='+(game?game.currentPlayer:'null')+' seat='+playerIdx);
+      }
+    }, 500);
+    return;
+  }
   // Guard: must be current player's turn
   if (playerIdx !== game.currentPlayer) { _humanPlayLock = false; return; }
   // Guard: card must still be in hand
@@ -1295,9 +1323,9 @@ async function playCard(playerIdx, card) {
     game.animating = true;
   }
 
-  // Render — and sync state so client sees the card in the trick
+  // Render — and sync state immediately so client sees the card in the trick
   renderAll();
-  if(mpMode && isHost) syncState();
+  if(mpMode && isHost) syncState(true);
 
   // Check if trick is complete
   if (trickComplete) {
@@ -1317,7 +1345,7 @@ async function playCard(playerIdx, card) {
     sndTrickWon();
 
     game.trickCards = game.trick.map(t => t.card);
-    if(mpMode && isHost) syncState();
+    if(mpMode && isHost) syncState(); // debounced — visual update only
 
     await delay(1400);
     if (!game) return;
@@ -1330,11 +1358,11 @@ async function playCard(playerIdx, card) {
       game.phase = 'done';
       renderAll();
       if(mpMode && isHost) {
-        var finalState = syncState();
+        var finalState = syncState(true);
         mpSend({t:'final', seq:finalState.seq, state:finalState});
         setTimeout(function(){
           if(mpMode && isHost && game && game.phase === 'done'){
-            var retryFinalState = syncState();
+            var retryFinalState = syncState(true);
             mpSend({t:'final', seq:retryFinalState.seq, state:retryFinalState});
           }
         }, 350);
@@ -1349,7 +1377,7 @@ async function playCard(playerIdx, card) {
     game.trick = [];
 
     renderAll();
-    if(mpMode && isHost) syncState();
+    if(mpMode && isHost) syncState(true);
 
     // If next player is CPU, trigger AI
     if (!isHumanSeat(game.currentPlayer)) {
@@ -1359,7 +1387,7 @@ async function playCard(playerIdx, card) {
     // Next player
     game.currentPlayer = (game.currentPlayer + 1) % 4;
     renderAll();
-    if(mpMode && isHost) syncState();
+    if(mpMode && isHost) syncState(true);
 
     // If CPU turn, trigger AI
     if (!isHumanSeat(game.currentPlayer)) {
