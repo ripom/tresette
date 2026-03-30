@@ -1,1 +1,11 @@
 *.log
+.agents
+.claude
+.git
+.github
+.firebaserc
+firebase.json
+.firebase
+skills-lock.json
+public
+*.mio

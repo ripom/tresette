@@ -1,0 +1,9 @@
+{
+  "projectId": "tresette-game123",
+  "apiKey": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "authDomain": "tresette-game123.firebaseapp.com",
+  "databaseURL": "https://tresette-game123-default-rtdb.europe-west1.firebasedatabase.app",
+  "storageBucket": "tresette-game123.appspot.com",
+  "messagingSenderId": "11111111111111",
+  "appId": "1:11111111111111:web:222222222222222222"
+}

@@ -1,727 +1,107 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - Statistiche Tresette & Social</title>
-  
-  <!-- Firebase SDKs compat -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-  
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f4f6f9;
-      color: #333;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background: #2a6a2a;
-      color: white;
-      padding: 1rem 20px;
-      text-align: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    h1 {
-      margin: 0;
-      font-size: 1.5rem;
-    }
-    button {
-      background: #1a4a1a;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    button:hover { background: #0f2f0f; }
-    
-    #login-section {
-      max-width: 500px;
-      margin: 40px auto;
-      padding: 20px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    #dashboard-section {
-      max-width: 1400px;
-      margin: 40px auto;
-      padding: 20px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    #dashboard-section { display: none; }
-    #user-section {
-      max-width: 1400px;
-      margin: 40px auto;
-      padding: 20px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    
-    .form-group {
-      margin-bottom: 15px;
-    }
-    .form-group label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-    .form-group input {
-      width: 100%;
-      padding: 8px;
-      box-sizing: border-box;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    .error-msg {
-      color: red;
-      font-size: 0.9rem;
-      margin-bottom: 10px;
-      display: none;
-    }
-    
-    .stats-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    .stat-card {
-      background: #e8f5e9;
-      padding: 20px;
-      border-radius: 8px;
-      text-align: center;
-    }
-    .stat-card h3 { margin: 0 0 10px 0; color: #2a6a2a; }
-    .stat-card span { font-size: 2rem; font-weight: bold; }
-    
-    .chart-container {
-      width: 100%;
-      max-width: 500px;
-      margin: 0 auto;
-    }
-
-    /* Social section */
-    .social-section {
-      margin-top: 30px;
-      border-top: 2px solid #e0e0e0;
-      padding-top: 25px;
-    }
-    .social-section h2 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .friend-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 14px;
-      margin: 4px 0;
-      border-radius: 8px;
-      background: #f8f9fa;
-      border: 1px solid #e0e0e0;
-    }
-    .friend-item:hover { background: #f0f7f0; }
-    .friend-name { font-weight: bold; color: #333; }
-    .friend-status {
-      display: inline-block;
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      margin-right: 8px;
-    }
-    .friend-status.online { background: #4caf50; }
-    .friend-status.offline { background: #bbb; }
-    .friend-status.ingame { background: #ff9800; }
-    .social-list {
-      max-height: 350px;
-      overflow-y: auto;
-      padding: 4px;
-    }
-    .badge-online { background: #4caf50; }
-    .badge-offline { background: #9e9e9e; }
-    .badge-ingame { background: #ff9800; }
-    .badge-inlobby { background: #2196f3; }
-    .social-stat-card {
-      background: #e3f2fd;
-      padding: 20px;
-      border-radius: 8px;
-      text-align: center;
-    }
-    .social-stat-card h3 { margin: 0 0 10px 0; color: #1565c0; }
-    .social-stat-card span { font-size: 2rem; font-weight: bold; }
-    .social-stat-card.presence { background: #e8f5e9; }
-    .social-stat-card.presence h3 { color: #2a6a2a; }
-    .social-stat-card.friends { background: #fff3e0; }
-    .social-stat-card.friends h3 { color: #e65100; }
-    .social-stat-card.requests { background: #fce4ec; }
-    .social-stat-card.requests h3 { color: #c62828; }
-    .social-stat-card.invitations { background: #f3e5f5; }
-    .social-stat-card.invitations h3 { color: #7b1fa2; }
-
-    /* Tabella ultime partite */
-    .games-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-    .games-table thead tr {
-      background: #2a6a2a;
-      color: #fff;
-    }
-    .games-table th, .games-table td {
-      padding: 8px 10px;
-      text-align: center;
-      border-bottom: 1px solid #e0e0e0;
-    }
-    .games-table tbody tr:hover {
-      background: #f0f7f0;
-    }
-    .games-table .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 0.75rem;
-      font-weight: bold;
-      color: #fff;
-    }
-    .badge-cpu { background: #4caf50; }
-    .badge-host { background: #2196f3; }
-    .badge-client { background: #ff9800; }
-    .badge-completed { background: #43a047; }
-    .badge-incomplete { background: #e53935; }
-    .games-pager {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 12px;
-      margin-top: 12px;
-    }
-    .games-pager button {
-      padding: 6px 14px;
-      font-size: 0.85rem;
-    }
-    .games-pager button:disabled {
-      opacity: 0.4;
-      cursor: default;
-    }
-
-    /* Modal cambio nome */
-    .name-modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-    }
-    .name-modal-overlay.active { display: flex; }
-    .name-modal {
-      background: #fff;
-      border-radius: 10px;
-      padding: 30px;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-    }
-    .name-modal h3 { margin: 0 0 15px 0; color: #2a6a2a; }
-    .name-modal input {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 1rem;
-      box-sizing: border-box;
-      margin-bottom: 15px;
-    }
-    .name-modal .modal-buttons {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-    }
-    .name-modal .modal-buttons button { font-size: 0.9rem; padding: 8px 18px; }
-    .name-modal .btn-cancel { background: #888; }
-    .name-modal .btn-cancel:hover { background: #666; }
-    .name-modal .modal-msg { font-size: 0.85rem; margin-bottom: 10px; min-height: 20px; }
-    #header-display-name {
-      font-size: 0.9rem;
-      font-weight: bold;
-      cursor: pointer;
-      border-bottom: 1px dashed rgba(255,255,255,0.5);
-    }
-    #header-display-name:hover {
-      border-bottom-color: #fff;
-    }
-  </style>
-</head>
-<body>
-
-  <header>
-    <h1>Statistiche Tresette Multiplayer</h1>
-    <div style="display:flex; align-items:center; gap:12px;">
-      <span id="header-display-name" style="display:none;" onclick="openNameModal()" title="Clicca per cambiare il tuo nome"></span>
-      <span id="user-email" style="display:none; font-size:0.85rem; opacity:0.85;"></span>
-      <button id="logout-btn" style="display:none;" onclick="logout()">Logout</button>
-    </div>
-  </header>
-
-  <!-- MODAL CAMBIO NOME -->
-  <div class="name-modal-overlay" id="name-modal-overlay" onclick="if(event.target===this)closeNameModal()">
-    <div class="name-modal">
-      <h3>✏️ Cambia il tuo Nome</h3>
-      <div class="modal-msg" id="name-modal-msg"></div>
-      <input type="text" id="name-modal-input" placeholder="Inserisci il nuovo nome" maxlength="30" onkeydown="if(event.key==='Enter')saveDisplayName()">
-      <div class="modal-buttons">
-        <button class="btn-cancel" onclick="closeNameModal()">Annulla</button>
-        <button onclick="saveDisplayName()">Salva</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SEZIONE LOGIN -->
-  <div id="login-section">
-    <h2 style="text-align: center;">Accedi alle Statistiche</h2>
-    <div class="error-msg" id="login-error"></div>
-    <div class="form-group">
-      <label for="email">Email</label>
-      <input type="email" id="email" placeholder="email@esempio.com">
-    </div>
-    <div class="form-group">
-      <label for="password">Password</label>
-      <input type="password" id="password" placeholder="••••••••">
-    </div>
-    <button style="width: 100%; padding: 10px;" onclick="login()">Accedi</button>
-  </div>
-
-  <!-- SEZIONE UTENTE NORMALE -->
-  <div id="user-section" style="display:none">
-    <div style="text-align:center;margin-bottom:20px">
-      <h2>🎮 Le Tue Statistiche</h2>
-      <p style="color:#666" id="user-welcome">Bentornato!</p>
-    </div>
-    <div class="stats-cards">
-      <div class="stat-card">
-        <h3>Partite Giocate</h3>
-        <span id="user-total">0</span>
-      </div>
-      <div class="stat-card">
-        <h3>vs CPU</h3>
-        <span id="user-cpu">0</span>
-      </div>
-      <div class="stat-card">
-        <h3>Multiplayer</h3>
-        <span id="user-mp">0</span>
-      </div>
-      <div class="stat-card" style="background:#fff3e0">
-        <h3 style="color:#e65100">🎯 Livello Bravura</h3>
-        <span id="user-skill">—</span>
-        <div id="user-skill-detail" style="font-size:0.75rem;color:#888;margin-top:4px"></div>
-      </div>
-    </div>
-    <p id="user-stats-error" style="display:none;text-align:center;color:#c62828;font-size:0.85rem;margin-top:10px">⚠️ Impossibile caricare le statistiche. Potresti non avere i permessi necessari.</p>
-    <div style="margin-top:20px;max-width:500px;margin-left:auto;margin-right:auto">
-      <canvas id="userChart"></canvas>
-    </div>
-
-    <!-- GRAFICO ANDAMENTO BRAVURA -->
-    <div style="margin-top:20px;max-width:600px;margin-left:auto;margin-right:auto">
-      <h3 style="text-align:center;color:#e65100;margin-bottom:10px">🎯 Andamento Livello Bravura</h3>
-      <canvas id="userSkillChart"></canvas>
-      <p id="user-skill-chart-msg" style="text-align:center;color:#888;font-size:0.8rem;margin-top:6px"></p>
-    </div>
-
-    <!-- SEZIONE LISTA PARTITE UTENTE -->
-    <div style="margin-top:30px">
-      <h2 style="text-align:center">📋 Le Tue Partite</h2>
-      <p style="text-align:center;color:#666;margin-bottom:15px">Storico delle tue partite registrate.</p>
-      <div style="overflow-x:auto">
-        <table class="games-table" id="user-games-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Data</th>
-              <th>Tipo</th>
-              <th>Modalità</th>
-              <th>Difficoltà</th>
-              <th>Risultato</th>
-              <th>Punteggio</th>
-              <th>🎯 Bravura</th>
-              <th>Mani</th>
-              <th>Durata</th>
-              <th>Stato</th>
-            </tr>
-          </thead>
-          <tbody id="user-games-tbody">
-            <tr><td colspan="11" style="padding:16px;color:#888">Caricamento...</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="games-pager">
-        <button id="user-games-prev" onclick="userGamesPagePrev()" disabled>◀ Precedenti</button>
-        <span id="user-games-page-info" style="font-size:0.85rem;color:#666"></span>
-        <button id="user-games-next" onclick="userGamesPageNext()" disabled>Successive ▶</button>
-      </div>
-    </div>
-
-    <!-- SEZIONE SOCIAL UTENTE -->
-    <div class="social-section">
-      <h2>👥 Social</h2>
-      <div class="stats-cards">
-        <div class="social-stat-card presence">
-          <h3>Stato</h3>
-          <span id="user-presence-status">—</span>
-        </div>
-        <div class="social-stat-card friends">
-          <h3>Amici</h3>
-          <span id="user-friends-count">0</span>
-        </div>
-        <div class="social-stat-card requests">
-          <h3>Richieste Ricevute</h3>
-          <span id="user-requests-count">0</span>
-        </div>
-      </div>
-
-      <div style="margin-top:20px">
-        <h3 style="text-align:center;color:#2a6a2a">⭐ I Tuoi Amici</h3>
-        <div class="social-list" id="user-friends-list">
-          <p style="text-align:center;color:#888;padding:20px">Caricamento...</p>
-        </div>
-      </div>
-
-      <div style="margin-top:20px">
-        <h3 style="text-align:center;color:#c62828">📨 Richieste di Amicizia</h3>
-        <div class="social-list" id="user-friend-requests-list">
-          <p style="text-align:center;color:#888;padding:20px">Caricamento...</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SEZIONE DASHBOARD -->
-  <div id="dashboard-section">
-    <div class="stats-cards">
-      <div class="stat-card">
-        <h3>Partite CPU</h3>
-        <span id="count-cpu">0</span>
-      </div>
-      <div class="stat-card">
-        <h3>Multiplayer Host</h3>
-        <span id="count-host">0</span>
-      </div>
-      <div class="stat-card">
-        <h3>Multiplayer Client</h3>
-        <span id="count-client">0</span>
-      </div>
-      <div class="stat-card">
-        <h3>Totale Eventi</h3>
-        <span id="count-total">0</span>
-      </div>
-    </div>
-    
-    <!-- DURATA PARTITE -->
-    <div class="stats-cards" style="margin-bottom:10px">
-      <div class="stat-card" style="background:#e3f2fd">
-        <h3 style="color:#1565c0">Durata Media</h3>
-        <span id="dur-avg" style="font-size:1.4rem">—</span>
-      </div>
-      <div class="stat-card" style="background:#fff3e0">
-        <h3 style="color:#e65100">Più Breve</h3>
-        <span id="dur-min" style="font-size:1.1rem">—</span>
-        <div id="dur-min-info" style="font-size:0.75rem;color:#888;margin-top:4px"></div>
-      </div>
-      <div class="stat-card" style="background:#fce4ec">
-        <h3 style="color:#c62828">Più Lunga</h3>
-        <span id="dur-max" style="font-size:1.1rem">—</span>
-        <div id="dur-max-info" style="font-size:0.75rem;color:#888;margin-top:4px"></div>
-      </div>
-      <div class="stat-card" style="background:#e8f5e9">
-        <h3 style="color:#2a6a2a">Durata Totale</h3>
-        <span id="dur-total" style="font-size:1.1rem">—</span>
-      </div>
-    </div>
-
-    <!-- FILTRO DATE -->
-    <div style="text-align:center; margin-bottom:20px; display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap;">
-      <label style="font-weight:bold;">Da:</label>
-      <input type="date" id="filter-from" style="padding:6px 10px; border:1px solid #ccc; border-radius:4px; font-size:0.95rem;">
-      <label style="font-weight:bold;">A:</label>
-      <input type="date" id="filter-to" style="padding:6px 10px; border:1px solid #ccc; border-radius:4px; font-size:0.95rem;">
-      <button onclick="applyDateFilter()" style="padding:8px 18px;">Filtra</button>
-      <button onclick="resetDateFilter()" style="padding:8px 18px; background:#666;">Reset</button>
-    </div>
-
-    <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
-      <div class="chart-container">
-        <canvas id="statsChart"></canvas>
-      </div>
-
-      <div class="stat-card" style="min-width: 250px;">
-        <h3>Sessioni per Versione</h3>
-        <ul id="version-list" style="list-style: none; padding: 0; text-align: left; font-size: 1.2rem; margin-top: 15px;">
-        </ul>
-      </div>
-    </div>
-
-    <!-- CHART ANDAMENTO GIORNALIERO -->
-    <div style="margin-top: 40px;">
-      <h2 style="text-align: center;">Andamento Giornaliero</h2>
-      <div style="max-width: 750px; margin: 0 auto;">
-        <canvas id="dailyChart"></canvas>
-      </div>
-    </div>
-
-    <!-- SEZIONE LISTA ULTIME PARTITE -->
-    <div style="margin-top: 40px;">
-      <h2 style="text-align: center;">📋 Lista Ultime Partite</h2>
-      <p style="text-align: center; color: #666; margin-bottom: 15px;">Le partite più recenti registrate nel sistema.</p>
-      <div style="max-width: 1200px; margin: 0 auto; overflow-x: auto;">
-        <table class="games-table" id="games-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Data / Ora</th>
-              <th>Tipo</th>
-              <th>Modalità</th>
-              <th>Ruolo</th>
-              <th>Difficoltà</th>
-              <th>Risultato</th>
-              <th>Punteggio</th>
-              <th>🎯 Bravura</th>
-              <th>Mani</th>
-              <th>Durata</th>
-              <th>Stato</th>
-              <th>Versione</th>
-            </tr>
-          </thead>
-          <tbody id="games-tbody">
-            <tr><td colspan="13" style="padding:16px;color:#888">Caricamento...</td></tr>
-          </tbody>
-        </table>
-        <div class="games-pager">
-          <button id="games-prev" onclick="gamesPagePrev()" disabled>◀ Precedenti</button>
-          <span id="games-page-info" style="font-size:0.85rem;color:#666"></span>
-          <button id="games-next" onclick="gamesPageNext()" disabled>Successive ▶</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- SEZIONE LIVE DATA EXPLORER -->
-    <div style="margin-top: 40px;">
-      <h2 style="text-align: center;">Live Database Explorer</h2>
-      <div class="stats-cards">
-        <div class="stat-card" style="background:#e3f2fd;">
-          <h3 style="color:#1565c0;">Stanze Attive (rooms)</h3>
-          <span id="count-rooms">0</span>
-        </div>
-        <div class="stat-card" style="background:#fff3e0;">
-          <h3 style="color:#e65100;">Giocatori in Lobby</h3>
-          <span id="count-lobby">0</span>
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-        <div class="stat-card" style="flex: 1; min-width: 300px; background:#fafafa; text-align: left;">
-          <h3 style="color:#333;">Dettaglio Stanze (rooms)</h3>
-          <pre id="rooms-json" style="font-size:0.85rem; max-height: 400px; overflow: auto; background: #eee; padding: 10px; border-radius: 4px;">In attesa...</pre>
-        </div>
-        <div class="stat-card" style="flex: 1; min-width: 300px; background:#fafafa; text-align: left;">
-          <h3 style="color:#333;">Dettaglio Lobby</h3>
-          <pre id="lobby-json" style="font-size:0.85rem; max-height: 400px; overflow: auto; background: #eee; padding: 10px; border-radius: 4px;">In attesa...</pre>
-        </div>
-      </div>
-    </div>
-
-    <!-- SEZIONE PULIZIA -->
-    <div style="margin-top: 40px; border-top: 2px solid #e0e0e0; padding-top: 30px;">
-      <h2 style="text-align: center;">🧹 Pulizia Database</h2>
-      <p style="text-align: center; color: #666; margin-bottom: 15px;">Rimuovi stanze e lobby più vecchie di 24 ore. Le partite attive non verranno toccate.</p>
-      <div style="text-align: center; margin-bottom: 15px;">
-        <button id="cleanup-btn" onclick="cleanupOldEntries()" style="background:#c62828; padding: 12px 24px; font-size: 1rem;">🗑️ Pulisci Rooms e Lobby (&gt; 24h)</button>
-      </div>
-      <pre id="cleanup-log" style="max-width: 700px; margin: 0 auto; font-size: 0.85rem; max-height: 300px; overflow: auto; background: #fafafa; padding: 12px; border-radius: 4px; border: 1px solid #ddd; display: none;"></pre>
-
-      <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-        <h3 style="text-align: center; color: #e65100;">🔄 Pulizia Partite Duplicate</h3>
-        <p style="text-align: center; color: #666; margin-bottom: 15px; font-size: 0.9rem;">In multiplayer, tutti i giocatori salvano la stessa partita. Questo rimuove le entry duplicate (stessi punteggi e timestamp), mantenendo solo una entry per partita.</p>
-        <div style="text-align: center; margin-bottom: 15px;">
-          <button id="cleanup-dupes-btn" onclick="cleanupDuplicateGames()" style="background:#e65100; padding: 12px 24px; font-size: 1rem;">🔄 Trova e Rimuovi Partite Duplicate</button>
-        </div>
-        <pre id="cleanup-dupes-log" style="max-width: 700px; margin: 0 auto; font-size: 0.85rem; max-height: 400px; overflow: auto; background: #fafafa; padding: 12px; border-radius: 4px; border: 1px solid #ddd; display: none;"></pre>
-      </div>
-    </div>
-
-    <!-- SEZIONE GESTIONE ADMIN -->
-    <div style="margin-top: 40px; border-top: 2px solid #e0e0e0; padding-top: 30px;">
-      <h2 style="text-align: center;">👑 Gestione Utenti e Amministratori</h2>
-      <p style="text-align: center; color: #666; margin-bottom: 15px;">Tutti gli utenti registrati nel gioco. Clicca per promuovere o degradare un utente.</p>
-      <div id="admin-msg" style="text-align: center; margin-bottom: 10px; font-size: 0.9rem; min-height: 20px;"></div>
-      <div style="max-width: 700px; margin: 0 auto; overflow-x: auto;">
-        <table id="users-table" style="width:100%;border-collapse:collapse;font-size:0.9rem">
-          <thead>
-            <tr style="background:#2a6a2a;color:#fff">
-              <th style="padding:10px;text-align:left">Nome</th>
-              <th style="padding:10px;text-align:left">Email</th>
-              <th style="padding:10px;text-align:center">Ruolo</th>
-              <th style="padding:10px;text-align:center">🎯 Bravura</th>
-              <th style="padding:10px;text-align:center">Ultimo Accesso</th>
-              <th style="padding:10px;text-align:center">Azioni</th>
-            </tr>
-          </thead>
-          <tbody id="users-tbody">
-            <tr><td colspan="6" style="padding:16px;text-align:center;color:#888">Caricamento...</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p style="text-align:center;color:#999;font-size:0.75rem;margin-top:6px">Gli utenti appariranno automaticamente dopo il loro primo login nel gioco.</p>
-    </div>
-
-    <!-- SEZIONE SOCIAL ADMIN -->
-    <div style="margin-top: 40px; border-top: 2px solid #e0e0e0; padding-top: 30px;">
-      <h2 style="text-align: center;">👥 Social — Panoramica Completa</h2>
-      <p style="text-align: center; color: #666; margin-bottom: 15px;">Dati in tempo reale dal sistema sociale: presenze, amicizie, richieste e inviti.</p>
-
-      <div class="stats-cards">
-        <div class="social-stat-card presence">
-          <h3>🟢 Giocatori Online</h3>
-          <span id="admin-online-count">0</span>
-        </div>
-        <div class="social-stat-card friends">
-          <h3>⭐ Amicizie Totali</h3>
-          <span id="admin-friends-total">0</span>
-        </div>
-        <div class="social-stat-card requests">
-          <h3>📨 Richieste Pendenti</h3>
-          <span id="admin-requests-total">0</span>
-        </div>
-        <div class="social-stat-card invitations">
-          <h3>🎮 Inviti Attivi</h3>
-          <span id="admin-invitations-total">0</span>
-        </div>
-      </div>
-
-      <!-- Giocatori Online -->
-      <div style="margin-top:25px">
-        <h3 style="text-align:center;color:#2a6a2a">🟢 Giocatori Online Ora</h3>
-        <div style="max-width:700px;margin:0 auto;overflow-x:auto">
-          <table class="games-table" id="online-players-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Stato</th>
-                <th>Stanza</th>
-                <th>Tipo</th>
-                <th>Ultimo Aggiornamento</th>
-              </tr>
-            </thead>
-            <tbody id="online-players-tbody">
-              <tr><td colspan="5" style="padding:16px;color:#888">Caricamento...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Rete Amicizie -->
-      <div style="margin-top:25px">
-        <h3 style="text-align:center;color:#e65100">⭐ Rete Amicizie</h3>
-        <p style="text-align:center;color:#888;font-size:0.85rem;margin-bottom:10px">Tutti i legami di amicizia registrati nel sistema.</p>
-        <div style="max-width:700px;margin:0 auto;overflow-x:auto">
-          <table class="games-table" id="friends-network-table">
-            <thead>
-              <tr>
-                <th>Giocatore</th>
-                <th>Amico</th>
-                <th>Data Amicizia</th>
-              </tr>
-            </thead>
-            <tbody id="friends-network-tbody">
-              <tr><td colspan="3" style="padding:16px;color:#888">Caricamento...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Richieste Pendenti -->
-      <div style="margin-top:25px">
-        <h3 style="text-align:center;color:#c62828">📨 Richieste di Amicizia Pendenti</h3>
-        <div style="max-width:700px;margin:0 auto;overflow-x:auto">
-          <table class="games-table" id="requests-table">
-            <thead>
-              <tr>
-                <th>Da</th>
-                <th>A</th>
-                <th>Messaggio</th>
-                <th>Data</th>
-              </tr>
-            </thead>
-            <tbody id="requests-tbody">
-              <tr><td colspan="4" style="padding:16px;color:#888">Caricamento...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Inviti Attivi -->
-      <div style="margin-top:25px">
-        <h3 style="text-align:center;color:#7b1fa2">🎮 Inviti di Gioco Attivi</h3>
-        <div style="max-width:700px;margin:0 auto;overflow-x:auto">
-          <table class="games-table" id="invitations-table">
-            <thead>
-              <tr>
-                <th>Da</th>
-                <th>A</th>
-                <th>Stanza</th>
-                <th>Posto</th>
-                <th>Data</th>
-              </tr>
-            </thead>
-            <tbody id="invitations-tbody">
-              <tr><td colspan="5" style="padding:16px;color:#888">Caricamento...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Chart Social -->
-      <div style="margin-top:25px;display:flex;flex-wrap:wrap;gap:20px;justify-content:center">
-        <div class="chart-container">
-          <canvas id="socialChart"></canvas>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <script>
-    // Inizializza Firebase (usa le stesse credenziali del gioco principale)
-    const firebaseConfig = {
-      apiKey: "AIzaSyDftiPN3z_W1Q1J8sX3gjbChKbemlqpuUw",
-      authDomain: "tresette-game.firebaseapp.com",
-      databaseURL: "https://tresette-game-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "tresette-game",
-      storageBucket: "tresette-game.firebasestorage.app",
-      messagingSenderId: "94037476114",
-      appId: "1:94037476114:web:3d0310ac29e7a9590269cb"
-    };
-    firebase.initializeApp(firebaseConfig);
+﻿    // Inizializza Firebase (usa FIREBASE_CONFIG da js/shared/firebase-config.js)
+    firebase.initializeApp(FIREBASE_CONFIG);
     const auth = firebase.auth();
     const db = firebase.database();
     let statsChartInstance = null;
     let dailyChartInstance = null;
+
+    // ─── Local Stats (works for guests & logged-in users) ───
+    var _tipDescriptions = {
+      'perc-vittorie': 'Percentuale di partite vinte sul totale. Più è alta, meglio giochi!',
+      'bravura': 'Punteggio da 0 a 100 calcolato automaticamente in base alle tue giocate: vittorie (40%), qualità delle mosse (35%), esperienza (15%) e efficienza punti (10%).',
+      'punti-medi': 'Media dei punti (in terzi) presi per partita. A Perdere: più basso è meglio. A Vincere: più alto è meglio.',
+      'tendenza': 'Media mobile esponenziale delle vittorie recenti. Indica se stai migliorando o peggiorando nelle ultime partite.',
+      'sottogiocare': 'Quanto spesso giochi una carta appena sotto quella vincente per evitare di prendere la mano. Un valore alto indica gioco prudente.',
+      'scarico-punti': 'Quanto spesso scarichi carte di valore (Assi, figure) quando non hai il seme richiesto. Un valore alto indica gioco aggressivo nello scaricare punti sugli altri.'
+    };
+    function _showTip(key, btnEl) {
+      var tip = document.getElementById('info-tooltip');
+      if (!tip) return;
+      var text = _tipDescriptions[key] || '';
+      tip.innerHTML = '<span class="close-tip" onclick="document.getElementById(\'info-tooltip\').classList.remove(\'visible\')">&times;</span>' + text;
+      // Position near the button
+      var rect = btnEl.getBoundingClientRect();
+      var tipW = Math.min(320, window.innerWidth * 0.9);
+      var left = Math.min(rect.left, window.innerWidth - tipW - 10);
+      if (left < 5) left = 5;
+      var top = rect.bottom + 6;
+      if (top + 150 > window.innerHeight) top = rect.top - 100;
+      tip.style.left = left + 'px';
+      tip.style.top = top + 'px';
+      tip.style.maxWidth = tipW + 'px';
+      tip.classList.add('visible');
+      // Auto-close after 6s
+      clearTimeout(tip._timer);
+      tip._timer = setTimeout(function(){ tip.classList.remove('visible'); }, 6000);
+    }
+    // Close tooltip on outside tap
+    document.addEventListener('click', function(e) {
+      if (!e.target.classList.contains('info-btn')) {
+        var tip = document.getElementById('info-tooltip');
+        if (tip) tip.classList.remove('visible');
+      }
+    });
+
+    (function loadLocalStats() {
+      try {
+        var raw = localStorage.getItem('tresette_player_profiles');
+        if (!raw) return;
+        var profiles = JSON.parse(raw);
+        var skillLabels = [
+          {max:24, label:'Principiante', color:'#e53935'},
+          {max:39, label:'Base', color:'#ff9800'},
+          {max:54, label:'Intermedio', color:'#fdd835'},
+          {max:69, label:'Avanzato', color:'#43a047'},
+          {max:84, label:'Esperto', color:'#1e88e5'},
+          {max:100, label:'Maestro', color:'#7b1fa2'}
+        ];
+        function getSkillInfo(level) {
+          for (var i = 0; i < skillLabels.length; i++) {
+            if (level <= skillLabels[i].max) return skillLabels[i];
+          }
+          return skillLabels[skillLabels.length - 1];
+        }
+        function infoBtn(key) {
+          return ' <span class="info-btn" onclick="_showTip(\'' + key + '\', this)" title="Clicca per info">ℹ</span>';
+        }
+        var detailsHtml = '';
+        ['perdere', 'vincere'].forEach(function(mode) {
+          var p = profiles[mode];
+          if (!p) return;
+          var el = function(id) { return document.getElementById(id); };
+          if (el('local-games-' + mode)) el('local-games-' + mode).textContent = p.gamesPlayed || 0;
+          if (el('local-wins-' + mode)) el('local-wins-' + mode).textContent = p.gamesWon || 0;
+          if (el('local-skill-' + mode)) {
+            var sk = Math.round(p.skillLevel || 0);
+            var info = getSkillInfo(sk);
+            el('local-skill-' + mode).innerHTML = '<span style="color:' + info.color + ';font-weight:bold">' + sk + '</span> <small style="color:' + info.color + '">' + info.label + '</small>';
+          }
+          if (p.gamesPlayed > 0) {
+            var winRate = Math.round((p.gamesWon / p.gamesPlayed) * 100);
+            var modeLabel = mode === 'perdere' ? 'A Perdere' : 'A Vincere';
+            var modeIcon = mode === 'perdere' ? '🔻' : '🔺';
+            detailsHtml += '<div style="margin-bottom:14px;padding:14px 16px;background:#f8f9fa;border-radius:10px;border:1px solid #e0e0e0">';
+            detailsHtml += '<h4 style="margin:0 0 10px;color:#2a6a2a;font-size:1rem">' + modeIcon + ' ' + modeLabel + '</h4>';
+            detailsHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;font-size:0.88rem">';
+            // Row items with info buttons
+            detailsHtml += '<div style="padding:6px 0"><b>% Vittorie</b>' + infoBtn('perc-vittorie') + '<br><span style="font-size:1.2em;color:#2a6a2a">' + winRate + '%</span></div>';
+            detailsHtml += '<div style="padding:6px 0"><b>Partite</b><br><span style="font-size:1.2em">' + (p.gamesPlayed || 0) + '</span></div>';
+            detailsHtml += '<div style="padding:6px 0"><b>Vittorie</b><br><span style="font-size:1.2em">' + (p.gamesWon || 0) + '</span></div>';
+            detailsHtml += '<div style="padding:6px 0"><b>Bravura</b>' + infoBtn('bravura') + '<br><span style="font-size:1.2em">' + Math.round(p.skillLevel || 0) + '/100</span></div>';
+            detailsHtml += '<div style="padding:6px 0"><b>Punti medi</b>' + infoBtn('punti-medi') + '<br><span style="font-size:1.2em">' + (p.avgScorePerGame ? p.avgScorePerGame.toFixed(1) : '—') + '</span></div>';
+            detailsHtml += '<div style="padding:6px 0"><b>Tendenza</b>' + infoBtn('tendenza') + '<br><span style="font-size:1.2em">' + (p.emaWinRate ? (p.emaWinRate * 100).toFixed(0) + '%' : '—') + '</span></div>';
+            detailsHtml += '<div style="padding:6px 0"><b>Sottogiocare</b>' + infoBtn('sottogiocare') + '<br><span style="font-size:1.2em">' + (p.duckRate ? (p.duckRate * 100).toFixed(0) + '%' : '—') + '</span></div>';
+            detailsHtml += '<div style="padding:6px 0"><b>Scarico punti</b>' + infoBtn('scarico-punti') + '<br><span style="font-size:1.2em">' + (p.pointDumpRate ? (p.pointDumpRate * 100).toFixed(0) + '%' : '—') + '</span></div>';
+            detailsHtml += '</div></div>';
+          }
+        });
+        var detailsEl = document.getElementById('local-skill-details');
+        if (detailsEl && detailsHtml) detailsEl.innerHTML = detailsHtml;
+        else if (detailsEl) detailsEl.innerHTML = '<p style="color:#999;text-align:center;font-style:italic">Nessuna partita giocata ancora su questo dispositivo. Torna a giocare! 🃏</p>';
+      } catch(e) {
+        console.warn('Error loading local stats:', e);
+      }
+    })();
 
     function _fmtDuration(ms) {
       if (!ms || ms <= 0) return '—';
@@ -2438,6 +1818,3 @@
         }
       });
     }
-  </script>
-</body>
-</html>
