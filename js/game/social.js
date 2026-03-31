@@ -248,7 +248,7 @@ function _showToast(text, type, duration) {
 function _setupPresence() {
   if (!_fbDb) return;
   var uid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
-  var displayName = (_authUser && !_isGuest) ? (_authUser.displayName || 'Giocatore') : 'Ospite';
+  var displayName = (_authUser && !_isGuest) ? (_authUser.displayName || 'Giocatore') : (_guestDisplayName || _getMyName() || 'Ospite');
   _presenceRef = _fbDb.ref('presence/' + uid);
   // Write presence immediately (don't wait for .info/connected which may have already fired)
   var presenceData = {
@@ -314,9 +314,15 @@ function _processPresenceSnapshot(all) {
   _onlinePlayers = {};
   for (var uid in all) {
     if (all[uid] && all[uid].online === true) {
-      var lastSeen = all[uid].lastSeen || 0;
+      var entry = all[uid];
+      var displayName = (entry.displayName || '').trim();
+      if (!displayName) {
+        _fbDb.ref('presence/' + uid).remove().catch(function(){});
+        continue;
+      }
+      var lastSeen = entry.lastSeen || 0;
       if (now - lastSeen < PRESENCE_STALE_MS) {
-        _onlinePlayers[uid] = all[uid];
+        _onlinePlayers[uid] = Object.assign({}, entry, { displayName: displayName });
       } else {
         _fbDb.ref('presence/' + uid).remove().catch(function(){});
       }
@@ -532,10 +538,12 @@ function _showInvitationToast(senderUid, inv) {
 }
 
 function _sendInvitation(targetUid) {
-  if (!_authUser || !_fbDb || !mpRoom) return;
+  if (!_fbDb || !mpRoom) return;
+  var senderUid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
+  var senderName = (_authUser ? _authUser.displayName : '') || _guestDisplayName || _getMyName() || 'Giocatore';
   var targetPlayer = _onlinePlayers[targetUid];
-  _fbDb.ref('invitations/' + targetUid + '/' + _authUser.uid).set({
-    fromName: _authUser.displayName || 'Giocatore',
+  _fbDb.ref('invitations/' + targetUid + '/' + senderUid).set({
+    fromName: senderName,
     roomCode: mpRoom,
     roomLabel: document.getElementById('room-name-input') ? document.getElementById('room-name-input').value || 'Partita' : 'Partita',
     seatIndex: _inviteSeatTarget,
@@ -544,13 +552,13 @@ function _sendInvitation(targetUid) {
     _showToast('Invito inviato a ' + (targetPlayer ? targetPlayer.displayName : 'giocatore') + '!', 'ok');
     _closeInvitePanel();
   });
-  _fbDb.ref('invitations/' + targetUid + '/' + _authUser.uid).onDisconnect().remove();
+  _fbDb.ref('invitations/' + targetUid + '/' + senderUid).onDisconnect().remove();
 }
 
 function _acceptInvitation(senderUid, inv) {
   var myUid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
   _fbDb.ref('invitations/' + myUid + '/' + senderUid).remove();
-  var myName = (_authUser ? _authUser.displayName : '') || _getMyName() || 'Ospite';
+  var myName = (_authUser ? _authUser.displayName : '') || _guestDisplayName || _getMyName() || 'Ospite';
   var joinNameEl = document.getElementById('join-name-input');
   var joinCodeEl = document.getElementById('join-code-input');
   if (joinNameEl) joinNameEl.value = myName;
@@ -566,7 +574,7 @@ function _acceptInvitation(senderUid, inv) {
 function _rejectInvitation(senderUid) {
   if (!_fbDb) return;
   var myUid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
-  var myName = (_authUser ? _authUser.displayName : '') || _getMyName() || 'Ospite';
+  var myName = (_authUser ? _authUser.displayName : '') || _guestDisplayName || _getMyName() || 'Ospite';
   _fbDb.ref('invitations/' + myUid + '/' + senderUid).remove();
   // Notify the sender that the invitation was rejected
   _fbDb.ref('invitationResponses/' + senderUid + '/' + myUid).set({
@@ -787,6 +795,7 @@ function _renderInvitePlayerList() {
     html += '<div>';
     html += '<span class="social-player-name" style="color:' + (isFriend ? '#4f4' : '#ccc') + '">';
     html += (isFriend ? '⭐ ' : '') + _escHtml(p.displayName);
+    if (p.isGuest) html += ' <span style="color:#999;font-size:0.85em">(ospite)</span>';
     html += '</span>';
     if (inGame) html += ' <span class="social-player-status" style="color:#e84">(in partita)</span>';
     else if (inLobby) html += ' <span class="social-player-status" style="color:#888">(in lobby)</span>';

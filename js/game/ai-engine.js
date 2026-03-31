@@ -5,6 +5,13 @@ async function cpuTurn() {
   game.animating = true;
   await delay(500 + Math.random() * 400);
   if (!game) return; // quit during delay
+  // Re-check: a human player may have joined this seat during the delay
+  if (isHumanSeat(game.currentPlayer)) {
+    game.animating = false;
+    renderAll();
+    if(mpMode && isHost) syncState(true);
+    return;
+  }
   game.animating = false;
 
   const playerIdx = game.currentPlayer;

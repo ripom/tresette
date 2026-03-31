@@ -678,13 +678,42 @@ function quitGame() {
     var _qRole = mpMode ? (isHost ? 'Host' : 'Client') : null;
     logGameStats(_qType, _qRole, false);
   }
-  _clearSession();
+  function _stabilizeStateForMigration() {
+    if(!game || (game.phase !== 'playing' && game.phase !== 'done')) return false;
+    if(game.animating) {
+      if(game.phase === 'playing' && game.trick && game.trick.length === 4) {
+        try {
+          var winner = evaluateTrick();
+          var pts = trickPoints();
+          game.trickNum++;
+          if(game.trickNum === 10) pts += 3;
+          game.scores[winner] += pts;
+          game.trickCards = game.trick.map(function(t){ return t.card; });
+          game.leadPlayer = winner;
+          game.currentPlayer = winner;
+          if(game.trickNum >= 10) {
+            game.phase = 'done';
+          } else {
+            game.trick = [];
+          }
+        } catch(e) {
+          dbg('[QUIT] stabilize failed: ' + e);
+          return false;
+        }
+      }
+      game.animating = false;
+    }
+    return !!(game.phase === 'playing' || game.phase === 'done');
+  }
   // Immediately abort all animations and clean up
   cleanupAnimations();
   var wasHost = isHost;
   var oldRoom = mpRoom;
+  var oldSeat = mySeat;
+  var oldName = _getMyName() || (oldSeat >= 0 ? PLAYER_NAMES[oldSeat] : '') || PLAYER_NAMES[0] || 'Amico';
   var hadGame = !!game;
-  game = null;
+  var canMigrateHost = !!(wasHost && mpMode && _stabilizeStateForMigration());
+  var preserveMigrationSession = false;
   document.getElementById('quit-btn').style.display = 'none';
   document.getElementById('game-over').classList.remove('show');
   _updateUserBadge(); // Hide skill badge when leaving game
@@ -700,7 +729,9 @@ function quitGame() {
       for(var qs=1;qs<=3;qs++){
         if(_humanSeats[qs]) { hasOtherHumans = true; break; }
       }
-      if(hasOtherHumans && hadGame){
+      if(hasOtherHumans && hadGame && canMigrateHost){
+        preserveMigrationSession = true;
+        syncState(true);
         // Notify clients to migrate host, do NOT delete room data
         mpSend({t:'host-leaving'});
         // Remove lobby entry and own seat; keep meta/state for migration
@@ -709,7 +740,7 @@ function quitGame() {
         // Stop lease renewal so clients detect it and promote
         // The lease will expire and clients will attempt promotion
       } else {
-        // No other humans — clean up everything
+        // No other humans, or state is mid-resolution — clean up everything
         mpSend({t:'quit'});
         _fbDb.ref('lobby/'+oldRoom).remove();
         _fbDb.ref('rooms/'+oldRoom+'/state').remove();
@@ -722,6 +753,14 @@ function quitGame() {
     mpMode = false;
     _fbCleanup();
   }
+  if(preserveMigrationSession && oldRoom) {
+    _saveSession(oldRoom, oldName, false);
+    _setSessionSeat(oldSeat >= 0 ? oldSeat : 0);
+    dbg('[QUIT] Preserving session for migrated room rejoin room='+oldRoom+' seat='+(oldSeat >= 0 ? oldSeat : 0));
+  } else {
+    _clearSession();
+  }
+  game = null;
   document.getElementById('overlay').classList.remove('hidden');
 }
 document.getElementById('quit-btn').onclick = quitGame;
@@ -856,7 +895,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "3.0.1";
+const GAME_VERSION = "3.0.2";
 // Auto-sync version display everywhere from single GAME_VERSION constant
 (function(){ ['game-version-display','auth-version'].forEach(function(id){ var el = document.getElementById(id); if(el) el.textContent = 'v' + GAME_VERSION; }); })();
 
@@ -885,12 +924,19 @@ function _saveSession(room, name, hosting) {
     localStorage.setItem('tresette_sess_ts', Date.now().toString());
   } catch(e){}
 }
+function _setSessionSeat(seat) {
+  try {
+    if (typeof seat === 'number' && seat >= 0 && seat <= 3) localStorage.setItem('tresette_seat', String(seat));
+    else localStorage.removeItem('tresette_seat');
+  } catch(e){}
+}
 function _clearSession() {
   try {
     localStorage.removeItem('tresette_room');
     localStorage.removeItem('tresette_name');
     localStorage.removeItem('tresette_host');
     localStorage.removeItem('tresette_sess_ts');
+    localStorage.removeItem('tresette_seat');
   } catch(e){}
 }
 function _getSession() {
@@ -898,9 +944,11 @@ function _getSession() {
     var room = localStorage.getItem('tresette_room');
     var name = localStorage.getItem('tresette_name');
     var hosting = localStorage.getItem('tresette_host') === '1';
+    var seatRaw = localStorage.getItem('tresette_seat');
+    var seat = seatRaw === null ? null : parseInt(seatRaw, 10);
     var ts = parseInt(localStorage.getItem('tresette_sess_ts') || '0');
     // Expire after 2 hours to avoid stale sessions from old games
-    if(room && name && ts && (Date.now() - ts) < 7200000) return {room:room, name:name, hosting:hosting};
+    if(room && name && ts && (Date.now() - ts) < 7200000) return {room:room, name:name, hosting:hosting, seat:isNaN(seat) ? null : seat};
     // Clean up stale
     if(ts && (Date.now() - ts) >= 7200000) _clearSession();
   } catch(e){}

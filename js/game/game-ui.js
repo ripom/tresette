@@ -250,6 +250,7 @@ function initGame(startPlayer) {
   var decls = applyBuongioco();
   game._buongiocoDecls = decls;
   // Buongioco display will be triggered by the caller via showBuongiocoAndStart()
+  _validateHandAlignment('initGame');
 }
 
 // Show buongioco banners for 5 seconds, then start play (trigger first CPU turn if needed)
@@ -825,6 +826,7 @@ async function animateCardToTrick(playerIdx, card) {
 
 function renderAll() {
   if (!game) return;
+  _validateHandAlignment('renderAll');
   renderPlayerHand();
   renderOpponentHands();
   renderTrick();
@@ -1264,6 +1266,117 @@ function trickPoints() {
   return pts;
 }
 
+function _countHandCards() {
+  if (!game || !Array.isArray(game.hands)) return 0;
+  return game.hands.reduce(function(total, hand) {
+    return total + (Array.isArray(hand) ? hand.length : 0);
+  }, 0);
+}
+
+function _reportConsistencyError(stage, detail) {
+  var msg = '[CONSISTENCY] ' + stage + ': ' + detail;
+  dbg(msg);
+  try { console.error(msg); } catch (e) {}
+  return false;
+}
+
+function _validateHandAlignment(stage) {
+  if (!game) return true;
+  if (!Array.isArray(game.hands) || game.hands.length !== 4) {
+    return _reportConsistencyError(stage, 'hands array non valida');
+  }
+  if (!Array.isArray(game.trick) || game.trick.length > 4) {
+    return _reportConsistencyError(stage, 'trick non valido len=' + (game.trick ? game.trick.length : 'null'));
+  }
+
+  var trickNum = typeof game.trickNum === 'number' ? game.trickNum : 0;
+  var leadPlayer = typeof game.leadPlayer === 'number' ? game.leadPlayer : 0;
+  var resolvedPendingClear = game.trick.length === 4 && !!game.animating && Array.isArray(game.trickCards) && game.trickCards.length === 4;
+  var playedSeats = {};
+  var seenIds = {};
+
+  for (var ti = 0; ti < game.trick.length; ti++) {
+    var trickEntry = game.trick[ti];
+    if (!trickEntry || typeof trickEntry.playerIdx !== 'number' || !trickEntry.card || trickEntry.card.id == null) {
+      return _reportConsistencyError(stage, 'trick entry non valida idx=' + ti);
+    }
+    var expectedSeat = (leadPlayer + ti) % 4;
+    if (trickEntry.playerIdx !== expectedSeat) {
+      return _reportConsistencyError(stage, 'ordine trick errato idx=' + ti + ' expected=' + expectedSeat + ' actual=' + trickEntry.playerIdx);
+    }
+    if (playedSeats[trickEntry.playerIdx]) {
+      return _reportConsistencyError(stage, 'seat duplicato nel trick=' + trickEntry.playerIdx);
+    }
+    playedSeats[trickEntry.playerIdx] = true;
+    if (seenIds[trickEntry.card.id]) {
+      return _reportConsistencyError(stage, 'carta duplicata nel trick id=' + trickEntry.card.id);
+    }
+    seenIds[trickEntry.card.id] = true;
+  }
+
+  var expectedHandTotal = 0;
+  for (var seat = 0; seat < 4; seat++) {
+    var hand = game.hands[seat];
+    if (!Array.isArray(hand)) {
+      return _reportConsistencyError(stage, 'mano non valida seat=' + seat);
+    }
+    var expectedCount = 10 - trickNum;
+    if (!resolvedPendingClear && playedSeats[seat]) expectedCount--;
+    if (expectedCount < 0 || expectedCount > 10) {
+      return _reportConsistencyError(stage, 'conteggio atteso fuori range seat=' + seat + ' count=' + expectedCount);
+    }
+    if (hand.length !== expectedCount) {
+      return _reportConsistencyError(stage, 'conteggio mano errato seat=' + seat + ' expected=' + expectedCount + ' actual=' + hand.length);
+    }
+    expectedHandTotal += expectedCount;
+    for (var hi = 0; hi < hand.length; hi++) {
+      var handCard = hand[hi];
+      if (!handCard || handCard.id == null) {
+        return _reportConsistencyError(stage, 'carta non valida in mano seat=' + seat + ' idx=' + hi);
+      }
+      if (seenIds[handCard.id]) {
+        return _reportConsistencyError(stage, 'carta duplicata tra mani/trick id=' + handCard.id);
+      }
+      seenIds[handCard.id] = true;
+    }
+  }
+
+  var actualHandTotal = _countHandCards();
+  if (actualHandTotal !== expectedHandTotal) {
+    return _reportConsistencyError(stage, 'totale carte mano errato expected=' + expectedHandTotal + ' actual=' + actualHandTotal);
+  }
+
+  if (game.phase === 'playing' && !game.animating && game.trick.length < 4) {
+    var expectedCurrentPlayer = (leadPlayer + game.trick.length) % 4;
+    if (game.currentPlayer !== expectedCurrentPlayer) {
+      return _reportConsistencyError(stage, 'currentPlayer errato expected=' + expectedCurrentPlayer + ' actual=' + game.currentPlayer);
+    }
+    if (getPlayableCards(game.currentPlayer).length < 1) {
+      return _reportConsistencyError(stage, 'nessuna carta giocabile per seat=' + game.currentPlayer);
+    }
+  }
+
+  return true;
+}
+
+function _validateSingleCardMove(stage, playerIdx, card, beforeHandCount, beforeTrickCount, beforeTotalHandCards) {
+  if (!game) return true;
+  if (game.hands[playerIdx].length !== beforeHandCount - 1) {
+    return _reportConsistencyError(stage, 'la mano del seat=' + playerIdx + ' non e\' scesa di una carta');
+  }
+  if (game.trick.length !== beforeTrickCount + 1) {
+    return _reportConsistencyError(stage, 'il trick non e\' salito di una carta');
+  }
+  var lastEntry = game.trick[game.trick.length - 1];
+  if (!lastEntry || lastEntry.playerIdx !== playerIdx || !lastEntry.card || lastEntry.card.id !== card.id) {
+    return _reportConsistencyError(stage, 'la carta giocata non coincide con quella attesa id=' + card.id);
+  }
+  if (_countHandCards() !== beforeTotalHandCards - 1) {
+    return _reportConsistencyError(stage, 'il totale carte mano non e\' sceso di una unita\'');
+  }
+  return _validateHandAlignment(stage);
+}
+
 // ─── Play a card ──────────────────────────────────────────────
 var _humanPlayLock = false;
 async function playCard(playerIdx, card) {
@@ -1284,6 +1397,10 @@ async function playCard(playerIdx, card) {
   if (playerIdx !== game.currentPlayer) { _humanPlayLock = false; return; }
   // Guard: card must still be in hand
   if (!game.hands[playerIdx].some(function(c){ return c.id === card.id; })) { _humanPlayLock = false; return; }
+  _validateHandAlignment('pre-play');
+  var beforeHandCount = game.hands[playerIdx].length;
+  var beforeTrickCount = game.trick.length;
+  var beforeTotalHandCards = _countHandCards();
 
   // Animate card flying to trick area before removing from hand
   await animateCardToTrick(playerIdx, card);
@@ -1297,6 +1414,7 @@ async function playCard(playerIdx, card) {
 
   // Add to trick
   game.trick.push({ playerIdx, card });
+  _validateSingleCardMove('post-play', playerIdx, card, beforeHandCount, beforeTrickCount, beforeTotalHandCards);
 
   // Adaptive AI: observe human play patterns (track in all modes for skill badge)
   _observeHumanPlay(playerIdx, card);

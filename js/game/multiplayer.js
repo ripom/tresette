@@ -3,8 +3,8 @@
   try {
     if(typeof firebase === 'undefined' || typeof FIREBASE_CONFIG === 'undefined') {
       console.warn('[FIREBASE] SDK or config not available yet');
-      // Still proceed to game as guest without Firebase
-      setTimeout(function(){ authAsGuest(); }, 100);
+      // Still proceed to auth without Firebase
+      setTimeout(function(){ showAuthForm('choice'); }, 100);
       return;
     }
     firebase.initializeApp(FIREBASE_CONFIG);
@@ -33,12 +33,19 @@
         }
       }
     });
-    // Check if user is already logged in
-    _checkAuthState();
+    // Make auth persistence explicit before checking the restored user state.
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+      .then(function() {
+        _checkAuthState();
+      })
+      .catch(function(err) {
+        console.warn('[AUTH] setPersistence failed:', err);
+        _checkAuthState();
+      });
   } catch(e) {
     console.error('[FIREBASE] Init failed:', e);
-    // Still proceed to game as guest without Firebase
-    setTimeout(function(){ authAsGuest(); }, 100);
+    // Still proceed to auth without Firebase
+    setTimeout(function(){ showAuthForm('choice'); }, 100);
   }
 })();
 
@@ -47,6 +54,7 @@
 // ═══════════════════════════════════════════════════════════════
 var _authUser = null; // firebase.User or null
 var _isGuest = false;
+var _guestDisplayName = '';
 
 function showAuthForm(which) {
   var sections = ['auth-choice','auth-login','auth-register','auth-resetpwd','auth-logged','auth-changepwd'];
@@ -62,42 +70,172 @@ function showAuthForm(which) {
 }
 
 function _checkAuthState() {
+
+
   var auth = firebase.auth();
+
+
+  if (!auth) { showAuthForm('choice'); return; }
+
+
+  
+
+
   auth.onAuthStateChanged(function(user) {
+
+
     if (user) {
+
+
       _authUser = user;
+
+
       _isGuest = false;
+
+
+      _guestDisplayName = '';
+
+
       dbg('[AUTH] Auto-login rilevato: ' + (user.displayName || user.email));
-      document.getElementById('auth-logged-name').textContent = user.displayName || 'Giocatore';
-      document.getElementById('auth-logged-email').textContent = user.email || '';
+
+
+      var nameEl = document.getElementById('auth-logged-name');
+
+
+      if (nameEl) nameEl.textContent = user.displayName || 'Giocatore';
+
+
+      var emailEl = document.getElementById('auth-logged-email');
+
+
+      if (emailEl) emailEl.textContent = user.email || '';
+
+
+      
+
+
       _updateUserBadge();
+
+
       _syncNameFromAuth();
-      // Pre-fill game name
+
+
       var nameInput = document.getElementById('my-name-input');
+
+
       if (nameInput) nameInput.value = user.displayName || '';
-      // Register user in DB for admin visibility
+
+
+      
+
+
       _registerUserInDb(user);
-      // Load adaptive AI profile
+
+
       _loadPlayerProfile();
-      // Setup social: presence + listeners
+
+
       _setupPresence();
+
+
       _initSocialListeners();
-      // Go straight to game
+
+
       proceedToGame();
+
+
     } else {
-      // Auto-login as guest and go straight to game
+
+
       _authUser = null;
-      authAsGuest();
+
+
+      var savedType = null;
+
+
+      var savedGuest = null;
+
+
+      try {
+
+
+        savedType = localStorage.getItem('tresette_auth_type');
+
+
+        savedGuest = localStorage.getItem('tresette_guest_name');
+
+
+      } catch(e) {}
+
+
+      if (savedType === 'guest' && savedGuest) {
+
+
+        dbg('[AUTH] Auto-login ospite (da sessione pregressa): ' + savedGuest);
+
+
+        _isGuest = true;
+
+
+        _guestDisplayName = savedGuest;
+
+
+        var ni = document.getElementById('my-name-input'); if(ni) ni.value = savedGuest;
+
+
+        _updateUserBadge();
+
+
+        _setupPresence();
+
+
+        _initSocialListeners();
+
+
+        proceedToGame();
+
+
+      } else {
+
+
+        try { localStorage.removeItem('tresette_auth_type'); localStorage.removeItem('tresette_guest_name'); } catch(e) {}
+
+
+        showAuthForm('choice');
+
+
+      }
+
+
     }
+
+
   });
+
+
 }
 
+
 function authAsGuest() {
+  var guestNameInput = document.getElementById('auth-guest-name');
+  var guestName = guestNameInput ? guestNameInput.value.trim() : '';
+  var errEl = document.getElementById('guest-name-err');
+  if (errEl) errEl.textContent = '';
+  
+  if (!guestName) {
+    if (errEl) errEl.textContent = 'Inserisci il tuo nome.';
+    return;
+  }
+
   _isGuest = true;
   _authUser = null;
-  dbg('[AUTH] Accesso come ospite');
+  _guestDisplayName = guestName;
+  try { localStorage.setItem('tresette_auth_type', 'guest'); } catch(e) {}
+  try { localStorage.setItem('tresette_guest_name', guestName); } catch(e) {}
+
+  dbg('[AUTH] Accesso come ospite: ' + guestName);
+  var ni = document.getElementById('my-name-input'); if(ni) ni.value = guestName;
   _updateUserBadge();
-  // Guests appear online and can see online players
   _setupPresence();
   _initSocialListeners();
   proceedToGame();
@@ -220,15 +358,26 @@ function doLogout() {
   }
   // Cleanup social listeners and presence
   _cleanupSocialListeners();
-  firebase.auth().signOut().then(function() {
+  
+  var cleanupAndShowAuth = function() {
     _authUser = null;
-    _isGuest = true;
+    _isGuest = false;
+    _guestDisplayName = '';
+    try { localStorage.removeItem('tresette_auth_type'); } catch(e) {}
+    try { localStorage.removeItem('tresette_user_name'); } catch(e) {}
+    try { localStorage.removeItem('tresette_guest_name'); } catch(e) {}
     _updateUserBadge();
     _syncNameFromAuth();
-    // Stay in game as guest
-    document.getElementById('auth-overlay').classList.add('hidden');
-    document.getElementById('overlay').classList.remove('hidden');
-  });
+    document.getElementById('overlay').classList.add('hidden');
+    document.getElementById('auth-overlay').classList.remove('hidden');
+    showAuthForm('choice');
+  };
+
+  if (firebase.auth) {
+    firebase.auth().signOut().then(cleanupAndShowAuth).catch(cleanupAndShowAuth);
+  } else {
+    cleanupAndShowAuth();
+  }
 }
 
 function _updateUserBadge() {
@@ -243,10 +392,10 @@ function _updateUserBadge() {
     badge.style.display = 'flex';
     if (authBtn) { authBtn.textContent = '🚪 Esci'; authBtn.title = 'Logout'; }
   } else if (_isGuest) {
-    nameEl.textContent = 'Ospite';
+    nameEl.textContent = _guestDisplayName ? ('Ospite: ' + _guestDisplayName) : 'Ospite';
     badge.querySelector('.ub-icon').textContent = '🎭';
     badge.style.display = 'flex';
-    if (authBtn) { authBtn.textContent = '🔑 Accedi'; authBtn.title = 'Login'; }
+    if (authBtn) { authBtn.textContent = '🚪 Esci'; authBtn.title = 'Logout ospite'; }
   } else {
     badge.style.display = 'none';
   }
@@ -296,22 +445,24 @@ function _syncNameFromAuth() {
     nameInput.value = _authUser.displayName;
     nameInput.readOnly = true;
     nameInput.style.opacity = '0.7';
-    nameInput.title = 'Nome dal tuo account';
+    nameInput.style.cursor = 'default';
+    nameInput.title = 'Nome del profilo in uso';
   } else {
-    nameInput.readOnly = false;
-    nameInput.style.opacity = '1';
-    nameInput.title = '';
+    nameInput.readOnly = true;
+    nameInput.style.opacity = '0.7';
+    nameInput.style.cursor = 'default';
+    nameInput.title = _isGuest ? 'Nome ospite in uso' : 'Nome del profilo in uso';
     if (_isGuest && !nameInput.value) nameInput.value = '';
   }
 }
 
 function _onAuthBtnClick(e) {
   if (e) { e.stopPropagation(); }
-  if (_authUser) {
-    // Logged in → logout and continue as guest
+  if (_authUser || _isGuest) {
+    // Logged in or guest → logout and return to auth choice
     doLogout();
   } else {
-    // Guest → show login form directly
+    // Not authenticated → show login form directly
     dbg('[AUTH] Richiesta login da badge');
     document.getElementById('auth-overlay').classList.remove('hidden');
     showAuthForm('login');
@@ -410,6 +561,7 @@ function logGameStats(gameType, playerRole, completed, resultData) {
 // ─── Debug logger ──────────────────────────────────────────
 var _dbgLines = [];
 function dbg(msg) {
+  if (!Array.isArray(_dbgLines)) _dbgLines = [];
   var ts = new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   var role = isHost ? 'HOST' : 'CLI';
   var seatTag = mySeat >= 0 ? 's'+mySeat : 's?';
@@ -420,6 +572,20 @@ function dbg(msg) {
   var el = document.getElementById('dbg-panel');
   if(el){ el.textContent = _dbgLines.join('\n'); el.scrollTop = el.scrollHeight; }
   _updateHostInfo();
+}
+function _describeSeatOwnership() {
+  var parts = [];
+  for(var seat=0; seat<4; seat++) {
+    var entry = _humanSeats[seat];
+    var isHuman = _humanSeatSet.has(seat);
+    var name = PLAYER_NAMES[seat] || (entry && entry.name) || ('Seat '+(seat+1));
+    var ownerId = entry && entry.id ? ',id='+entry.id : '';
+    parts.push('s'+seat+'='+(isHuman ? 'human' : 'cpu')+'('+name+ownerId+')');
+  }
+  return parts.join(' | ');
+}
+function _logSeatOwnership(context) {
+  dbg('[SEATS] '+context+' :: '+_describeSeatOwnership());
 }
 function _updateHostInfo() {
   var el = document.getElementById('hi-host');
@@ -481,13 +647,19 @@ function cancelLobby() {
 
 // ─── Firebase helpers ───
 var _fbListeners = [];
+var _msgListeners = [];
 var _msgCount = 0;
 var _hostWatchdogTimer = null;
 var _clientWatchdogTimer = null;
+function _clearMessageListeners(){
+  _msgListeners.forEach(function(q){ try{q.off();}catch(e){} });
+  _msgListeners = [];
+  _processedMsgKeys = {};
+}
 function _fbCleanup(){
   _fbListeners.forEach(function(r){ try{r.off();}catch(e){} });
   _fbListeners = [];
-  _processedMsgKeys = {};
+  _clearMessageListeners();
   _stateRef = null;
   _latestAppliedStateSeq = 0;
   _stateSeq = 0;
@@ -565,8 +737,7 @@ function mpListen(handler) {
     });
   });
   
-  // Push the QUERY so _fbCleanup can detach it properly
-  _fbListeners.push(query);
+  _msgListeners.push(query);
   dbg('Listening on rooms/'+mpRoom);
 }
 
@@ -810,6 +981,7 @@ function _attemptForcedPromotion(metaSnapshot) {
 function _becomeHost() {
   dbg('[BECOME] *** _becomeHost called *** mySeat='+mySeat+' epoch='+_hostEpoch+' room='+mpRoom);
   isHost = true;
+  _clearMessageListeners();
   _resolveHostName(MY_ID);
   _stopMetaWatch();
   _startHostLease();
@@ -848,6 +1020,7 @@ function _becomeHost() {
       dbg('[BECOME] Restored seat '+seatIdx+': name='+pName+' id='+playerId);
     }
     dbg('[BECOME] Final humanSeats: '+JSON.stringify(Object.keys(_humanSeats))+' humanSeatSet: ['+Array.from(_humanSeatSet).join(',')+']');
+    _logSeatOwnership('after rebuild as migrated host');
 
     // Now that _humanSeats is rebuilt, sync state to clients with correct humanSeatSet
     dbg('[BECOME] Syncing state as new host (after seats rebuilt)...');
@@ -872,7 +1045,11 @@ function _becomeHost() {
   function _migratedHostHandler(data) {
     if(data.t === 'ping') {
       for(var hp in _humanSeats) {
-        if(_humanSeats[hp].id === data._from) { _humanSeats[hp].lastPing = Date.now(); break; }
+        if(_humanSeats[hp].id === data._from) {
+          _humanSeats[hp].lastPing = Date.now();
+          dbg('[MIG-HOST] ping refreshed seat='+hp+' id='+data._from+' name='+(_humanSeats[hp].name||PLAYER_NAMES[hp]||'?'));
+          break;
+        }
       }
       return;
     }
@@ -880,6 +1057,24 @@ function _becomeHost() {
     if(data.t === 'join') {
       var existingSeat = -1;
       for(var k in _humanSeats) { if(_humanSeats[k].id === data._from) { existingSeat = parseInt(k); break; } }
+      if(existingSeat < 0 && typeof data.rejoinSeat === 'number' && data.rejoinSeat >= 0 && data.rejoinSeat <= 3) {
+        var wantedSeat = data.rejoinSeat;
+        var wantedEntry = _humanSeats[wantedSeat];
+        var wantedStale = wantedEntry && (Date.now() - wantedEntry.lastPing) > 10000;
+        var isOrig = (data._from === _originalHostId && data._from !== MY_ID);
+        var wantsOriginalHostSeat = isOrig && wantedSeat === 0;
+        var wantsSeatZeroRecovery = wantedSeat === 0 && (!_humanSeatSet.has(0) || !wantedEntry || wantedStale) && (!data.name || PLAYER_NAMES[0] === data.name || (wantedEntry && wantedEntry.name === data.name));
+        var wantedHuman = _humanSeatSet.has(wantedSeat) || wantsOriginalHostSeat || wantsSeatZeroRecovery;
+        var wantedNameOk = wantsOriginalHostSeat || wantsSeatZeroRecovery || !data.name || PLAYER_NAMES[wantedSeat] === data.name || (wantedEntry && wantedEntry.name === data.name);
+        if(wantedHuman && wantedNameOk && (!wantedEntry || wantedEntry.id === data._from || wantedStale)) {
+          existingSeat = wantedSeat;
+          _humanSeats[existingSeat] = _humanSeats[existingSeat] || {};
+          _humanSeats[existingSeat].id = data._from;
+          _humanSeats[existingSeat].name = _humanSeats[existingSeat].name || data.name || PLAYER_NAMES[existingSeat] || 'Host';
+          _humanSeats[existingSeat].lastPing = Date.now();
+          dbg('[MIG-HOST] Matched by rejoinSeat: seat='+existingSeat+' wantedHuman='+wantedHuman+' wantedStale='+!!wantedStale+' origHostSeat='+wantsOriginalHostSeat+' seatZeroRecovery='+wantsSeatZeroRecovery);
+        }
+      }
       if(existingSeat < 0 && data.name) {
         for(var kn in _humanSeats) {
           if(_humanSeats[kn].name === data.name && (Date.now() - _humanSeats[kn].lastPing) > 10000) {
@@ -899,13 +1094,18 @@ function _becomeHost() {
       if(existingSeat >= 0) {
         _humanSeats[existingSeat] = _humanSeats[existingSeat] || {};
         _humanSeats[existingSeat].id = data._from;
-        _humanSeats[existingSeat].name = _humanSeats[existingSeat].name || data.name || PLAYER_NAMES[existingSeat] || 'Host';
+        _humanSeats[existingSeat].name = data.name || _humanSeats[existingSeat].name || PLAYER_NAMES[existingSeat] || 'Host';
         _humanSeats[existingSeat].lastPing = Date.now();
         _humanSeatSet.add(existingSeat);
+        PLAYER_NAMES[existingSeat] = _humanSeats[existingSeat].name;
         dbg('[MIG-HOST] Player REJOINED seat='+existingSeat+' name='+_humanSeats[existingSeat].name+' id='+data._from);
         showStatus(_humanSeats[existingSeat].name+' riconnesso!', 2000);
-        bcastGSNow();
         _fbDb.ref('rooms/'+mpRoom+'/seats/'+data._from).set(existingSeat);
+        deduplicateNames();
+        renderLabels();
+        renderAll();
+        _logSeatOwnership('migrated host rejoin seat='+existingSeat);
+        bcastGSNow();
         return;
       }
       // Original host not in _humanSeats at all — add at seat 0
@@ -913,11 +1113,30 @@ function _becomeHost() {
         dbg('[MIG-HOST] Original host rejoined as regular client — adding to seat 0');
         _humanSeats[0] = { name: data.name || PLAYER_NAMES[0] || 'Host', id: data._from, lastPing: Date.now() };
         _humanSeatSet.add(0);
-        bcastGSNow();
+        PLAYER_NAMES[0] = _humanSeats[0].name;
         _fbDb.ref('rooms/'+mpRoom+'/seats/'+data._from).set(0);
+        deduplicateNames();
+        renderLabels();
+        renderAll();
+        _logSeatOwnership('migrated host restored original host on seat 0');
+        bcastGSNow();
         return;
       }
-      dbg('[MIG-HOST] Join from unknown player, ignoring (game in progress)');
+      // Mid-game: allow unknown player to take over a CPU seat
+      var migFreeSeat = -1;
+      for(var ms=1;ms<=3;ms++){ if(!_humanSeatSet.has(ms)){ migFreeSeat=ms; break; } }
+      if(migFreeSeat < 0){ dbg('[MIG-HOST] Join from unknown player, all seats taken'); return; }
+      var migName = data.name || 'Giocatore '+(migFreeSeat+1);
+      _humanSeats[migFreeSeat] = {name:migName, id:data._from, lastPing:Date.now()};
+      _humanSeatSet.add(migFreeSeat);
+      PLAYER_NAMES[migFreeSeat] = migName;
+      dbg('[MIG-HOST] Mid-game join: seat='+migFreeSeat+' name='+migName);
+      showStatus(migName + ' si \u00e8 unito!', 2000);
+      deduplicateNames();
+      renderLabels();
+      _logSeatOwnership('migrated host assigned human seat='+migFreeSeat);
+      bcastGSNow();
+      _fbDb.ref('rooms/'+mpRoom+'/seats/'+data._from).set(migFreeSeat);
       return;
     }
     if(data.t === 'play' && mpMode && game) {
@@ -958,6 +1177,8 @@ function _becomeHost() {
     }
     if(anyDisc && !_clientDisconnected){
       _clientDisconnected = true;
+      dbg('[HOST-WD] Detected disconnected client(s) while hosting migrated room');
+      _logSeatOwnership('host watchdog disconnect snapshot');
       _showDiscBanner('⚠️ Un giocatore disconnesso...', 0, 'In attesa di riconnessione...');
       startHostHeartbeat();
     }
@@ -1074,6 +1295,7 @@ function _doSyncStateNow() {
   if(_lastSeenEpoch > _hostEpoch) return null;
   _stateSeq++;
   var state = makeStateSnapshot(_stateSeq);
+  dbg('[STATE-WRITE] seq='+_stateSeq+' epoch='+_hostEpoch+' cp='+(game?game.currentPlayer:'n/a')+' phase='+(game?game.phase:'n/a')+' humans=['+Array.from(_humanSeatSet).join(',')+']');
   _fbDb.ref('rooms/'+mpRoom+'/state').set(state)
     .catch(function(e){ dbg('STATE ERR: '+e); });
   return state;
@@ -1112,6 +1334,14 @@ function applyRemoteState(data) {
   renderAll();
   if(game.phase === 'done') showGameOver();
   return true;
+}
+
+function _syncHumanSeatsFromState(humanSeats) {
+  var before = Array.from(_humanSeatSet).join(',');
+  if (humanSeats) _humanSeatSet = new Set(humanSeats);
+  if (mpMode && mySeat >= 0) _humanSeatSet.add(mySeat);
+  dbg('[SEATS] syncHumanSeatsFromState before=['+before+'] after=['+Array.from(_humanSeatSet).join(',')+'] mySeat='+mySeat+' myRole='+(mySeat >= 0 && _humanSeatSet.has(mySeat) ? 'human' : 'cpu'));
+  _logSeatOwnership('after state sync');
 }
 
 function pullLatestState(minSeq, attempts) {
@@ -1192,7 +1422,7 @@ function _listenState() {
     if(data.names) for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
     if(data.gm) gameMode = data.gm;
     if(data.diff) cpuDifficulty = data.diff;
-    if(data.hs) _humanSeatSet = new Set(data.hs);
+    _syncHumanSeatsFromState(data.hs);
 
     // Detect changes for sound effects (skip on first snapshot)
     var newTrickLen = data.tr ? data.tr.length : 0;
@@ -1452,12 +1682,15 @@ function hostGame() {
     _fbDb.ref('lobby/'+mpRoom).remove();
   }
   stopHostHeartbeat();
+  _clearMessageListeners();
   PLAYER_NAMES[0] = myName;
   mpRoom = genCode(); isHost = true; mySeat = 0;
   _saveSession(mpRoom, myName, true);
+  _setSessionSeat(0);
   _updatePresenceRoom(mpRoom);
   _humanSeats = {};
   _humanSeatSet = new Set([0]);
+  _logSeatOwnership('host created room before players join');
   // Write host's own seat to Firebase so migrated hosts can find us
   if(_fbDb) _fbDb.ref('rooms/'+mpRoom+'/seats/'+MY_ID).set(0);
   // Initialize host migration epoch
@@ -1487,21 +1720,37 @@ function hostGame() {
     _clientLastPing = Date.now();
     if(_clientDisconnected){
       _clientDisconnected = false;
+      dbg('[HOST] Client traffic resumed from '+data._from+' event='+data.t);
+      _logSeatOwnership('host detected reconnect');
       _showDiscSuccess('✅ Giocatore riconnesso!');
     }
     if(data.t==='ping'){
       for(var hp in _humanSeats){
         if(_humanSeats[hp].id === data._from){
           _humanSeats[hp].lastPing = Date.now();
+          dbg('[HOST] ping refreshed seat='+hp+' id='+data._from+' name='+(_humanSeats[hp].name||PLAYER_NAMES[hp]||'?'));
           break;
         }
       }
       return;
     }
     if(data.t==='join'){
+      dbg('[HOST] join request from='+data._from+' name='+(data.name||'?')+' prefSeat='+(data.prefSeat != null ? data.prefSeat : 'none')+' rejoinSeat='+(data.rejoinSeat != null ? data.rejoinSeat : 'none')+' mpMode='+mpMode);
       // Check if this player already has a seat (rejoin by ID)
       var existingSeat = -1;
       for(var k in _humanSeats){ if(_humanSeats[k].id === data._from){ existingSeat = parseInt(k); break; } }
+      if(existingSeat < 0 && typeof data.rejoinSeat === 'number' && data.rejoinSeat >= 1 && data.rejoinSeat <= 3 && mpMode) {
+        var wantedSeat = data.rejoinSeat;
+        var wantedEntry = _humanSeats[wantedSeat];
+        var wantedStale = wantedEntry && (Date.now() - wantedEntry.lastPing) > 10000;
+        var wantedHuman = _humanSeatSet.has(wantedSeat);
+        var wantedNameOk = !data.name || PLAYER_NAMES[wantedSeat] === data.name || (wantedEntry && wantedEntry.name === data.name);
+        if(wantedHuman && wantedNameOk && (!wantedEntry || wantedEntry.id === data._from || wantedStale)) {
+          existingSeat = wantedSeat;
+          _humanSeats[existingSeat] = {name:data.name || PLAYER_NAMES[existingSeat] || ('Giocatore '+(existingSeat+1)), id:data._from, lastPing:Date.now()};
+          dbg('HOST: player REJOIN by rejoinSeat='+existingSeat+' stale='+!!wantedStale+' wantedHuman='+wantedHuman);
+        }
+      }
       // If no match by ID, try matching by name (player refreshed page and got new ID)
       if(existingSeat < 0 && data.name && mpMode) {
         for(var kn in _humanSeats){
@@ -1516,10 +1765,14 @@ function hostGame() {
         }
       }
       if(existingSeat >= 0){
+        _humanSeats[existingSeat] = _humanSeats[existingSeat] || {};
+        _humanSeats[existingSeat].name = _humanSeats[existingSeat].name || data.name || PLAYER_NAMES[existingSeat] || ('Giocatore '+(existingSeat+1));
         _humanSeats[existingSeat].lastPing = Date.now();
+        _humanSeatSet.add(existingSeat);
         dbg('HOST: player REJOINED seat='+existingSeat+' name='+_humanSeats[existingSeat].name);
         if(mpMode && game){
           showStatus(_humanSeats[existingSeat].name+' riconnesso!', 2000);
+          _logSeatOwnership('host rejoin seat='+existingSeat);
           bcastGSNow();
         }
         // Write seat assignment to dedicated path for this player
@@ -1527,24 +1780,34 @@ function hostGame() {
         return;
       }
       // New player — assign seat (honor preferred seat if available)
-      if(mpMode) return; // game already started, no new joins
+      // Mid-game: allow joining a CPU-controlled seat
       var freeSeat = -1;
       // Try preferred seat first (for vincere mode seat selection)
-      if (typeof data.prefSeat === 'number' && data.prefSeat >= 1 && data.prefSeat <= 3 && !_humanSeats[data.prefSeat]) {
+      if (typeof data.prefSeat === 'number' && data.prefSeat >= 1 && data.prefSeat <= 3 && !_humanSeatSet.has(data.prefSeat)) {
         freeSeat = data.prefSeat;
       }
-      // Fallback: next free seat
+      // Fallback: next free seat (not in _humanSeatSet = currently CPU)
       if (freeSeat < 0) {
-        for(var s=1;s<=3;s++){ if(!_humanSeats[s]){ freeSeat=s; break; } }
+        for(var s=1;s<=3;s++){ if(!_humanSeatSet.has(s)){ freeSeat=s; break; } }
       }
       if(freeSeat < 0) return; // full
       var pName = data.name || 'Giocatore '+(freeSeat+1);
       _humanSeats[freeSeat] = {name:pName, id:data._from, lastPing:Date.now()};
       _humanSeatSet.add(freeSeat);
-      dbg('HOST: new player seat='+freeSeat+' name='+pName);
-      _updateSeatUI();
+      PLAYER_NAMES[freeSeat] = pName;
+      dbg('HOST: new player seat='+freeSeat+' name='+pName+' mid-game='+mpMode);
+      _logSeatOwnership('host assigned human seat='+freeSeat);
+      if(!mpMode) _updateSeatUI();
       // Write seat assignment to dedicated path for this player
       _fbDb.ref('rooms/'+mpRoom+'/seats/'+data._from).set(freeSeat);
+      if(mpMode && game) {
+        // Mid-game join: announce, sync state, and re-render labels
+        showStatus(pName + ' si \u00e8 unito!', 2000);
+        deduplicateNames();
+        renderLabels();
+        bcastGSNow();
+        dbg('HOST: mid-game join seat='+freeSeat+' cp='+game.currentPlayer+' isHuman='+isHumanSeat(game.currentPlayer));
+      }
     }
     if(data.t==='play' && mpMode && game){
       // Find which seat this player is
@@ -1579,6 +1842,8 @@ function hostGame() {
     }
     if(anyDisc && !_clientDisconnected){
       _clientDisconnected = true;
+      dbg('[HOST-WD] Detected disconnected client(s) on primary host');
+      _logSeatOwnership('host watchdog disconnect snapshot');
       _showDiscBanner('⚠️ Un giocatore disconnesso...', 0, 'In attesa di riconnessione...');
       startHostHeartbeat();
     }
@@ -1603,9 +1868,11 @@ function startMultiplayerGame() {
       _humanSeatSet.add(s);
     } else {
       PLAYER_NAMES[s] = pickCpuName(usedNames);
+      dbg('[HOST-START] seat='+s+' assigned as cpu name='+PLAYER_NAMES[s]);
     }
     usedNames.push(PLAYER_NAMES[s]);
   }
+  _logSeatOwnership('startMultiplayerGame after seat fill');
   deduplicateNames();
   document.getElementById('label-south').innerHTML=PLAYER_NAMES[0]+' <span class="lb-pts"></span>';
   document.getElementById('label-east').innerHTML=PLAYER_NAMES[1]+' <span class="lb-pts"></span>';
@@ -1781,7 +2048,7 @@ function _doActualJoin(myName, code, prefSeat) {
   // Clean up listeners from any previous join attempt
   _fbListeners.forEach(function(r){ try{r.off();}catch(e){} });
   _fbListeners = [];
-  _processedMsgKeys = {};
+  _clearMessageListeners();
   _stateRef = null;
   _latestAppliedStateSeq = 0;
   _stateSeq = 0;
@@ -1795,12 +2062,14 @@ function _doActualJoin(myName, code, prefSeat) {
   _latestAppliedStateSeq = 0;
   _stateSeq = 0;
   _saveSession(mpRoom, myName, false);
+  var _sess = _getSession();
+  var _rejoinSeat = (_sess && _sess.room === mpRoom && typeof _sess.seat === 'number') ? _sess.seat : null;
   _updatePresenceRoom(code);
-  dbg('CLIENT joining room='+mpRoom + (prefSeat != null ? ' prefSeat='+prefSeat : ''));
+  dbg('CLIENT joining room='+mpRoom + (prefSeat != null ? ' prefSeat='+prefSeat : '') + ' rejoinSeat=' + (_rejoinSeat != null ? _rejoinSeat : 'none') + ' name=' + myName);
   document.getElementById('join-status').textContent='Connessione...';
   document.getElementById('join-error').textContent='';
-  mpSend({t:'join', name:myName, prefSeat: prefSeat != null ? prefSeat : null});
-  var joinRetry = setInterval(function(){ if(mpMode){clearInterval(joinRetry);return;} mpSend({t:'join', name:myName, prefSeat: prefSeat != null ? prefSeat : null}); }, 8000);
+  mpSend({t:'join', name:myName, prefSeat: prefSeat != null ? prefSeat : null, rejoinSeat: _rejoinSeat});
+  var joinRetry = setInterval(function(){ if(mpMode){clearInterval(joinRetry);return;} mpSend({t:'join', name:myName, prefSeat: prefSeat != null ? prefSeat : null, rejoinSeat: _rejoinSeat}); }, 8000);
 
   var _hostLastPing = Date.now();
   var _hostDisconnected = false;
@@ -1812,7 +2081,10 @@ function _doActualJoin(myName, code, prefSeat) {
     if(val !== null && val !== undefined){
       var prevSeat = mySeat;
       mySeat = val;
-      dbg('[SEAT] Seat assigned via DB: mySeat='+mySeat+' (was '+prevSeat+')');
+      _setSessionSeat(mySeat);
+      if (mpMode || game) _humanSeatSet.add(mySeat);
+      dbg('[SEAT] Seat assigned via DB: mySeat='+mySeat+' (was '+prevSeat+') role='+(mySeat >= 0 && _humanSeatSet.has(mySeat) ? 'human' : 'cpu'));
+      _logSeatOwnership('client seat assignment');
       document.getElementById('wait-status').textContent='Posto '+(mySeat+1)+' assegnato! In attesa dell\'host...';
       // Re-render if game is active so cards appear immediately
       if(game && mpMode && game.phase !== 'done') {
@@ -1830,7 +2102,8 @@ function _doActualJoin(myName, code, prefSeat) {
     if(mySeat < 0) mySeat = 1; // fallback
     mpMode = true; gameMode = data.gm||'perdere';
     if(data.diff) cpuDifficulty = data.diff;
-    if(data.humanSeats) _humanSeatSet = new Set(data.humanSeats);
+    _syncHumanSeatsFromState(data.humanSeats);
+    dbg('[CLIENT-START] mySeat='+mySeat+' role='+(mySeat >= 0 && _humanSeatSet.has(mySeat) ? 'human' : 'cpu')+' humans=['+Array.from(_humanSeatSet).join(',')+']');
     for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
     game = {hands:data.hands.map(function(h){return h.map(function(c){return {suit:c.suit,rank:c.rank,id:c.id};});}),trick:[],trickNum:0,leadPlayer:data.lp||0,currentPlayer:data.cp||0,leadSuit:null,scores:[0,0,0,0],trickCards:[],phase:'playing',animating:false,_buongiocoDecls:[]};
     var clientDecls = applyBuongioco();
@@ -1851,6 +2124,8 @@ function _doActualJoin(myName, code, prefSeat) {
     _hostLastPing = Date.now();
     if(_hostDisconnected){
       _hostDisconnected = false;
+      dbg('[CLIENT] Host traffic resumed with event='+data.t+' from='+data._from);
+      _logSeatOwnership('client detected host reconnect');
       _showDiscSuccess('✅ Connessione ripristinata!');
     }
     // Reset play retry counter on any host response
@@ -1867,6 +2142,7 @@ function _doActualJoin(myName, code, prefSeat) {
       return;
     }
     if(data.t==='quit'){
+      dbg('[CLIENT] Received quit from host; closing room');
       // Host quit with no other humans — game over for real
       _dismissDealerBanner();
       showStatus('L\'host ha abbandonato!', 3000);
@@ -1886,6 +2162,7 @@ function _doActualJoin(myName, code, prefSeat) {
       // Host is leaving but room data preserved — attempt migration
       _dismissDealerBanner();
       dbg('[CLIENT] Host leaving — attempting immediate promotion');
+      _logSeatOwnership('client received host-leaving');
       stopTurnTimer(); // prevent stale turn timer from firing during migration
       showStatus('L\'host ha abbandonato. Migrazione in corso...', 3000);
       // Read meta and attempt promotion immediately
@@ -1981,6 +2258,7 @@ function _doActualJoin(myName, code, prefSeat) {
     if(Date.now() - _hostLastPing > 30000 && !_hostDisconnected){
       _hostDisconnected = true;
       dbg('[CLIENT-WD] Host ping timeout (>30s) — showing banner and attempting promotion');
+      _logSeatOwnership('client watchdog host timeout');
       _showDiscBanner('⚠️ Connessione con l\'host persa', 1, 'Rilevamento disconnessione...');
       // After a short delay, move to step 2 and attempt promotion
       setTimeout(function(){
@@ -2155,7 +2433,8 @@ function _doHostAutoRejoin(sess, meta) {
     if(stateData.gm) gameMode = stateData.gm;
     if(stateData.diff) cpuDifficulty = stateData.diff;
     if(stateData.names) for(var i=0;i<4;i++) PLAYER_NAMES[i]=stateData.names[i];
-    if(stateData.hs) _humanSeatSet = new Set(stateData.hs);
+    _syncHumanSeatsFromState(stateData.hs);
+    _logSeatOwnership('host auto-rejoin loaded state');
     applyRemoteState(stateData);
     _latestAppliedStateSeq = stateData.seq || 0;
     _stateSeq = stateData.seq || 0;
@@ -2186,6 +2465,7 @@ function _doHostAutoRejoin(sess, meta) {
 // ─── Client auto-rejoin logic (extracted) ───
 function _doClientAutoRejoin(sess) {
   dbg('[AUTO-REJOIN] Client auto-rejoin: room='+sess.room+' name='+sess.name);
+  _logSeatOwnership('before client auto-rejoin');
   document.getElementById('overlay').classList.add('hidden');
   document.getElementById('lobby-overlay').classList.remove('hidden');
   document.getElementById('join-name-input').value = sess.name;
@@ -2254,7 +2534,16 @@ cpuTurn=async function(){
   if(!isHost) return;
   if(game.phase!=='playing'||isHumanSeat(game.currentPlayer)) return;
   dbg('cpuTurn seat='+game.currentPlayer);
-  game.animating=true; await delay(400+Math.random()*300); game.animating=false;
+  game.animating=true; await delay(400+Math.random()*300);
+  if(!game) return;
+  if(game.phase!=='playing' || isHumanSeat(game.currentPlayer)) {
+    game.animating=false;
+    renderAll();
+    bcastGSNow();
+    dbg('cpuTurn ABORT after delay seat='+game.currentPlayer+' human='+isHumanSeat(game.currentPlayer));
+    return;
+  }
+  game.animating=false;
   var p=getPlayableCards(game.currentPlayer);
   if(!p.length) return;
   await _origPlayCard(game.currentPlayer, cpuSelectCard(game.currentPlayer,p));
@@ -2264,11 +2553,14 @@ var _oSGO=showGameOver; showGameOver=function(){_oSGO();};
 
 function forceReconnect() {
   dbg('[FORCE-RECONN] Button pressed. isHost='+isHost+' mpMode='+mpMode+' room='+mpRoom+' mySeat='+mySeat);
+  _logSeatOwnership('forceReconnect pressed');
   _showDiscBanner('🔄 Riconnessione in corso...', 2, 'Tentativo di ripristino...');
   _checkMetaOnReconnect();
   if(!isHost && game){ 
     dbg('[FORCE-RECONN] As client: resetting animating, sending join');
-    game.animating=false; if(game.phase!=='done')game.phase='playing'; mpSend({t:'join',name:_getMyName()||'Amico'}); renderAll(); 
+    var sess = _getSession();
+    var rejoinSeat = mySeat >= 0 ? mySeat : (sess && typeof sess.seat === 'number' ? sess.seat : null);
+    game.animating=false; if(game.phase!=='done')game.phase='playing'; mpSend({t:'join',name:_getMyName()||'Amico', rejoinSeat: rejoinSeat}); renderAll(); 
   }
   else if(isHost && game && mpMode) { 
     dbg('[FORCE-RECONN] As host: refreshing meta + broadcasting state');
