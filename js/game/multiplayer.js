@@ -670,6 +670,11 @@ function _fbCleanup(){
   // Clean up host migration timers
   _stopHostLease();
   _stopMetaWatch();
+  // Clean up v3.1.0 subsystems
+  _teardownRoomPresence();
+  _stopEventLogListener();
+  _isViceHost = false;
+  _viceHostId = '';
   // Clean up seat info listener if active
   if(_seatInfoRef){ try{_seatInfoRef.off();}catch(e){} _seatInfoRef = null; }
 }
@@ -756,19 +761,164 @@ var HOST_LEASE_TIMEOUT  = 35000;  // lease considered expired after 35s
 var _hostSelfCheckTimer = null;   // periodic split-brain self-check
 var _fbServerTimeOffset = 0;      // ms offset: serverTime ≈ Date.now() + _fbServerTimeOffset
 
+// ─── Vice-Host (v3.1.0) ───
+var _viceHostId = '';         // the designated vice-host player ID
+var _isViceHost = false;      // true on the client that is the vice-host
+
+// ─── Room Presence (v3.1.0) ───
+// Per-player presence inside a room: rooms/{code}/presence/{playerId}
+var _roomPresenceRef = null;      // ref for own presence node
+var _roomPresenceListenerRef = null; // ref listening to all room presence
+
+function _setupRoomPresence() {
+  _teardownRoomPresence();
+  if(!_fbDb || !mpRoom || mySeat < 0) return;
+  _roomPresenceRef = _fbDb.ref('rooms/'+mpRoom+'/presence/'+MY_ID);
+  var data = {
+    seat: mySeat,
+    online: true,
+    lastSeen: firebase.database.ServerValue.TIMESTAMP,
+    canHost: true
+  };
+  _roomPresenceRef.set(data).catch(function(e){ dbg('[ROOM-PRES] set ERR: '+e); });
+  _roomPresenceRef.onDisconnect().update({ online: false, lastSeen: firebase.database.ServerValue.TIMESTAMP });
+  dbg('[ROOM-PRES] Setup OK seat='+mySeat+' room='+mpRoom);
+}
+function _updateRoomPresence() {
+  if(!_roomPresenceRef) return;
+  _roomPresenceRef.update({
+    seat: mySeat,
+    online: true,
+    lastSeen: firebase.database.ServerValue.TIMESTAMP
+  }).catch(function(){});
+}
+function _teardownRoomPresence() {
+  if(_roomPresenceRef) { try{ _roomPresenceRef.update({online:false}); _roomPresenceRef.onDisconnect().cancel(); }catch(e){} _roomPresenceRef=null; }
+  if(_roomPresenceListenerRef) { try{ _roomPresenceListenerRef.off(); }catch(e){} _roomPresenceListenerRef=null; }
+}
+
+// ─── Event Log (v3.1.0) ───
+// Append-only event log: rooms/{code}/events/{seq}
+var _eventSeq = 0; // running event sequence counter (host increments)
+var _eventLogRef = null; // client listener ref
+var _lastAppliedEventSeq = 0; // client: highest event seq applied
+
+function _logEvent(type, seat, payload) {
+  if(!_fbDb || !mpRoom || !isHost) return;
+  _eventSeq++;
+  var evt = {
+    seq: _eventSeq,
+    epoch: _hostEpoch,
+    type: type,
+    by: MY_ID,
+    seat: (typeof seat === 'number') ? seat : -1,
+    payload: payload || null,
+    ts: firebase.database.ServerValue.TIMESTAMP
+  };
+  dbg('[EVENT] Writing event seq='+_eventSeq+' type='+type+' seat='+evt.seat);
+  _fbDb.ref('rooms/'+mpRoom+'/events/'+_eventSeq).set(evt)
+    .catch(function(e){ dbg('[EVENT] WRITE ERR: '+e); });
+  // Update meta with latest event seq
+  _fbDb.ref('rooms/'+mpRoom+'/meta/lastEventSeq').set(_eventSeq).catch(function(){});
+}
+
+function _startEventLogListener() {
+  _stopEventLogListener();
+  if(!_fbDb || !mpRoom || isHost) return;
+  _eventLogRef = _fbDb.ref('rooms/'+mpRoom+'/events').orderByKey().startAt(String(_lastAppliedEventSeq + 1));
+  _eventLogRef.on('child_added', function(snap) {
+    var evt = snap.val();
+    if(!evt || !evt.seq) return;
+    if(evt.seq <= _lastAppliedEventSeq) return;
+    _lastAppliedEventSeq = evt.seq;
+    dbg('[EVENT-RX] seq='+evt.seq+' type='+evt.type+' seat='+evt.seat+' epoch='+evt.epoch);
+    // Vice-host: track events for hot standby state
+    if(_isViceHost) {
+      dbg('[VICE] Received event seq='+evt.seq+' type='+evt.type+' — state is current');
+    }
+  });
+  dbg('[EVENT] Listening for events in room='+mpRoom+' from seq='+(_lastAppliedEventSeq+1));
+}
+function _stopEventLogListener() {
+  if(_eventLogRef) { try{ _eventLogRef.off(); }catch(e){} _eventLogRef=null; }
+}
+
+// ─── Checkpoint (v3.1.0) ───
+// Periodic full-state checkpoints: rooms/{code}/checkpoint
+var _checkpointInterval = 5; // write checkpoint every N events
+var _lastCheckpointSeq = 0;
+
+function _writeCheckpoint() {
+  if(!_fbDb || !mpRoom || !isHost || !game) return;
+  var cp = makeStateSnapshot(_stateSeq);
+  cp._eventSeq = _eventSeq;
+  cp._checkpointTs = firebase.database.ServerValue.TIMESTAMP;
+  _fbDb.ref('rooms/'+mpRoom+'/checkpoint').set(cp)
+    .then(function(){ dbg('[CHECKPOINT] Written OK at eventSeq='+_eventSeq+' stateSeq='+_stateSeq); })
+    .catch(function(e){ dbg('[CHECKPOINT] WRITE ERR: '+e); });
+  _lastCheckpointSeq = _eventSeq;
+  _fbDb.ref('rooms/'+mpRoom+'/meta/lastCheckpointSeq').set(_lastCheckpointSeq).catch(function(){});
+}
+function _maybeWriteCheckpoint() {
+  if(!isHost) return;
+  if(_eventSeq - _lastCheckpointSeq >= _checkpointInterval) {
+    _writeCheckpoint();
+  }
+}
+
+// ─── Vice-Host Election (v3.1.0) ───
+// Rule: lowest human seat that is online and not the host
+function _electViceHost() {
+  if(!isHost || !_fbDb || !mpRoom) return;
+  _fbDb.ref('rooms/'+mpRoom+'/presence').once('value', function(snap) {
+    var all = snap.val() || {};
+    var candidates = [];
+    for(var pid in all) {
+      var p = all[pid];
+      if(pid === MY_ID) continue; // skip self (host)
+      if(!p.online || !p.canHost) continue;
+      if(typeof p.seat !== 'number' || p.seat < 0) continue;
+      candidates.push({ id: pid, seat: p.seat });
+    }
+    candidates.sort(function(a,b){ return a.seat - b.seat; });
+    var newVice = candidates.length > 0 ? candidates[0].id : '';
+    if(newVice !== _viceHostId) {
+      _viceHostId = newVice;
+      dbg('[VICE] Elected vice-host: '+ (_viceHostId || 'none') +' (from '+candidates.length+' candidates)');
+      _fbDb.ref('rooms/'+mpRoom+'/meta/viceHostId').set(_viceHostId || null).catch(function(){});
+    }
+  });
+}
+// Re-elect when room presence changes (host only)
+function _startViceHostWatch() {
+  _stopViceHostWatch();
+  if(!isHost || !_fbDb || !mpRoom) return;
+  _roomPresenceListenerRef = _fbDb.ref('rooms/'+mpRoom+'/presence');
+  _roomPresenceListenerRef.on('value', function() {
+    _electViceHost();
+  });
+  dbg('[VICE] Started vice-host watch');
+}
+function _stopViceHostWatch() {
+  if(_roomPresenceListenerRef) { try{ _roomPresenceListenerRef.off(); }catch(e){} _roomPresenceListenerRef=null; }
+}
+
 // Estimate current server time (compensated for clock skew)
 function _serverNow() { return Date.now() + _fbServerTimeOffset; }
 
 // Write meta node (host calls this)
 function _writeHostMeta() {
   if(!_fbDb || !mpRoom || !isHost) { dbg('[META] _writeHostMeta SKIP: db='+!!_fbDb+' room='+mpRoom+' isHost='+isHost); return; }
-  dbg('[META] Writing meta: hostId='+MY_ID+' epoch='+_hostEpoch+' originalHost='+(_originalHostId||MY_ID)+' roomLabel='+_roomLabel);
+  dbg('[META] Writing meta: hostId='+MY_ID+' epoch='+_hostEpoch+' originalHost='+(_originalHostId||MY_ID)+' roomLabel='+_roomLabel+' viceHost='+(_viceHostId||'none'));
   _fbDb.ref('rooms/'+mpRoom+'/meta').set({
     hostId: MY_ID,
     hostEpoch: _hostEpoch,
     originalHostId: _originalHostId || MY_ID,
+    viceHostId: _viceHostId || null,
     roomLabel: _roomLabel || '',
     difficulty: cpuDifficulty || 'medio',
+    lastEventSeq: _eventSeq || 0,
+    lastCheckpointSeq: _lastCheckpointSeq || 0,
     hostLease: firebase.database.ServerValue.TIMESTAMP
   }).then(function(){ dbg('[META] Meta written OK'); }).catch(function(e){ dbg('[META] WRITE ERR: '+e); });
 }
@@ -779,6 +929,8 @@ function _startHostLease() {
   _stopHostLease();
   dbg('[LEASE] Starting host lease heartbeat, epoch='+_hostEpoch+' interval='+HOST_LEASE_INTERVAL+'ms');
   _writeHostMeta();
+  _setupRoomPresence();
+  _startViceHostWatch();
   _metaLeaseTimer = setInterval(function() {
     if(!isHost) { dbg('[LEASE] Stopping lease: isHost='+isHost); _stopHostLease(); return; }
     dbg('[LEASE] Renewing lease, epoch='+_hostEpoch);
@@ -846,6 +998,7 @@ function _stopHostLease() {
   if(_metaLeaseTimer){ dbg('[LEASE] Stopping host lease timer'); clearInterval(_metaLeaseTimer); _metaLeaseTimer = null; }
   if(_hostMetaListenerRef){ dbg('[LEASE] Detaching host meta listener'); try{_hostMetaListenerRef.off();}catch(e){} _hostMetaListenerRef = null; }
   _stopHostSelfCheck();
+  _stopViceHostWatch();
 }
 
 // Start watching the meta node for lease expiry (client only)
@@ -853,6 +1006,7 @@ function _startMetaWatch() {
   _stopMetaWatch();
   if(!_fbDb || !mpRoom || isHost) { dbg('[WATCH] _startMetaWatch SKIP: db='+!!_fbDb+' room='+mpRoom+' isHost='+isHost); return; }
   dbg('[WATCH] Starting meta watch for room='+mpRoom+' myId='+MY_ID+' mySeat='+mySeat);
+  _setupRoomPresence();
   // Listen to meta changes
   _metaRef = _fbDb.ref('rooms/'+mpRoom+'/meta');
   _metaRef.on('value', function(snap) {
@@ -863,6 +1017,17 @@ function _startMetaWatch() {
     _originalHostId = meta.originalHostId || '';
     // Preserve room label from meta so heartbeat uses the correct name
     if(meta.roomLabel) _roomLabel = meta.roomLabel;
+    // Track vice-host designation
+    _viceHostId = meta.viceHostId || '';
+    var wasVice = _isViceHost;
+    _isViceHost = (_viceHostId === MY_ID);
+    if(_isViceHost && !wasVice) {
+      dbg('[VICE] *** I am now the designated vice-host ***');
+      _startEventLogListener();
+    } else if(!_isViceHost && wasVice) {
+      dbg('[VICE] I am no longer vice-host');
+      _stopEventLogListener();
+    }
     // Track host name for debug display
     _resolveHostName(meta.hostId);
     if(meta.hostEpoch !== prevEpoch) {
@@ -896,6 +1061,30 @@ function _attemptPromotion(metaSnapshot) {
     dbg('[PROMOTE] SKIP: isHost='+isHost+' db='+!!_fbDb+' room='+mpRoom+' mpMode='+mpMode+' game='+!!game);
     return;
   }
+  // Vice-host priority: only the designated vice-host attempts immediately.
+  // Other clients wait 8s for the vice to claim, then fall back.
+  var designatedVice = metaSnapshot.viceHostId || '';
+  if(designatedVice && designatedVice !== MY_ID) {
+    dbg('[PROMOTE] Deferring to vice-host '+designatedVice+' (I am '+MY_ID+'), will retry in 8s if unclaimed');
+    setTimeout(function() {
+      if(isHost || !mpMode || !game) return;
+      _fbDb.ref('rooms/'+mpRoom+'/meta').once('value', function(snap) {
+        var fresh = snap.val();
+        if(!fresh) return;
+        if(fresh.hostEpoch !== metaSnapshot.hostEpoch) { dbg('[PROMOTE-FALLBACK] Epoch changed, someone promoted'); return; }
+        var age = _serverNow() - (fresh.hostLease || 0);
+        if(age < HOST_LEASE_TIMEOUT - 5000) { dbg('[PROMOTE-FALLBACK] Lease now fresh, aborting'); return; }
+        dbg('[PROMOTE-FALLBACK] Vice-host did not claim — attempting promotion myself');
+        _doAtomicPromotion(fresh);
+      });
+    }, 8000);
+    return;
+  }
+  _doAtomicPromotion(metaSnapshot);
+}
+
+function _doAtomicPromotion(metaSnapshot) {
+  if(isHost) return;
   var expectedEpoch = metaSnapshot.hostEpoch || 0;
   dbg('[PROMOTE] *** ATTEMPTING PROMOTION *** expectedEpoch='+expectedEpoch+' myId='+MY_ID+' mySeat='+mySeat+' currentHostId='+metaSnapshot.hostId);
 
@@ -917,7 +1106,10 @@ function _attemptPromotion(metaSnapshot) {
       hostId: MY_ID,
       hostEpoch: current.hostEpoch + 1,
       originalHostId: current.originalHostId || '',
+      viceHostId: null,
       roomLabel: current.roomLabel || '',
+      lastEventSeq: current.lastEventSeq || 0,
+      lastCheckpointSeq: current.lastCheckpointSeq || 0,
       hostLease: firebase.database.ServerValue.TIMESTAMP
     };
   }, function(error, committed, snapshot) {
@@ -948,7 +1140,10 @@ function _attemptForcedPromotion(metaSnapshot) {
         hostId: MY_ID,
         hostEpoch: expectedEpoch + 1,
         originalHostId: _originalHostId || MY_ID,
+        viceHostId: null,
         roomLabel: _roomLabel || '',
+        lastEventSeq: 0,
+        lastCheckpointSeq: 0,
         hostLease: firebase.database.ServerValue.TIMESTAMP
       };
     }
@@ -961,7 +1156,10 @@ function _attemptForcedPromotion(metaSnapshot) {
       hostId: MY_ID,
       hostEpoch: current.hostEpoch + 1,
       originalHostId: current.originalHostId || '',
+      viceHostId: null,
       roomLabel: current.roomLabel || '',
+      lastEventSeq: current.lastEventSeq || 0,
+      lastCheckpointSeq: current.lastCheckpointSeq || 0,
       hostLease: firebase.database.ServerValue.TIMESTAMP
     };
   }, function(error, committed, snapshot) {
@@ -981,10 +1179,26 @@ function _attemptForcedPromotion(metaSnapshot) {
 function _becomeHost() {
   dbg('[BECOME] *** _becomeHost called *** mySeat='+mySeat+' epoch='+_hostEpoch+' room='+mpRoom);
   isHost = true;
+  _isViceHost = false;
+  _viceHostId = '';
+  _stopEventLogListener();
   _clearMessageListeners();
   _resolveHostName(MY_ID);
   _stopMetaWatch();
   _startHostLease();
+
+  // Restore event seq from meta/checkpoint if available
+  _fbDb.ref('rooms/'+mpRoom+'/meta/lastEventSeq').once('value', function(snap) {
+    var lastEvt = snap.val();
+    if(typeof lastEvt === 'number' && lastEvt > _eventSeq) {
+      _eventSeq = lastEvt;
+      dbg('[BECOME] Restored _eventSeq from meta: '+_eventSeq);
+    }
+  });
+  _fbDb.ref('rooms/'+mpRoom+'/meta/lastCheckpointSeq').once('value', function(snap) {
+    var lastCp = snap.val();
+    if(typeof lastCp === 'number') _lastCheckpointSeq = lastCp;
+  });
 
   // Read room label from meta so heartbeat preserves the room name
   _fbDb.ref('rooms/'+mpRoom+'/meta/roomLabel').once('value', function(snap){
@@ -1025,6 +1239,8 @@ function _becomeHost() {
     // Now that _humanSeats is rebuilt, sync state to clients with correct humanSeatSet
     dbg('[BECOME] Syncing state as new host (after seats rebuilt)...');
     syncState(true);
+    _logEvent('host-migrated', mySeat, { prevHostId: _originalHostId, newEpoch: _hostEpoch });
+    _writeCheckpoint();
 
     // Explicit render to make sure UI is up to date
     if(game) {
@@ -1154,11 +1370,14 @@ function _becomeHost() {
       var card = game.hands[playSeat].find(function(c) { return c.id === data.cardId; });
       if(!card || !isCardPlayable(playSeat, card)) { dbg('[MIG-HOST] Card not found or not playable'); return; }
       dbg('[MIG-HOST] Executing play for seat='+playSeat);
+      _logEvent('card-played', playSeat, { cardId: data.cardId });
+      _maybeWriteCheckpoint();
       _origPlayCard(playSeat, card).catch(function(e) { dbg('[MIG-HOST] playCard ERR: '+e); });
     }
     if(data.t === 'emote' && data.eid && typeof data.pidx === 'number') {
       try { var es = window._emoteSystem; if(es) { var em = es.findEmote(data.eid); if(em) es.showForPlayer(data.pidx, em); } } catch(e) {}
     }
+    if(data.t === 'chat') { _handleChatMessage(data); }
   }
   mpListen(_migratedHostHandler);
   startHostHeartbeat();
@@ -1195,7 +1414,10 @@ function _becomeHost() {
 function _demoteToClient() {
   dbg('[DEMOTE] *** Demoting to client *** mySeat='+mySeat+' epoch='+_hostEpoch+' lastSeenEpoch='+_lastSeenEpoch);
   isHost = false;
+  _isViceHost = false;
+  _viceHostId = '';
   _stopHostLease();
+  _stopEventLogListener();
   stopHostHeartbeat();
   stopTurnTimer();
   if(_hostWatchdogTimer) { dbg('[DEMOTE] Clearing host watchdog'); clearInterval(_hostWatchdogTimer); _hostWatchdogTimer = null; }
@@ -1259,6 +1481,7 @@ function makeStateSnapshot(seq) {
     hs: Array.from(_humanSeatSet),
     seq: seq,
     _epoch: _hostEpoch,
+    _eventSeq: _eventSeq || 0,
     tsc: tournamentScores.slice(),
     tact: tournamentActive,
     tov: tournamentOver,
@@ -1418,6 +1641,7 @@ function _listenState() {
       document.getElementById('game-over').classList.remove('show');
     }
     document.getElementById('quit-btn').style.display = '';
+    if(mpMode) _showChatBtn(true);
     // mySeat is set by the dedicated seats listener — do NOT overwrite it here
     if(data.names) for(var i=0;i<4;i++) PLAYER_NAMES[i]=data.names[i];
     if(data.gm) gameMode = data.gm;
@@ -1797,6 +2021,7 @@ function hostGame() {
       PLAYER_NAMES[freeSeat] = pName;
       dbg('HOST: new player seat='+freeSeat+' name='+pName+' mid-game='+mpMode);
       _logSeatOwnership('host assigned human seat='+freeSeat);
+      _logEvent('seat-assigned', freeSeat, { name: pName, playerId: data._from });
       if(!mpMode) _updateSeatUI();
       // Write seat assignment to dedicated path for this player
       _fbDb.ref('rooms/'+mpRoom+'/seats/'+data._from).set(freeSeat);
@@ -1819,6 +2044,8 @@ function hostGame() {
       if(game.currentPlayer !== playSeat) { dbg('HOST play REJECTED: not their turn (cp='+game.currentPlayer+' playSeat='+playSeat+')'); return; }
       var card = game.hands[playSeat].find(function(c){return c.id===data.cardId;});
       if(!card || !isCardPlayable(playSeat,card)) { dbg('HOST play REJECTED: card not found or not playable cardId='+data.cardId); return; }
+      _logEvent('card-played', playSeat, { cardId: data.cardId });
+      _maybeWriteCheckpoint();
       _origPlayCard(playSeat, card).catch(function(e){ dbg('playCard ERR: '+e); });
     }
     if(data.t==='emote' && data.eid && typeof data.pidx==='number'){
@@ -1826,6 +2053,7 @@ function hostGame() {
         var es=window._emoteSystem; if(es){ var em=es.findEmote(data.eid); if(em) es.showForPlayer(data.pidx,em); }
       }catch(e){}
     }
+    if(data.t==='chat') { _handleChatMessage(data); }
   }
   mpListen(hostHandler);
 
@@ -1882,6 +2110,7 @@ function startMultiplayerGame() {
   document.getElementById('overlay').classList.add('hidden');
   document.getElementById('game-over').classList.remove('show');
   document.getElementById('quit-btn').style.display = '';
+  _showChatBtn(true);
   initAudio();
 
   // Always animate dealer selection for the first game of a multiplayer session
@@ -1909,6 +2138,8 @@ function startMultiplayerGame() {
     dbg('HOST startGame cp='+game.currentPlayer);
     mpSend({t:'start',gm:gameMode,diff:cpuDifficulty,names:PLAYER_NAMES.slice(),hands:game.hands,lp:game.leadPlayer,cp:game.currentPlayer,humanSeats:Array.from(_humanSeatSet)});
     syncState(true);
+    _logEvent('game-started', 0, { mode: gameMode, difficulty: cpuDifficulty, leadPlayer: game.leadPlayer });
+    _writeCheckpoint();
     _updatePresenceInGame(true);
     sndStart(); showStatus('Partita iniziata!',1500);    showBuongiocoAndStart(function(){
       if(game && !isHumanSeat(game.currentPlayer)) setTimeout(function(){cpuTurn();},400);
@@ -2112,6 +2343,7 @@ function _doActualJoin(myName, code, prefSeat) {
     document.getElementById('overlay').classList.add('hidden');
     document.getElementById('game-over').classList.remove('show');
     document.getElementById('quit-btn').style.display = '';
+    _showChatBtn(true);
     if(!_mpPingTimer) _mpPingTimer = setInterval(function(){ if(mpMode) mpSend({t:'ping'}); }, 25000);
     if (!tournamentActive) {
       resetTournament();
@@ -2221,6 +2453,7 @@ function _doActualJoin(myName, code, prefSeat) {
       document.getElementById('overlay').classList.add('hidden');
       document.getElementById('game-over').classList.remove('show');
       document.getElementById('quit-btn').style.display = '';
+      _showChatBtn(true);
       // Clear hand containers
       document.getElementById('player-hand').innerHTML = '';
       document.getElementById('north-hand').innerHTML = '';
@@ -2245,6 +2478,7 @@ function _doActualJoin(myName, code, prefSeat) {
         var es=window._emoteSystem; if(es){ var em=es.findEmote(data.eid); if(em) es.showForPlayer(data.pidx,em); }
       }catch(e){}
     }
+    if(data.t==='chat') { _handleChatMessage(data); }
   }
   mpListen(clientHandler);
 
@@ -2448,6 +2682,7 @@ function _doHostAutoRejoin(sess, meta) {
       document.getElementById('lobby-overlay').classList.add('hidden');
       document.getElementById('overlay').classList.add('hidden');
       document.getElementById('quit-btn').style.display = '';
+      _showChatBtn(true);
       initAudio();
       showStatus('Riconnesso come host!', 2500);
     } else {
@@ -2546,10 +2781,230 @@ cpuTurn=async function(){
   game.animating=false;
   var p=getPlayableCards(game.currentPlayer);
   if(!p.length) return;
-  await _origPlayCard(game.currentPlayer, cpuSelectCard(game.currentPlayer,p));
+  var cpuCard = cpuSelectCard(game.currentPlayer,p);
+  _logEvent('card-played', game.currentPlayer, { cardId: cpuCard.id, cpu: true });
+  _maybeWriteCheckpoint();
+  await _origPlayCard(game.currentPlayer, cpuCard);
 };
 
 var _oSGO=showGameOver; showGameOver=function(){_oSGO();};
+
+// ═══════════════════════════════════════════════════════════════
+//  ROOM CHAT (v3.1.0)
+// ═══════════════════════════════════════════════════════════════
+var _chatOpen = false;
+var _chatUnread = 0;
+var _chatMaxMessages = 50;
+
+function _toggleChat() {
+  _chatOpen = !_chatOpen;
+  var panel = document.getElementById('chat-panel');
+  if(_chatOpen) {
+    panel.classList.add('show');
+    _chatUnread = 0;
+    _updateChatBadge();
+    var inp = document.getElementById('chat-input');
+    if(inp) setTimeout(function(){ inp.focus(); }, 100);
+    var msgs = document.getElementById('chat-messages');
+    if(msgs) msgs.scrollTop = msgs.scrollHeight;
+  } else {
+    panel.classList.remove('show');
+  }
+}
+
+function _updateChatBadge() {
+  var el = document.getElementById('chat-unread');
+  if(!el) return;
+  if(_chatUnread > 0 && !_chatOpen) {
+    el.textContent = _chatUnread > 9 ? '9+' : _chatUnread;
+    el.style.display = '';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function _showChatBtn(show) {
+  var btn = document.getElementById('chat-btn');
+  if(btn) btn.style.display = show ? 'flex' : 'none';
+  if(!show) {
+    _chatOpen = false;
+    var panel = document.getElementById('chat-panel');
+    if(panel) panel.classList.remove('show');
+    _clearChat();
+  } else {
+    _restoreChat();
+  }
+}
+
+function _clearChat() {
+  var container = document.getElementById('chat-messages');
+  if(container) container.innerHTML = '';
+  _chatUnread = 0;
+  _updateChatBadge();
+  try { localStorage.removeItem('tresette_chat_room'); localStorage.removeItem('tresette_chat_log'); } catch(e) {}
+}
+
+function _saveChatLog() {
+  try {
+    if(!mpRoom) return;
+    var container = document.getElementById('chat-messages');
+    if(!container) return;
+    var msgs = [];
+    for(var i = 0; i < container.children.length; i++) {
+      var el = container.children[i];
+      var cls = el.className || '';
+      var isSelf = cls.indexOf('chat-self') >= 0;
+      var isSystem = cls.indexOf('chat-system') >= 0;
+      var nameEl = el.querySelector('.chat-name');
+      var name = nameEl ? nameEl.textContent.replace(/:$/, '') : '';
+      var text = isSystem ? el.textContent : el.textContent.replace(name + ': ', '');
+      msgs.push({ n: name, t: text, s: isSelf, y: isSystem });
+    }
+    localStorage.setItem('tresette_chat_room', mpRoom);
+    localStorage.setItem('tresette_chat_log', JSON.stringify(msgs.slice(-_chatMaxMessages)));
+  } catch(e) {}
+}
+
+function _restoreChat() {
+  try {
+    var savedRoom = localStorage.getItem('tresette_chat_room');
+    if(!savedRoom || savedRoom !== mpRoom) { _clearChat(); return; }
+    var raw = localStorage.getItem('tresette_chat_log');
+    if(!raw) return;
+    var msgs = JSON.parse(raw);
+    if(!Array.isArray(msgs) || msgs.length === 0) return;
+    var container = document.getElementById('chat-messages');
+    if(!container || container.children.length > 0) return;
+    for(var i = 0; i < msgs.length; i++) {
+      var m = msgs[i];
+      _addChatMessage(m.n || '', m.t || '', !!m.s, !!m.y, true);
+    }
+  } catch(e) {}
+}
+
+function _addChatMessage(name, text, isSelf, isSystem, skipSave) {
+  var container = document.getElementById('chat-messages');
+  if(!container) return;
+  var div = document.createElement('div');
+  div.className = 'chat-msg' + (isSystem ? ' chat-system' : (isSelf ? ' chat-self' : ' chat-other'));
+  if(isSystem) {
+    div.textContent = text;
+  } else {
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'chat-name';
+    nameSpan.textContent = name + ':';
+    div.appendChild(nameSpan);
+    div.appendChild(document.createTextNode(' ' + text));
+  }
+  container.appendChild(div);
+  while(container.children.length > _chatMaxMessages) {
+    container.removeChild(container.firstChild);
+  }
+  container.scrollTop = container.scrollHeight;
+  if(!isSelf && !_chatOpen && !skipSave) {
+    _chatUnread++;
+    _updateChatBadge();
+  }
+  if(!skipSave) _saveChatLog();
+}
+
+function _sendChatMessage() {
+  var inp = document.getElementById('chat-input');
+  if(!inp) return;
+  var text = inp.value.trim();
+  if(!text || !mpMode) return;
+  text = text.replace(/<[^>]*>/g, '');
+  if(!text) return;
+  inp.value = '';
+  var myName = _getMyName() || PLAYER_NAMES[mySeat >= 0 ? mySeat : 0] || 'Giocatore';
+  _addChatMessage(myName, text, true, false);
+  mpSend({ t: 'chat', name: myName, text: text, seat: mySeat });
+}
+
+function _handleChatMessage(data) {
+  if(!data || data.t !== 'chat' || !data.text) return;
+  var name = data.name || 'Giocatore';
+  var text = (data.text || '').replace(/<[^>]*>/g, '').substring(0, 200);
+  _addChatMessage(name, text, false, false);
+  // Floating bubble near sender when chat is closed (desktop)
+  if(!_chatOpen && typeof data.seat === 'number' && data.seat >= 0) {
+    _showChatBubble(data.seat, name, text);
+  }
+}
+
+var _chatBubbleTimers = {};
+function _showChatBubble(seatIdx, name, text) {
+  var POSITIONS = ['south','east','north','west'];
+  var rot = (typeof mpMode !== 'undefined' && mpMode && !isHost && typeof mySeat !== 'undefined' && mySeat >= 0) ? mySeat : 0;
+  var pos = POSITIONS[(seatIdx - rot + 4) % 4];
+  var labelId = 'label-' + pos;
+  var lbl = document.getElementById(labelId);
+  if(!lbl) return;
+
+  var prevId = 'chat-float-' + pos;
+  var prev = document.getElementById(prevId);
+  if(prev) { prev.parentNode.removeChild(prev); }
+  if(_chatBubbleTimers[pos]) { clearTimeout(_chatBubbleTimers[pos]); }
+
+  var bubble = document.createElement('div');
+  bubble.className = 'chat-float-bubble';
+  bubble.id = prevId;
+  var displayText = text.length > 60 ? text.substring(0, 57) + '...' : text;
+  bubble.innerHTML = '<div class="chat-float-inner"><span class="chat-float-name">' + name + ':</span> <span class="chat-float-text">' + displayText.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span></div>';
+  document.body.appendChild(bubble);
+
+  var r = lbl.getBoundingClientRect();
+  bubble.style.position = 'fixed';
+  if(pos === 'south') {
+    bubble.style.left = (r.left + r.width/2) + 'px';
+    bubble.style.top = (r.top - 6) + 'px';
+    bubble.style.transform = 'translate(-50%,-100%)';
+  } else if(pos === 'north') {
+    bubble.style.left = (r.left + r.width/2) + 'px';
+    bubble.style.top = (r.bottom + 6) + 'px';
+    bubble.style.transform = 'translate(-50%,0)';
+  } else if(pos === 'west') {
+    bubble.style.left = (r.right + 8) + 'px';
+    bubble.style.top = (r.top + r.height/2) + 'px';
+    bubble.style.transform = 'translate(0,-50%)';
+  } else if(pos === 'east') {
+    bubble.style.left = (r.left - 8) + 'px';
+    bubble.style.top = (r.top + r.height/2) + 'px';
+    bubble.style.transform = 'translate(-100%,-50%)';
+  }
+
+  requestAnimationFrame(function() { bubble.classList.add('show'); });
+
+  _chatBubbleTimers[pos] = setTimeout(function() {
+    bubble.classList.remove('show');
+    setTimeout(function() { if(bubble.parentNode) bubble.parentNode.removeChild(bubble); }, 300);
+  }, 4000);
+}
+
+(function() {
+  var chatBtn = document.getElementById('chat-btn');
+  if(chatBtn) chatBtn.addEventListener('click', function(e) { e.stopPropagation(); _toggleChat(); });
+  var sendBtn = document.getElementById('chat-send-btn');
+  if(sendBtn) sendBtn.addEventListener('click', function(e) { e.stopPropagation(); _sendChatMessage(); });
+  var chatInput = document.getElementById('chat-input');
+  if(chatInput) {
+    chatInput.addEventListener('keydown', function(e) {
+      if(e.key === 'Enter') { e.preventDefault(); _sendChatMessage(); }
+      e.stopPropagation();
+    });
+    chatInput.addEventListener('click', function(e) { e.stopPropagation(); });
+  }
+  document.addEventListener('click', function(e) {
+    if(_chatOpen) {
+      var panel = document.getElementById('chat-panel');
+      var btn = document.getElementById('chat-btn');
+      if(panel && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
+        _chatOpen = false;
+        panel.classList.remove('show');
+      }
+    }
+  });
+})();
 
 function forceReconnect() {
   dbg('[FORCE-RECONN] Button pressed. isHost='+isHost+' mpMode='+mpMode+' room='+mpRoom+' mySeat='+mySeat);

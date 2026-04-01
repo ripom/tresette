@@ -530,6 +530,77 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
 .lobby-status{color:#aaa;font-size:13px;margin-top:8px}
 .lobby-error{color:#f66;font-size:13px;margin-top:8px}
 
+/* ════════ Room Chat ════════ */
+#chat-btn{
+  position:fixed;bottom:clamp(8px,2vw,16px);left:clamp(8px,2vw,16px);z-index:50;
+  background:rgba(20,30,20,0.85);border:1px solid rgba(255,255,255,0.15);border-radius:50%;
+  width:clamp(36px,8vw,44px);height:clamp(36px,8vw,44px);font-size:clamp(16px,3.5vw,20px);
+  color:#ccc;cursor:pointer;display:none;align-items:center;justify-content:center;
+  box-shadow:0 4px 12px rgba(0,0,0,0.4);transition:background .15s,transform .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+#chat-btn:hover{background:rgba(40,60,40,0.9);transform:scale(1.08)}
+#chat-btn .chat-unread{
+  position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:8px;
+  background:#f44;color:#fff;font-size:10px;font-weight:bold;line-height:16px;text-align:center;
+  padding:0 4px;display:none;
+}
+#chat-panel{
+  position:fixed;bottom:clamp(52px,12vw,68px);left:clamp(8px,2vw,16px);z-index:49;
+  width:min(320px,50vw);max-height:260px;
+  background:rgba(12,18,12,0.94);border:1px solid rgba(255,255,255,0.12);
+  border-radius:12px;display:none;flex-direction:column;
+  box-shadow:0 8px 28px rgba(0,0,0,0.5);backdrop-filter:blur(8px);
+  overflow:hidden;
+}
+#chat-panel.show{display:flex}
+#chat-messages{
+  flex:1;overflow-y:auto;padding:8px 10px;font-size:clamp(10px,2vw,12px);
+  color:#ddd;line-height:1.4;max-height:200px;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.15) transparent;
+}
+#chat-messages::-webkit-scrollbar{width:4px}
+#chat-messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:2px}
+.chat-msg{margin-bottom:4px;word-wrap:break-word}
+.chat-msg .chat-name{font-weight:700;margin-right:4px}
+.chat-msg.chat-self .chat-name{color:#5af}
+.chat-msg.chat-other .chat-name{color:#fa4}
+.chat-msg.chat-system{color:#888;font-style:italic;font-size:clamp(9px,1.8vw,11px)}
+#chat-input-row{
+  display:flex;gap:4px;padding:6px 8px;border-top:1px solid rgba(255,255,255,0.08);
+}
+#chat-input{
+  flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);
+  border-radius:6px;color:#eee;font-size:clamp(11px,2.2vw,13px);padding:5px 8px;
+  outline:none;min-width:0;
+}
+#chat-input::placeholder{color:rgba(255,255,255,0.35)}
+#chat-input:focus{border-color:rgba(255,170,68,0.4)}
+#chat-send-btn{
+  background:rgba(255,170,68,0.25);border:1px solid rgba(255,170,68,0.3);border-radius:6px;
+  color:#fa4;font-size:clamp(12px,2.5vw,14px);padding:0 10px;cursor:pointer;
+  transition:background .15s;
+}
+#chat-send-btn:hover{background:rgba(255,170,68,0.4)}
+
+/* ════════ Chat Floating Bubbles ════════ */
+.chat-float-bubble{
+  position:fixed;pointer-events:none;z-index:95;opacity:0;
+  transition:opacity .25s ease;
+  max-width:min(200px,40vw);
+}
+.chat-float-bubble.show{opacity:1}
+.chat-float-inner{
+  display:inline-flex;align-items:flex-start;gap:6px;
+  padding:6px 10px;border-radius:10px;
+  background:rgba(16,24,16,0.92);border:1px solid rgba(255,255,255,0.12);
+  box-shadow:0 6px 18px rgba(0,0,0,0.4);backdrop-filter:blur(6px);
+  animation:chat-bubble-in .25s cubic-bezier(.2,.9,.2,1.1);
+}
+.chat-float-name{color:#fa4;font-size:11px;font-weight:700;white-space:nowrap}
+.chat-float-text{color:#ddd;font-size:11px;line-height:1.3;word-wrap:break-word}
+@keyframes chat-bubble-in{from{transform:scale(.85) translateY(6px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+
 /* ════════ Buongioco Banners ════════ */
 .buongioco-banner{
   position:fixed;pointer-events:none;z-index:28;

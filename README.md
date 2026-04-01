@@ -2,7 +2,7 @@
 
 Gioco di carte **Tresette** con carte napoletane, giocabile in modalità **singolo giocatore** (vs CPU con 4 livelli di difficoltà) e **multiplayer online** via Firebase.
 
-**Versione:** 3.0.0
+**Versione:** 3.2.0
 
 ## 📸 Caratteristiche
 
@@ -16,6 +16,9 @@ Gioco di carte **Tresette** con carte napoletane, giocabile in modalità **singo
 - 🎯 **Skill tracking**: sistema di bravura adattivo (Principiante → Maestro)
 - 🔊 **Audio**: effetti sonoro sintetizzati (niente file audio esterni)
 - 📱 **Responsive**: ottimizzato per desktop, tablet e mobile
+- 💬 **Chat in stanza**: messaggi in tempo reale tra i giocatori con notifiche floating
+- 🛡️ **Vice-host**: failover automatico con elezione vice-host e promozione ordinata
+- 📝 **Event log**: log append-only delle azioni di gioco con checkpoint periodici
 
 ---
 
@@ -264,12 +267,30 @@ Il Realtime Database usa questi nodi principali:
 | `users/{uid}` | Profilo utente: email, nome, statistiche partite, profili AI |
 | `admins/{uid}` | Lista admin (il primo utente viene promosso automaticamente) |
 | `rooms/{roomCode}` | Stanze multiplayer: stato gioco, posti, metadata, messaggi |
+| `rooms/{roomCode}/meta` | Metadata stanza: hostId, viceHostId, epoch, lease, lastEventSeq, lastCheckpointSeq |
+| `rooms/{roomCode}/presence/{playerId}` | Presenza per giocatore nella stanza: seat, online, lastSeen, canHost |
+| `rooms/{roomCode}/events/{seq}` | Log append-only delle azioni di gioco (card-played, trick-resolved, ecc.) |
+| `rooms/{roomCode}/checkpoint` | Snapshot periodico dello stato completo per recovery rapido |
 | `lobby/{roomCode}` | Stanze pubbliche visibili nel browser stanze |
-| `presence/{uid}` | Stato online/offline dei giocatori |
+| `presence/{uid}` | Stato online/offline dei giocatori (globale) |
 | `friends/{uid}` | Lista amici per utente |
 | `friendRequests/{uid}` | Richieste di amicizia in arrivo |
 | `invitations/{uid}` | Inviti a partite in arrivo |
 | `statistics/games` | Log globale di tutte le partite giocate |
+
+---
+
+## 🏗️ Architettura Multiplayer
+
+Il multiplayer usa un modello **host-autoritativo con vice-host caldo**:
+
+- **Host**: valida le mosse, gestisce i turni, sincronizza lo stato
+- **Vice-host**: replica passiva calda, eletto automaticamente (seat umana più bassa online, diversa dall'host)
+- **Event log**: ogni azione critica (card-played, trick-resolved, game-ended, ecc.) viene scritta in `rooms/{code}/events/{seq}`
+- **Checkpoint**: ogni 5 eventi, l'host salva uno snapshot completo in `rooms/{code}/checkpoint`
+- **Promozione ordinata**: se l'host cade, solo il vice-host tenta la promozione; gli altri client aspettano 8s prima di un fallback
+- **Room presence**: ogni giocatore scrive la propria presenza in `rooms/{code}/presence/{playerId}` con `onDisconnect` automatico
+- **Chat**: messaggi in tempo reale nella stanza, persistenti via localStorage, con notifiche floating vicino al giocatore mittente
 
 ---
 

@@ -1459,6 +1459,11 @@ async function playCard(playerIdx, card) {
 
     game.scores[winner] += pts;
 
+    // Log trick-resolved event (v3.1.0)
+    if(typeof _logEvent === 'function' && mpMode && isHost) {
+      _logEvent('trick-resolved', winner, { trickNum: game.trickNum, pts: pts, scores: game.scores.slice() });
+    }
+
     // Trick win sound
     sndTrickWon();
 
@@ -1476,6 +1481,11 @@ async function playCard(playerIdx, card) {
       game.phase = 'done';
       renderAll();
       if(mpMode && isHost) {
+        // Log game-ended event (v3.1.0)
+        if(typeof _logEvent === 'function') {
+          _logEvent('game-ended', winner, { scores: game.scores.slice(), trickNum: game.trickNum });
+          _writeCheckpoint();
+        }
         var finalState = syncState(true);
         mpSend({t:'final', seq:finalState.seq, state:finalState});
         setTimeout(function(){

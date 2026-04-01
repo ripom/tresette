@@ -292,6 +292,12 @@ function _updatePresenceRoom(roomCode) {
       lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
   }
+  // Also manage room-scoped presence (v3.1.0)
+  if(roomCode && typeof _setupRoomPresence === 'function') {
+    _setupRoomPresence();
+  } else if(!roomCode && typeof _teardownRoomPresence === 'function') {
+    _teardownRoomPresence();
+  }
 }
 
 function _updatePresenceInGame(playing) {
@@ -301,6 +307,8 @@ function _updatePresenceInGame(playing) {
       lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
   }
+  // Update room-scoped presence (v3.1.0)
+  if(typeof _updateRoomPresence === 'function') _updateRoomPresence();
 }
 
 // ────── Online Players Listener ──────

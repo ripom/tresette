@@ -715,6 +715,7 @@ function quitGame() {
   var canMigrateHost = !!(wasHost && mpMode && _stabilizeStateForMigration());
   var preserveMigrationSession = false;
   document.getElementById('quit-btn').style.display = 'none';
+  if(typeof _showChatBtn === 'function') _showChatBtn(false);
   document.getElementById('game-over').classList.remove('show');
   _updateUserBadge(); // Hide skill badge when leaving game
   _hideDiscBanner();
@@ -895,7 +896,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "3.0.2";
+const GAME_VERSION = "3.2.0";
 // Auto-sync version display everywhere from single GAME_VERSION constant
 (function(){ ['game-version-display','auth-version'].forEach(function(id){ var el = document.getElementById(id); if(el) el.textContent = 'v' + GAME_VERSION; }); })();
 
