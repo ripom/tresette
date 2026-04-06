@@ -6,6 +6,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a3a1a">
+<link rel="icon" type="image/png" sizes="192x192" href="img/icon-192.png">
+<link rel="apple-touch-icon" href="img/icon-192.png">
 <title>Tresette Multiplayer — Carte Napoletane</title>
 <script>
 // Served via GitHub Pages or any HTTP server for full iOS/cross-platform support
@@ -229,6 +233,37 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   font-size:clamp(10px, 2.2vw, 12px);touch-action:manipulation;min-height:36px;
 }
 #quit-btn:hover{background:rgba(160,40,40,0.8)}
+#last-trick-btn{
+  position:fixed;bottom:clamp(105px, 33vh, 210px);right:clamp(4px, 1vw, 10px);z-index:21;
+  background:rgba(0,80,120,0.7);border:1px solid rgba(90,170,255,0.3);
+  color:#adf;padding:clamp(4px, 1vw, 6px) clamp(8px, 2vw, 14px);border-radius:6px;cursor:pointer;
+  font-size:clamp(10px, 2.2vw, 12px);touch-action:manipulation;min-height:36px;display:none;
+}
+#last-trick-btn:hover{background:rgba(0,100,150,0.85)}
+#last-trick-overlay{
+  position:fixed;inset:0;z-index:50;display:none;
+  align-items:center;justify-content:center;flex-direction:column;
+}
+#last-trick-overlay.show{display:flex}
+.lt-bg{position:absolute;inset:0;background:rgba(0,0,0,0.75)}
+.lt-content{
+  z-index:1;text-align:center;background:rgba(20,40,60,0.95);
+  padding:clamp(16px, 3vh, 30px) clamp(16px, 4vw, 40px);border-radius:12px;
+  border:1px solid rgba(90,170,255,0.2);max-width:min(420px, 92vw);
+}
+.lt-content h3{font-size:clamp(16px, 4vw, 24px);margin-bottom:clamp(10px, 2vh, 18px);color:#adf}
+.lt-cards{display:flex;gap:clamp(6px, 2vw, 14px);justify-content:center;flex-wrap:wrap;margin-bottom:clamp(10px, 2vh, 16px)}
+.lt-card-slot{text-align:center}
+.lt-card-slot .card{position:relative;display:inline-block;width:clamp(50px, 14vw, 80px);height:clamp(77px, 21.5vw, 123px);border-radius:6px;box-shadow:1px 2px 8px rgba(0,0,0,0.5)}
+.lt-card-slot .card .card-img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;border-radius:6px}
+.lt-card-slot .lt-player{font-size:clamp(9px, 2vw, 12px);color:#ccc;margin-top:4px}
+.lt-timer{font-size:clamp(10px, 2.2vw, 13px);color:#888;margin-bottom:8px}
+#last-trick-ok-btn{
+  font-size:clamp(13px, 3vw, 16px);padding:clamp(8px, 1.5vh, 10px) clamp(20px, 6vw, 40px);
+  background:rgba(90,170,255,0.3);border:1px solid rgba(90,170,255,0.4);color:#adf;
+  border-radius:8px;cursor:pointer;touch-action:manipulation;
+}
+#last-trick-ok-btn:hover{background:rgba(90,170,255,0.5)}
 #fullscreen-btn{
   position:fixed;top:clamp(108px, 13vh, 124px);left:clamp(4px, 1vw, 10px);z-index:60;
   background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);
@@ -266,7 +301,26 @@ body{overflow:hidden;font-family:-apple-system,'Segoe UI',Arial,sans-serif;user-
   padding:20px 12px;touch-action:auto;
 }
 #auth-overlay.hidden{display:none}
+#auth-choice{gap:clamp(8px,2vw,16px);flex-wrap:wrap;justify-content:center;align-items:stretch}
 .auth-error{color:#f66;font-size:12px;min-height:18px;margin-bottom:6px;text-align:center}
+
+/* ════════ Google Sign-In Button ════════ */
+.social-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:clamp(6px,1.5vw,10px) clamp(8px,2vw,16px);border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(255,255,255,0.08);color:#fff;font-size:clamp(11px,2.8vw,14px);font-weight:600;cursor:pointer;transition:background .2s,border-color .2s}
+.social-btn:hover{background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.35)}
+.social-btn svg{width:clamp(14px,3.5vw,18px);height:clamp(14px,3.5vw,18px);flex-shrink:0}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:clamp(6px,1.5vw,10px) clamp(8px,2vw,16px);border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(255,255,255,0.08);color:#fff;font-size:clamp(11px,2.8vw,14px);font-weight:600;cursor:pointer;transition:background .2s,border-color .2s}
+.google-btn:hover{background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.35)}
+.google-btn svg{width:clamp(14px,3.5vw,18px);height:clamp(14px,3.5vw,18px);flex-shrink:0}
+.auth-divider{display:flex;align-items:center;gap:10px;margin:clamp(6px,1.5vw,12px) 0;width:100%}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.15)}
+.auth-divider span{color:#888;font-size:11px;white-space:nowrap}
+
+/* Mobile: stack auth sections vertically, compact sizes */
+@media(max-width:600px){
+  #auth-choice{flex-direction:column;align-items:center}
+  #auth-choice>div{width:min(300px,88vw)!important;padding:10px 14px!important}
+  #auth-choice .lobby-btn{font-size:clamp(11px,2.8vw,13px)!important;padding:clamp(6px,1.5vw,10px) 10px!important}
+}
 
 /* ════════ Start Overlay ════════ */
 #overlay{
@@ -1278,6 +1332,17 @@ var _preloadImages = [
 
 <button id="rules-btn">📜 Regole</button>
 <button id="quit-btn" style="display:none">❌ Fine Partita</button>
+<button id="last-trick-btn" onclick="showLastTrick()">👁 Ultima Presa</button>
+
+<div id="last-trick-overlay">
+  <div class="lt-bg" onclick="hideLastTrick()"></div>
+  <div class="lt-content">
+    <h3 id="lt-title">Ultima Presa</h3>
+    <div class="lt-cards" id="lt-cards"></div>
+    <div class="lt-timer" id="lt-timer"></div>
+    <button id="last-trick-ok-btn" onclick="hideLastTrick()">OK</button>
+  </div>
+</div>
 
 <!-- Room Chat -->
 <button id="chat-btn" title="Chat">💬<span class="chat-unread" id="chat-unread"></span></button>
@@ -1289,6 +1354,8 @@ var _preloadImages = [
   </div>
 </div>
 <button id="fullscreen-btn" onclick="toggleFullscreen()">⛶ Schermo intero</button>
+<button id="pwa-install-btn" onclick="promptPwaInstall()" style="display:none;position:fixed;top:42px;left:8px;z-index:31;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:clamp(9px,2vw,12px);padding:4px 10px;border-radius:8px;cursor:pointer">📲 Installa App</button>
+
 <button id="social-btn" onclick="_showSocialPanel()">👥<span class="social-badge" id="social-badge">0</span></button>
 <div id="user-badge" title="Profilo utente"><span class="ub-icon">👤</span><a id="ub-name-link" href="stats.html" target="_blank" style="color:inherit;text-decoration:none"><span id="ub-name">Ospite</span></a><span id="ub-skill" style="margin-left:5px;font-size:clamp(8px,1.5vw,10px);padding:1px 5px;border-radius:6px;font-weight:bold;display:none"></span><button id="ub-auth-btn" onclick="_onAuthBtnClick(event)" style="margin-left:6px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#ccc;font-size:clamp(8px,1.6vw,10px);padding:2px 6px;border-radius:4px;cursor:pointer;touch-action:manipulation">🔑</button></div>
 <div id="toast-container"></div>
@@ -1446,7 +1513,7 @@ var _preloadImages = [
     <p>All'avvio puoi scegliere tra due modalità:</p>
     <p>
       • <b>🎭 Gioca come Ospite:</b> Nessuna registrazione richiesta. Entra subito e gioca con un nome casuale.<br>
-      • <b>🔑 Accedi / 📝 Registrati:</b> Crea un account con email e password per salvare le tue statistiche personali.
+      • <b>🔑 Accedi / 📝 Registrati:</b> Crea un account con email e password oppure accedi con Google per salvare le tue statistiche personali.
     </p>
     <p>Gli utenti registrati possono visualizzare le proprie statistiche (partite giocate, CPU vs Multiplayer) nella pagina <b>Statistiche</b>. Gli amministratori hanno accesso a statistiche globali, gestione utenti e strumenti di manutenzione.</p>
 
@@ -1579,7 +1646,7 @@ var _preloadImages = [
   <!-- Auth choice buttons (hidden — auto-guest on startup) -->
   <div id="auth-choice" style="display:none">
     <!-- Sezione Ospite -->
-    <div style="border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:14px 18px;width:min(280px,80vw);text-align:center;background:rgba(255,255,255,0.03)">
+    <div style="border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:14px 18px;width:min(260px,42vw);text-align:center;background:rgba(255,255,255,0.03)">
       <div style="color:#888;font-size:clamp(9px,2vw,11px);margin-bottom:8px">Nessuna registrazione richiesta</div>
         <div class="auth-error" id="guest-name-err"></div>
         <div style="margin-bottom:8px">
@@ -1588,10 +1655,19 @@ var _preloadImages = [
         <button class="lobby-btn primary" style="width:100%" onclick="authAsGuest()">🎭 Gioca come Ospite</button>
     </div>
     <!-- Sezione Account -->
-    <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 18px;width:min(280px,80vw);text-align:center;background:rgba(255,255,255,0.02)">
-      <div style="color:#888;font-size:clamp(9px,2vw,11px);margin-bottom:8px">Registrazione richiesta</div>
-      <button class="lobby-btn" style="width:100%;margin-bottom:8px" onclick="showAuthForm('login')">🔑 Accedi</button>
-      <button class="lobby-btn" style="width:100%;opacity:0.8" onclick="showAuthForm('register')">📝 Registrati</button>
+    <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 18px;width:min(260px,42vw);text-align:center;background:rgba(255,255,255,0.02)">
+      <div style="color:#888;font-size:clamp(9px,2vw,11px);margin-bottom:8px">Accesso rapido</div>
+      <button class="google-btn" onclick="doGoogleSignIn()">
+        <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Accedi con Google
+      </button>
+      <button class="social-btn" style="margin-top:6px" onclick="doMicrosoftSignIn()">
+        <svg viewBox="0 0 21 21" width="18" height="18"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
+        Accedi con Microsoft
+      </button>
+      <div class="auth-divider"><span>oppure</span></div>
+      <button class="lobby-btn" style="width:100%;margin-bottom:8px" onclick="showAuthForm('login')">🔑 Accedi con Email</button>
+      <button class="lobby-btn" style="width:100%;opacity:0.8" onclick="showAuthForm('register')">📝 Registrati con Email</button>
     </div>
   </div>
 
@@ -1602,6 +1678,15 @@ var _preloadImages = [
     <div style="margin-bottom:8px"><input type="email" class="lobby-input" id="auth-login-email" placeholder="Email" style="width:100%;max-width:100%;letter-spacing:normal;text-align:left;font-size:14px"></div>
     <div style="margin-bottom:8px"><input type="password" class="lobby-input" id="auth-login-pwd" placeholder="Password" style="width:100%;max-width:100%;letter-spacing:normal;text-align:left;font-size:14px"></div>
     <button class="lobby-btn primary" style="width:100%" onclick="doLogin()">Accedi</button>
+    <div class="auth-divider"><span>oppure</span></div>
+    <button class="google-btn" onclick="doGoogleSignIn()">
+      <svg viewBox="0 0 48 48" width="18" height="18"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Accedi con Google
+    </button>
+    <button class="social-btn" style="margin-top:6px" onclick="doMicrosoftSignIn()">
+      <svg viewBox="0 0 21 21" width="18" height="18"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
+      Accedi con Microsoft
+    </button>
     <div style="margin-top:8px;display:flex;gap:8px;justify-content:center">
       <button class="lobby-btn" style="font-size:11px;padding:4px 10px" onclick="showAuthForm('register')">Registrati</button>
       <button class="lobby-btn" style="font-size:11px;padding:4px 10px" onclick="showAuthForm('resetpwd')">Password dimenticata?</button>
@@ -1618,6 +1703,15 @@ var _preloadImages = [
     <div style="margin-bottom:8px"><input type="password" class="lobby-input" id="auth-reg-pwd" placeholder="Password (min 6 caratteri)" style="width:100%;max-width:100%;letter-spacing:normal;text-align:left;font-size:14px"></div>
     <div style="margin-bottom:8px"><input type="password" class="lobby-input" id="auth-reg-pwd2" placeholder="Conferma password" style="width:100%;max-width:100%;letter-spacing:normal;text-align:left;font-size:14px"></div>
     <button class="lobby-btn primary" style="width:100%" onclick="doRegister()">Crea Account</button>
+    <div class="auth-divider"><span>oppure</span></div>
+    <button class="google-btn" onclick="doGoogleSignIn()">
+      <svg viewBox="0 0 48 48" width="18" height="18"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Registrati con Google
+    </button>
+    <button class="social-btn" style="margin-top:6px" onclick="doMicrosoftSignIn()">
+      <svg viewBox="0 0 21 21" width="18" height="18"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
+      Registrati con Microsoft
+    </button>
     <div style="margin-top:10px;text-align:center"><a href="#" style="color:#888;font-size:11px" onclick="showAuthForm('login');return false">← Indietro</a></div>
   </div>
 
@@ -1638,7 +1732,7 @@ var _preloadImages = [
     <div style="color:#888;font-size:11px;margin-bottom:12px" id="auth-logged-email"></div>
     <button class="lobby-btn primary" style="width:100%;margin-bottom:8px" onclick="proceedToGame()">▶ Continua</button>
     <div style="display:flex;gap:8px;justify-content:center">
-      <button class="lobby-btn" style="font-size:11px;padding:4px 10px" onclick="showAuthForm('changepwd')">Cambia Password</button>
+      <button class="lobby-btn" id="auth-changepwd-btn" style="font-size:11px;padding:4px 10px" onclick="showAuthForm('changepwd')">Cambia Password</button>
       <button class="lobby-btn" style="font-size:11px;padding:4px 10px;color:#f88" onclick="doLogout()">Esci</button>
     </div>
   </div>
@@ -2958,6 +3052,7 @@ function initGame(startPlayer) {
     leadSuit: null,
     scores: [0, 0, 0, 0],
     trickCards: [],
+    lastTrickCards: [],
     phase: 'playing',
     animating: false,
     _buongiocoDecls: [],
@@ -3555,6 +3650,9 @@ function renderAll() {
   renderScores();
   renderLabels();
   document.getElementById('trick-count').textContent = `Mano ${game.trickNum} / 10`;
+  // Show/hide "Ultima Presa" button based on whether there's a previous trick
+  var ltBtn = document.getElementById('last-trick-btn');
+  if (ltBtn) ltBtn.style.display = (game.lastTrickCards && game.lastTrickCards.length === 4 && game.phase === 'playing') ? 'block' : 'none';
   // Turn timer (no banner, just timer logic)
   if(game.phase==='playing' && !game.animating){
     var cp = game.currentPlayer;
@@ -4189,6 +4287,7 @@ async function playCard(playerIdx, card) {
     sndTrickWon();
 
     game.trickCards = game.trick.map(t => t.card);
+    game.lastTrickCards = game.trick.map(t => ({ card: t.card, playerIdx: t.playerIdx }));
     if(mpMode && isHost) syncState();
 
     await delay(1400);
@@ -4876,7 +4975,7 @@ function _observeHumanPlay(playerIdx, card) {
   }
 }
 
-function _updateProfileAfterGame(won, scoreTerzi) {
+function _updateProfileAfterGame(won, scoreTerzi, volo) {
   if (!_playerProfile) _playerProfile = _initPlayerProfile();
   var p = _playerProfile;
   var alpha = 0.15; // EMA smoothing factor
@@ -4888,40 +4987,43 @@ function _updateProfileAfterGame(won, scoreTerzi) {
   // Win rate EMA
   p.emaWinRate = p.emaWinRate * (1 - 0.2) + (won ? 1 : 0) * 0.2;
 
-  // Merge final hand into tournament accumulator
-  if (_currentGameObs && _tournamentObs) {
-    _tournamentObs.leads = _tournamentObs.leads.concat(_currentGameObs.leads);
-    _tournamentObs.follows = _tournamentObs.follows.concat(_currentGameObs.follows);
-    _tournamentObs.voidPlays = _tournamentObs.voidPlays.concat(_currentGameObs.voidPlays);
-  }
-  // Use all accumulated observations from the tournament
-  var obs = _tournamentObs || _currentGameObs;
-  if (obs) {
-    if (obs.leads.length > 0) {
-      var avgPow = obs.leads.reduce(function(s, l) { return s + l.power; }, 0) / obs.leads.length;
-      p.leadPowerAvg = p.leadPowerAvg * (1 - alpha) + avgPow * alpha;
-
-      var avgSL = obs.leads.reduce(function(s, l) { return s + l.suitLen; }, 0) / obs.leads.length;
-      p.longSuitLeadRate = p.longSuitLeadRate * (1 - alpha) + avgSL * alpha;
+  // When volo: skip strategic observations — only the volo result matters
+  // Otherwise individual plays (taking aces, not ducking) would drag skill down
+  if (!volo) {
+    // Merge final hand into tournament accumulator
+    if (_currentGameObs && _tournamentObs) {
+      _tournamentObs.leads = _tournamentObs.leads.concat(_currentGameObs.leads);
+      _tournamentObs.follows = _tournamentObs.follows.concat(_currentGameObs.follows);
+      _tournamentObs.voidPlays = _tournamentObs.voidPlays.concat(_currentGameObs.voidPlays);
     }
+    // Use all accumulated observations from the tournament
+    var obs = _tournamentObs || _currentGameObs;
+    if (obs) {
+      if (obs.leads.length > 0) {
+        var avgPow = obs.leads.reduce(function(s, l) { return s + l.power; }, 0) / obs.leads.length;
+        p.leadPowerAvg = p.leadPowerAvg * (1 - alpha) + avgPow * alpha;
 
-    var choices = obs.follows.filter(function(f) { return f.hadChoice; });
-    if (choices.length > 0) {
-      var dPct = choices.filter(function(f) { return f.ducked; }).length / choices.length;
-      p.duckRate = p.duckRate * (1 - alpha) + dPct * alpha;
-    }
+        var avgSL = obs.leads.reduce(function(s, l) { return s + l.suitLen; }, 0) / obs.leads.length;
+        p.longSuitLeadRate = p.longSuitLeadRate * (1 - alpha) + avgSL * alpha;
+      }
 
-    if (obs.voidPlays.length > 0) {
-      var avgDump = obs.voidPlays.reduce(function(s, v) {
-        return s + v.pointsDumped;
-      }, 0) / obs.voidPlays.length;
-      p.pointDumpRate = p.pointDumpRate * (1 - alpha) + Math.min(avgDump / 3, 1) * alpha;
+      var choices = obs.follows.filter(function(f) { return f.hadChoice; });
+      if (choices.length > 0) {
+        var dPct = choices.filter(function(f) { return f.ducked; }).length / choices.length;
+        p.duckRate = p.duckRate * (1 - alpha) + dPct * alpha;
+      }
+
+      if (obs.voidPlays.length > 0) {
+        var avgDump = obs.voidPlays.reduce(function(s, v) {
+          return s + v.pointsDumped;
+        }, 0) / obs.voidPlays.length;
+        p.pointDumpRate = p.pointDumpRate * (1 - alpha) + Math.min(avgDump / 3, 1) * alpha;
+      }
     }
+    p.avgScorePerGame = p.avgScorePerGame * (1 - alpha) + scoreTerzi * alpha;
   }
   // Reset tournament accumulator for next evaluation
   _tournamentObs = { leads: [], follows: [], voidPlays: [] };
-
-  p.avgScorePerGame = p.avgScorePerGame * (1 - alpha) + scoreTerzi * alpha;
 
   // Calculate skill level (0-100)
   // Components:
@@ -4963,7 +5065,8 @@ function _updateProfileAfterGame(won, scoreTerzi) {
     ' winRate=' + p.emaWinRate.toFixed(2) +
     ' duckRate=' + p.duckRate.toFixed(2) +
     ' leadPow=' + p.leadPowerAvg.toFixed(2) +
-    ' games=' + p.gamesPlayed);
+    ' games=' + p.gamesPlayed +
+    (volo ? ' VOLO(obs skipped)' : ''));
 
   _savePlayerProfile();
 }
@@ -5274,6 +5377,53 @@ function delay(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+// ─── Ultima Presa (Last Trick) ──────────────────────────────
+var _lastTrickTimer = null;
+function showLastTrick() {
+  if (!game || !game.lastTrickCards || game.lastTrickCards.length !== 4) return;
+  var overlay = document.getElementById('last-trick-overlay');
+  var container = document.getElementById('lt-cards');
+  var timerEl = document.getElementById('lt-timer');
+  container.innerHTML = '';
+
+  var trickNum = game.trickNum; // current trick number (the completed one was trickNum-1 or trickNum if mid-trick)
+  document.getElementById('lt-title').textContent = 'Ultima Presa (Mano ' + (trickNum) + ')';
+
+  game.lastTrickCards.forEach(function(entry) {
+    var slot = document.createElement('div');
+    slot.className = 'lt-card-slot';
+    var cardEl = createCardElement(entry.card, true);
+    slot.appendChild(cardEl);
+    var nameEl = document.createElement('div');
+    nameEl.className = 'lt-player';
+    nameEl.textContent = PLAYER_NAMES[entry.playerIdx] || ('Giocatore ' + (entry.playerIdx + 1));
+    slot.appendChild(nameEl);
+    container.appendChild(slot);
+  });
+
+  overlay.classList.add('show');
+
+  // Auto-close after 5 seconds
+  var remaining = 5;
+  timerEl.textContent = 'Chiude in ' + remaining + 's';
+  clearInterval(_lastTrickTimer);
+  _lastTrickTimer = setInterval(function() {
+    remaining--;
+    if (remaining <= 0) {
+      hideLastTrick();
+    } else {
+      timerEl.textContent = 'Chiude in ' + remaining + 's';
+    }
+  }, 1000);
+}
+
+function hideLastTrick() {
+  clearInterval(_lastTrickTimer);
+  _lastTrickTimer = null;
+  var overlay = document.getElementById('last-trick-overlay');
+  if (overlay) overlay.classList.remove('show');
+}
+
 // ─── Game Over ────────────────────────────────────────────────
 function showGameOver() {
   // Stats will be logged AFTER result computation (below)
@@ -5486,7 +5636,8 @@ function showGameOver() {
   // Update player skill profile after every game (all modes, not just adattivo)
   _updateProfileAfterGame(
     _resultStr === 'win',
-    game.scores[localSeat] || 0
+    game.scores[localSeat] || 0,
+    voloActive
   );
 
   // --- Set title: if tournament just ended, reflect tournament result; otherwise hand result ---
@@ -5953,6 +6104,7 @@ function quitGame() {
           if(game.trickNum === 10) pts += 3;
           game.scores[winner] += pts;
           game.trickCards = game.trick.map(function(t){ return t.card; });
+          game.lastTrickCards = game.trick.map(function(t){ return { card: t.card, playerIdx: t.playerIdx }; });
           game.leadPlayer = winner;
           game.currentPlayer = winner;
           if(game.trickNum >= 10) {
@@ -6160,7 +6312,7 @@ if (window.visualViewport) {
 
 let mpMode = false, isHost = false, mySeat = -1;
 let mpRoom = '';
-const GAME_VERSION = "3.2.0";
+const GAME_VERSION = "3.3.0";
 // Auto-sync version display everywhere from single GAME_VERSION constant
 (function(){ ['game-version-display','auth-version'].forEach(function(id){ var el = document.getElementById(id); if(el) el.textContent = 'v' + GAME_VERSION; }); })();
 
@@ -6289,7 +6441,15 @@ function showAuthForm(which) {
   else if (which === 'login') document.getElementById('auth-login').style.display = 'block';
   else if (which === 'register') document.getElementById('auth-register').style.display = 'block';
   else if (which === 'resetpwd') document.getElementById('auth-resetpwd').style.display = 'block';
-  else if (which === 'logged') document.getElementById('auth-logged').style.display = 'block';
+  else if (which === 'logged') {
+    document.getElementById('auth-logged').style.display = 'block';
+    // Hide "Change Password" for Google (non-password) users
+    var cpBtn = document.getElementById('auth-changepwd-btn');
+    if (cpBtn) {
+      var isPasswordUser = _authUser && _authUser.providerData && _authUser.providerData.some(function(p) { return p.providerId === 'password'; });
+      cpBtn.style.display = isPasswordUser ? '' : 'none';
+    }
+  }
   else if (which === 'changepwd') document.getElementById('auth-changepwd').style.display = 'block';
 }
 
@@ -6302,7 +6462,14 @@ function _checkAuthState() {
   if (!auth) { showAuthForm('choice'); return; }
 
 
-  
+  // Handle redirect result from social sign-in fallback
+  auth.getRedirectResult().then(function(result) {
+    if (result && result.user) {
+      _handleSocialUser(result.user);
+    }
+  }).catch(function(e) {
+    console.warn('[AUTH] getRedirectResult error:', e.code, e.message);
+  });
 
 
   auth.onAuthStateChanged(function(user) {
@@ -6518,6 +6685,7 @@ function proceedToGame() {
   if (!_profileLoaded) _loadPlayerProfile();
   _updateUserBadge();
   _syncNameFromAuth();
+
 }
 
 function doLogin() {
@@ -6544,6 +6712,74 @@ function doLogin() {
       proceedToGame();
     })
     .catch(function(e) { dbg('[AUTH] Login fallito: ' + e.code); errEl.textContent = _authErrorMsg(e); });
+}
+
+function _handleSocialUser(user) {
+  dbg('[AUTH] Social sign-in riuscito: ' + (user.displayName || user.email));
+  _authUser = user;
+  _isGuest = false;
+  _guestDisplayName = '';
+  _updateUserBadge();
+  _syncNameFromAuth();
+  var nameInput = document.getElementById('my-name-input');
+  if (nameInput) nameInput.value = user.displayName || '';
+  _registerUserInDb(user);
+  _loadPlayerProfile();
+  _setupPresence();
+  _initSocialListeners();
+  proceedToGame();
+}
+
+function doGoogleSignIn() {
+  if (typeof firebase === 'undefined' || !firebase.auth) {
+    alert('Firebase non ancora pronto. Riprova tra un momento.');
+    return;
+  }
+  var provider = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider)
+    .then(function(result) {
+      _handleSocialUser(result.user);
+    })
+    .catch(function(e) {
+      _handleSocialAuthError(e, 'Google');
+    });
+}
+
+function doMicrosoftSignIn() {
+  if (typeof firebase === 'undefined' || !firebase.auth) {
+    alert('Firebase non ancora pronto. Riprova tra un momento.');
+    return;
+  }
+  var provider = new firebase.auth.OAuthProvider('microsoft.com');
+  firebase.auth().signInWithPopup(provider)
+    .then(function(result) {
+      _handleSocialUser(result.user);
+    })
+    .catch(function(e) {
+      _handleSocialAuthError(e, 'Microsoft');
+    });
+}
+
+function _handleSocialAuthError(e, providerName) {
+  if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return;
+  if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') {
+    // Redirect fallback not reliable for all providers, show message
+    alert('Popup bloccato dal browser. Consenti i popup per questo sito.');
+    return;
+  }
+  if (e.code === 'auth/operation-not-allowed') {
+    alert('Il provider ' + providerName + ' non è abilitato nella Firebase Console.');
+    return;
+  }
+  if (e.code === 'auth/unauthorized-domain') {
+    alert('Dominio non autorizzato: ' + window.location.hostname + '\n\nAggiungi questo dominio in Firebase Console → Authentication → Settings → Authorized domains.');
+    return;
+  }
+  if (e.code === 'auth/account-exists-with-different-credential') {
+    alert('Esiste già un account con questa email registrato con un altro provider. Prova ad accedere con il metodo originale.');
+    return;
+  }
+  alert('Errore ' + providerName + ' Sign-In: ' + _authErrorMsg(e));
 }
 
 function doRegister() {
@@ -6808,6 +7044,8 @@ function _authErrorMsg(e) {
   if (code === 'auth/weak-password') return 'Password troppo debole (min 6 caratteri).';
   if (code === 'auth/too-many-requests') return 'Troppi tentativi. Riprova più tardi.';
   if (code === 'auth/invalid-credential') return 'Credenziali non valide. Controlla email e password.';
+  if (code === 'auth/account-exists-with-different-credential') return 'Esiste già un account con questa email. Prova ad accedere con email/password.';
+  if (code === 'auth/popup-blocked') return 'Popup bloccato dal browser. Consenti i popup per questo sito.';
   return e.message || 'Errore sconosciuto.';
 }
 
@@ -9813,7 +10051,8 @@ function _startFriendRequestsListener() {
     curr.forEach(function(senderUid) {
       if (prev.indexOf(senderUid) === -1) {
         var req = _pendingFriendRequests[senderUid];
-        _showToast('📨 Richiesta da ' + req.fromName + (req.message ? ': "' + req.message + '"' : ''), 'info', 8000);
+        var reqName = req.fromName || 'Giocatore';
+        _showToast('📨 Richiesta da ' + reqName + (req.message ? ': "' + req.message + '"' : ''), 'info', 8000);
       }
     });
     _updateFriendRequestBadge();
@@ -9897,7 +10136,8 @@ function _checkFriendOnlineNotifications() {
     if (_friendsList[uid]) {
       newOnline[uid] = true;
       if (!_knownOnlineFriends[uid]) {
-        _showToast('🟢 ' + (_friendsList[uid].displayName || 'Amico') + ' è online!', 'info');
+        var friendName = _friendsList[uid].displayName || 'Amico';
+        _showToast('🟢 ' + friendName + ' è online!', 'info');
       }
     }
   }
@@ -9915,6 +10155,15 @@ function _startInvitationsListener() {
     var inv = snap.val();
     var senderUid = snap.key;
     if (!inv) return;
+
+    // Discard invitations older than 24 hours (stale offline invites)
+    var STALE_MS = 24 * 60 * 60 * 1000;
+    if (inv.timestamp && (Date.now() - inv.timestamp > STALE_MS)) {
+      console.log('[INVITE] Scartato invito scaduto da ' + inv.fromName);
+      _fbDb.ref('invitations/' + myUid + '/' + senderUid).remove();
+      return;
+    }
+
     _pendingInvitations[senderUid] = inv;
     _showInvitationToast(senderUid, inv);
   });
@@ -9943,6 +10192,7 @@ function _startInvitationResponsesListener() {
 function _showInvitationToast(senderUid, inv) {
   var container = document.getElementById('toast-container');
   if (!container) return;
+
   var toast = document.createElement('div');
   toast.className = 'toast-item toast-info show';
   var accId = 'inv-acc-' + senderUid.substring(0, 8);
@@ -9970,17 +10220,30 @@ function _sendInvitation(targetUid) {
   var senderUid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
   var senderName = (_authUser ? _authUser.displayName : '') || _guestDisplayName || _getMyName() || 'Giocatore';
   var targetPlayer = _onlinePlayers[targetUid];
+  var isTargetOnline = !!targetPlayer;
+  var targetName = isTargetOnline ? targetPlayer.displayName : (_friendsList[targetUid] ? _friendsList[targetUid].displayName : 'giocatore');
+  var roomLabel = document.getElementById('room-name-input') ? document.getElementById('room-name-input').value || 'Partita' : 'Partita';
+
   _fbDb.ref('invitations/' + targetUid + '/' + senderUid).set({
     fromName: senderName,
     roomCode: mpRoom,
-    roomLabel: document.getElementById('room-name-input') ? document.getElementById('room-name-input').value || 'Partita' : 'Partita',
+    roomLabel: roomLabel,
     seatIndex: _inviteSeatTarget,
-    timestamp: firebase.database.ServerValue.TIMESTAMP
+    timestamp: firebase.database.ServerValue.TIMESTAMP,
+    offline: !isTargetOnline
   }).then(function() {
-    _showToast('Invito inviato a ' + (targetPlayer ? targetPlayer.displayName : 'giocatore') + '!', 'ok');
+    if (isTargetOnline) {
+      _showToast('📨 Invito inviato a ' + targetName + '!', 'ok');
+    } else {
+      _showToast('🔔 Invito inviato a ' + targetName + ' (offline). Lo vedrà al prossimo accesso.', 'info', 5000);
+    }
     _closeInvitePanel();
   });
-  _fbDb.ref('invitations/' + targetUid + '/' + senderUid).onDisconnect().remove();
+
+  // Only auto-remove on disconnect for ONLINE targets.
+  if (isTargetOnline) {
+    _fbDb.ref('invitations/' + targetUid + '/' + senderUid).onDisconnect().remove();
+  }
 }
 
 function _acceptInvitation(senderUid, inv) {
@@ -10201,36 +10464,77 @@ function _closeInvitePanel() {
 function _renderInvitePlayerList() {
   var listEl = document.getElementById('invite-player-list');
   if (!listEl) return;
-  var uids = Object.keys(_onlinePlayers);
-  if (uids.length === 0) {
-    listEl.innerHTML = '<div class="social-empty">Nessun giocatore online al momento.</div>';
+
+  // Collect online players
+  var onlineUids = Object.keys(_onlinePlayers);
+
+  // Collect offline friends (not in _onlinePlayers)
+  var offlineFriendUids = [];
+  if (!_isGuest) {
+    for (var fuid in _friendsList) {
+      if (!_onlinePlayers[fuid]) {
+        offlineFriendUids.push(fuid);
+      }
+    }
+  }
+
+  if (onlineUids.length === 0 && offlineFriendUids.length === 0) {
+    listEl.innerHTML = '<div class="social-empty">Nessun giocatore disponibile. Aggiungi amici per invitarli anche quando sono offline!</div>';
     return;
   }
-  // Sort: friends first
-  uids.sort(function(a, b) {
+
+  // Sort online: friends first, then alphabetically
+  onlineUids.sort(function(a, b) {
     var af = _friendsList[a] ? 0 : 1;
     var bf = _friendsList[b] ? 0 : 1;
     if (af !== bf) return af - bf;
     return (_onlinePlayers[a].displayName || '').localeCompare(_onlinePlayers[b].displayName || '');
   });
-  var html = '';
-  uids.forEach(function(uid) {
-    var p = _onlinePlayers[uid];
-    var isFriend = !!_friendsList[uid];
-    var inGame = !!p.inGame;
-    var inLobby = !!p.currentRoom && !p.inGame;
-    html += '<div class="social-player-row">';
-    html += '<div>';
-    html += '<span class="social-player-name" style="color:' + (isFriend ? '#4f4' : '#ccc') + '">';
-    html += (isFriend ? '⭐ ' : '') + _escHtml(p.displayName);
-    if (p.isGuest) html += ' <span style="color:#999;font-size:0.85em">(ospite)</span>';
-    html += '</span>';
-    if (inGame) html += ' <span class="social-player-status" style="color:#e84">(in partita)</span>';
-    else if (inLobby) html += ' <span class="social-player-status" style="color:#888">(in lobby)</span>';
-    html += '</div>';
-    html += '<button class="lobby-btn primary" style="font-size:10px;padding:3px 10px;min-height:26px" onclick="_sendInvitation(\'' + uid + '\')">📨 Invita</button>';
-    html += '</div>';
+
+  // Sort offline friends alphabetically
+  offlineFriendUids.sort(function(a, b) {
+    return (_friendsList[a].displayName || '').localeCompare(_friendsList[b].displayName || '');
   });
+
+  var html = '';
+
+  // Online players section
+  if (onlineUids.length > 0) {
+    html += '<div style="color:#4caf50;font-size:10px;font-weight:bold;margin-bottom:4px;margin-top:2px">🟢 ONLINE</div>';
+    onlineUids.forEach(function(uid) {
+      var p = _onlinePlayers[uid];
+      var isFriend = !!_friendsList[uid];
+      var inGame = !!p.inGame;
+      var inLobby = !!p.currentRoom && !p.inGame;
+      html += '<div class="social-player-row">';
+      html += '<div>';
+      html += '<span class="social-player-name" style="color:' + (isFriend ? '#4f4' : '#ccc') + '">';
+      html += (isFriend ? '⭐ ' : '') + _escHtml(p.displayName);
+      if (p.isGuest) html += ' <span style="color:#999;font-size:0.85em">(ospite)</span>';
+      html += '</span>';
+      if (inGame) html += ' <span class="social-player-status" style="color:#e84">(in partita)</span>';
+      else if (inLobby) html += ' <span class="social-player-status" style="color:#888">(in lobby)</span>';
+      html += '</div>';
+      html += '<button class="lobby-btn primary" style="font-size:10px;padding:3px 10px;min-height:26px" onclick="_sendInvitation(\'' + uid + '\')">📨 Invita</button>';
+      html += '</div>';
+    });
+  }
+
+  // Offline friends section
+  if (offlineFriendUids.length > 0) {
+    html += '<div style="color:#888;font-size:10px;font-weight:bold;margin-bottom:4px;margin-top:8px">⚫ OFFLINE — riceveranno una notifica push</div>';
+    offlineFriendUids.forEach(function(uid) {
+      var f = _friendsList[uid];
+      html += '<div class="social-player-row" style="opacity:0.7">';
+      html += '<div>';
+      html += '<span class="social-player-name" style="color:#888">⭐ ' + _escHtml(f.displayName) + '</span>';
+      html += ' <span class="social-player-status" style="color:#666">offline</span>';
+      html += '</div>';
+      html += '<button class="lobby-btn" style="font-size:10px;padding:3px 10px;min-height:26px;background:rgba(255,170,68,0.15);border-color:rgba(255,170,68,0.3);color:#fa4" onclick="_sendInvitation(\'' + uid + '\')">🔔 Notifica</button>';
+      html += '</div>';
+    });
+  }
+
   listEl.innerHTML = html;
 }
 
@@ -10265,6 +10569,60 @@ function _cleanupSocialListeners() {
   _pendingInvitations = {};
   _knownOnlineFriends = {};
   _socialListenersStarted = false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PWA — Service Worker + Install Prompt
+// ═══════════════════════════════════════════════════════════════
+var _deferredInstallPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' })
+      .then(function(reg) {
+        console.log('[PWA] Service Worker registrato, scope:', reg.scope);
+      })
+      .catch(function(err) {
+        console.warn('[PWA] Service Worker registrazione fallita:', err);
+      });
+  });
+}
+
+// Capture the install prompt event
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  console.log('[PWA] Install prompt catturato');
+  _showInstallButton();
+});
+
+window.addEventListener('appinstalled', function() {
+  console.log('[PWA] App installata!');
+  _deferredInstallPrompt = null;
+  _hideInstallButton();
+  _showToast('✅ App Tresette installata!', 'info', 4000);
+});
+
+function _showInstallButton() {
+  var btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'inline-block';
+}
+
+function _hideInstallButton() {
+  var btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'none';
+}
+
+function promptPwaInstall() {
+  if (!_deferredInstallPrompt) {
+    _showToast('L\'app è già installata o il browser non supporta l\'installazione.', 'warn', 4000);
+    return;
+  }
+  _deferredInstallPrompt.prompt();
+  _deferredInstallPrompt.userChoice.then(function(result) {
+    console.log('[PWA] Scelta installazione:', result.outcome);
+    _deferredInstallPrompt = null;
+  });
 }
 
 

@@ -65,7 +65,15 @@ function showAuthForm(which) {
   else if (which === 'login') document.getElementById('auth-login').style.display = 'block';
   else if (which === 'register') document.getElementById('auth-register').style.display = 'block';
   else if (which === 'resetpwd') document.getElementById('auth-resetpwd').style.display = 'block';
-  else if (which === 'logged') document.getElementById('auth-logged').style.display = 'block';
+  else if (which === 'logged') {
+    document.getElementById('auth-logged').style.display = 'block';
+    // Hide "Change Password" for Google (non-password) users
+    var cpBtn = document.getElementById('auth-changepwd-btn');
+    if (cpBtn) {
+      var isPasswordUser = _authUser && _authUser.providerData && _authUser.providerData.some(function(p) { return p.providerId === 'password'; });
+      cpBtn.style.display = isPasswordUser ? '' : 'none';
+    }
+  }
   else if (which === 'changepwd') document.getElementById('auth-changepwd').style.display = 'block';
 }
 
@@ -78,7 +86,14 @@ function _checkAuthState() {
   if (!auth) { showAuthForm('choice'); return; }
 
 
-  
+  // Handle redirect result from social sign-in fallback
+  auth.getRedirectResult().then(function(result) {
+    if (result && result.user) {
+      _handleSocialUser(result.user);
+    }
+  }).catch(function(e) {
+    console.warn('[AUTH] getRedirectResult error:', e.code, e.message);
+  });
 
 
   auth.onAuthStateChanged(function(user) {
@@ -274,6 +289,73 @@ function doLogin() {
       proceedToGame();
     })
     .catch(function(e) { dbg('[AUTH] Login fallito: ' + e.code); errEl.textContent = _authErrorMsg(e); });
+}
+
+function _handleSocialUser(user) {
+  dbg('[AUTH] Social sign-in riuscito: ' + (user.displayName || user.email));
+  _authUser = user;
+  _isGuest = false;
+  _guestDisplayName = '';
+  _updateUserBadge();
+  _syncNameFromAuth();
+  var nameInput = document.getElementById('my-name-input');
+  if (nameInput) nameInput.value = user.displayName || '';
+  _registerUserInDb(user);
+  _loadPlayerProfile();
+  _setupPresence();
+  _initSocialListeners();
+  proceedToGame();
+}
+
+function doGoogleSignIn() {
+  if (typeof firebase === 'undefined' || !firebase.auth) {
+    alert('Firebase non ancora pronto. Riprova tra un momento.');
+    return;
+  }
+  var provider = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider)
+    .then(function(result) {
+      _handleSocialUser(result.user);
+    })
+    .catch(function(e) {
+      _handleSocialAuthError(e, 'Google');
+    });
+}
+
+function doMicrosoftSignIn() {
+  if (typeof firebase === 'undefined' || !firebase.auth) {
+    alert('Firebase non ancora pronto. Riprova tra un momento.');
+    return;
+  }
+  var provider = new firebase.auth.OAuthProvider('microsoft.com');
+  firebase.auth().signInWithPopup(provider)
+    .then(function(result) {
+      _handleSocialUser(result.user);
+    })
+    .catch(function(e) {
+      _handleSocialAuthError(e, 'Microsoft');
+    });
+}
+
+function _handleSocialAuthError(e, providerName) {
+  if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return;
+  if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') {
+    alert('Popup bloccato dal browser. Consenti i popup per questo sito.');
+    return;
+  }
+  if (e.code === 'auth/operation-not-allowed') {
+    alert('Il provider ' + providerName + ' non è abilitato nella Firebase Console.');
+    return;
+  }
+  if (e.code === 'auth/unauthorized-domain') {
+    alert('Dominio non autorizzato: ' + window.location.hostname + '\n\nAggiungi questo dominio in Firebase Console → Authentication → Settings → Authorized domains.');
+    return;
+  }
+  if (e.code === 'auth/account-exists-with-different-credential') {
+    alert('Esiste già un account con questa email registrato con un altro provider. Prova ad accedere con il metodo originale.');
+    return;
+  }
+  alert('Errore ' + providerName + ' Sign-In: ' + _authErrorMsg(e));
 }
 
 function doRegister() {
@@ -488,6 +570,8 @@ function _authErrorMsg(e) {
   if (code === 'auth/weak-password') return 'Password troppo debole (min 6 caratteri).';
   if (code === 'auth/too-many-requests') return 'Troppi tentativi. Riprova più tardi.';
   if (code === 'auth/invalid-credential') return 'Credenziali non valide. Controlla email e password.';
+  if (code === 'auth/account-exists-with-different-credential') return 'Esiste già un account con questa email. Prova ad accedere con email/password.';
+  if (code === 'auth/popup-blocked') return 'Popup bloccato dal browser. Consenti i popup per questo sito.';
   return e.message || 'Errore sconosciuto.';
 }
 

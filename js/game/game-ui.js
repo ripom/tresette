@@ -236,6 +236,7 @@ function initGame(startPlayer) {
     leadSuit: null,
     scores: [0, 0, 0, 0],
     trickCards: [],
+    lastTrickCards: [],
     phase: 'playing',
     animating: false,
     _buongiocoDecls: [],
@@ -1468,6 +1469,7 @@ async function playCard(playerIdx, card) {
     sndTrickWon();
 
     game.trickCards = game.trick.map(t => t.card);
+    game.lastTrickCards = game.trick.map(t => ({ card: t.card, playerIdx: t.playerIdx }));
     if(mpMode && isHost) syncState(); // debounced — visual update only
 
     await delay(1400);

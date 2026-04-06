@@ -627,7 +627,7 @@ function _observeHumanPlay(playerIdx, card) {
   }
 }
 
-function _updateProfileAfterGame(won, scoreTerzi) {
+function _updateProfileAfterGame(won, scoreTerzi, volo) {
   if (!_playerProfile) _playerProfile = _initPlayerProfile();
   var p = _playerProfile;
   var alpha = 0.15; // EMA smoothing factor
@@ -639,40 +639,43 @@ function _updateProfileAfterGame(won, scoreTerzi) {
   // Win rate EMA
   p.emaWinRate = p.emaWinRate * (1 - 0.2) + (won ? 1 : 0) * 0.2;
 
-  // Merge final hand into tournament accumulator
-  if (_currentGameObs && _tournamentObs) {
-    _tournamentObs.leads = _tournamentObs.leads.concat(_currentGameObs.leads);
-    _tournamentObs.follows = _tournamentObs.follows.concat(_currentGameObs.follows);
-    _tournamentObs.voidPlays = _tournamentObs.voidPlays.concat(_currentGameObs.voidPlays);
-  }
-  // Use all accumulated observations from the tournament
-  var obs = _tournamentObs || _currentGameObs;
-  if (obs) {
-    if (obs.leads.length > 0) {
-      var avgPow = obs.leads.reduce(function(s, l) { return s + l.power; }, 0) / obs.leads.length;
-      p.leadPowerAvg = p.leadPowerAvg * (1 - alpha) + avgPow * alpha;
-
-      var avgSL = obs.leads.reduce(function(s, l) { return s + l.suitLen; }, 0) / obs.leads.length;
-      p.longSuitLeadRate = p.longSuitLeadRate * (1 - alpha) + avgSL * alpha;
+  // When volo: skip strategic observations — only the volo result matters
+  // Otherwise individual plays (taking aces, not ducking) would drag skill down
+  if (!volo) {
+    // Merge final hand into tournament accumulator
+    if (_currentGameObs && _tournamentObs) {
+      _tournamentObs.leads = _tournamentObs.leads.concat(_currentGameObs.leads);
+      _tournamentObs.follows = _tournamentObs.follows.concat(_currentGameObs.follows);
+      _tournamentObs.voidPlays = _tournamentObs.voidPlays.concat(_currentGameObs.voidPlays);
     }
+    // Use all accumulated observations from the tournament
+    var obs = _tournamentObs || _currentGameObs;
+    if (obs) {
+      if (obs.leads.length > 0) {
+        var avgPow = obs.leads.reduce(function(s, l) { return s + l.power; }, 0) / obs.leads.length;
+        p.leadPowerAvg = p.leadPowerAvg * (1 - alpha) + avgPow * alpha;
 
-    var choices = obs.follows.filter(function(f) { return f.hadChoice; });
-    if (choices.length > 0) {
-      var dPct = choices.filter(function(f) { return f.ducked; }).length / choices.length;
-      p.duckRate = p.duckRate * (1 - alpha) + dPct * alpha;
-    }
+        var avgSL = obs.leads.reduce(function(s, l) { return s + l.suitLen; }, 0) / obs.leads.length;
+        p.longSuitLeadRate = p.longSuitLeadRate * (1 - alpha) + avgSL * alpha;
+      }
 
-    if (obs.voidPlays.length > 0) {
-      var avgDump = obs.voidPlays.reduce(function(s, v) {
-        return s + v.pointsDumped;
-      }, 0) / obs.voidPlays.length;
-      p.pointDumpRate = p.pointDumpRate * (1 - alpha) + Math.min(avgDump / 3, 1) * alpha;
+      var choices = obs.follows.filter(function(f) { return f.hadChoice; });
+      if (choices.length > 0) {
+        var dPct = choices.filter(function(f) { return f.ducked; }).length / choices.length;
+        p.duckRate = p.duckRate * (1 - alpha) + dPct * alpha;
+      }
+
+      if (obs.voidPlays.length > 0) {
+        var avgDump = obs.voidPlays.reduce(function(s, v) {
+          return s + v.pointsDumped;
+        }, 0) / obs.voidPlays.length;
+        p.pointDumpRate = p.pointDumpRate * (1 - alpha) + Math.min(avgDump / 3, 1) * alpha;
+      }
     }
+    p.avgScorePerGame = p.avgScorePerGame * (1 - alpha) + scoreTerzi * alpha;
   }
   // Reset tournament accumulator for next evaluation
   _tournamentObs = { leads: [], follows: [], voidPlays: [] };
-
-  p.avgScorePerGame = p.avgScorePerGame * (1 - alpha) + scoreTerzi * alpha;
 
   // Calculate skill level (0-100)
   // Components:
@@ -714,7 +717,8 @@ function _updateProfileAfterGame(won, scoreTerzi) {
     ' winRate=' + p.emaWinRate.toFixed(2) +
     ' duckRate=' + p.duckRate.toFixed(2) +
     ' leadPow=' + p.leadPowerAvg.toFixed(2) +
-    ' games=' + p.gamesPlayed);
+    ' games=' + p.gamesPlayed +
+    (volo ? ' VOLO(obs skipped)' : ''));
 
   _savePlayerProfile();
 }

@@ -393,7 +393,8 @@ function _startFriendRequestsListener() {
     curr.forEach(function(senderUid) {
       if (prev.indexOf(senderUid) === -1) {
         var req = _pendingFriendRequests[senderUid];
-        _showToast('📨 Richiesta da ' + req.fromName + (req.message ? ': "' + req.message + '"' : ''), 'info', 8000);
+        var reqName = req.fromName || 'Giocatore';
+        _showToast('📨 Richiesta da ' + reqName + (req.message ? ': "' + req.message + '"' : ''), 'info', 8000);
       }
     });
     _updateFriendRequestBadge();
@@ -477,7 +478,8 @@ function _checkFriendOnlineNotifications() {
     if (_friendsList[uid]) {
       newOnline[uid] = true;
       if (!_knownOnlineFriends[uid]) {
-        _showToast('🟢 ' + (_friendsList[uid].displayName || 'Amico') + ' è online!', 'info');
+        var friendName = _friendsList[uid].displayName || 'Amico';
+        _showToast('🟢 ' + friendName + ' è online!', 'info');
       }
     }
   }
@@ -495,6 +497,15 @@ function _startInvitationsListener() {
     var inv = snap.val();
     var senderUid = snap.key;
     if (!inv) return;
+
+    // Discard invitations older than 24 hours (stale offline invites)
+    var STALE_MS = 24 * 60 * 60 * 1000;
+    if (inv.timestamp && (Date.now() - inv.timestamp > STALE_MS)) {
+      console.log('[INVITE] Scartato invito scaduto da ' + inv.fromName);
+      _fbDb.ref('invitations/' + myUid + '/' + senderUid).remove();
+      return;
+    }
+
     _pendingInvitations[senderUid] = inv;
     _showInvitationToast(senderUid, inv);
   });
@@ -523,6 +534,7 @@ function _startInvitationResponsesListener() {
 function _showInvitationToast(senderUid, inv) {
   var container = document.getElementById('toast-container');
   if (!container) return;
+
   var toast = document.createElement('div');
   toast.className = 'toast-item toast-info show';
   var accId = 'inv-acc-' + senderUid.substring(0, 8);
@@ -550,17 +562,31 @@ function _sendInvitation(targetUid) {
   var senderUid = (_authUser && !_isGuest) ? _authUser.uid : ('guest_' + MY_ID);
   var senderName = (_authUser ? _authUser.displayName : '') || _guestDisplayName || _getMyName() || 'Giocatore';
   var targetPlayer = _onlinePlayers[targetUid];
+  var isTargetOnline = !!targetPlayer;
+  var targetName = isTargetOnline ? targetPlayer.displayName : (_friendsList[targetUid] ? _friendsList[targetUid].displayName : 'giocatore');
+  var roomLabel = document.getElementById('room-name-input') ? document.getElementById('room-name-input').value || 'Partita' : 'Partita';
+
   _fbDb.ref('invitations/' + targetUid + '/' + senderUid).set({
     fromName: senderName,
     roomCode: mpRoom,
-    roomLabel: document.getElementById('room-name-input') ? document.getElementById('room-name-input').value || 'Partita' : 'Partita',
+    roomLabel: roomLabel,
     seatIndex: _inviteSeatTarget,
-    timestamp: firebase.database.ServerValue.TIMESTAMP
+    timestamp: firebase.database.ServerValue.TIMESTAMP,
+    offline: !isTargetOnline
   }).then(function() {
-    _showToast('Invito inviato a ' + (targetPlayer ? targetPlayer.displayName : 'giocatore') + '!', 'ok');
+    if (isTargetOnline) {
+      _showToast('📨 Invito inviato a ' + targetName + '!', 'ok');
+    } else {
+      _showToast('🔔 Invito inviato a ' + targetName + ' (offline). Lo vedrà al prossimo accesso.', 'info', 5000);
+    }
     _closeInvitePanel();
   });
-  _fbDb.ref('invitations/' + targetUid + '/' + senderUid).onDisconnect().remove();
+
+  // Only auto-remove on disconnect for ONLINE targets.
+  // Offline invitations must persist until the friend logs in.
+  if (isTargetOnline) {
+    _fbDb.ref('invitations/' + targetUid + '/' + senderUid).onDisconnect().remove();
+  }
 }
 
 function _acceptInvitation(senderUid, inv) {
@@ -781,36 +807,77 @@ function _closeInvitePanel() {
 function _renderInvitePlayerList() {
   var listEl = document.getElementById('invite-player-list');
   if (!listEl) return;
-  var uids = Object.keys(_onlinePlayers);
-  if (uids.length === 0) {
-    listEl.innerHTML = '<div class="social-empty">Nessun giocatore online al momento.</div>';
+
+  // Collect online players
+  var onlineUids = Object.keys(_onlinePlayers);
+
+  // Collect offline friends (not in _onlinePlayers)
+  var offlineFriendUids = [];
+  if (!_isGuest) {
+    for (var fuid in _friendsList) {
+      if (!_onlinePlayers[fuid]) {
+        offlineFriendUids.push(fuid);
+      }
+    }
+  }
+
+  if (onlineUids.length === 0 && offlineFriendUids.length === 0) {
+    listEl.innerHTML = '<div class="social-empty">Nessun giocatore disponibile. Aggiungi amici per invitarli anche quando sono offline!</div>';
     return;
   }
-  // Sort: friends first
-  uids.sort(function(a, b) {
+
+  // Sort online: friends first, then alphabetically
+  onlineUids.sort(function(a, b) {
     var af = _friendsList[a] ? 0 : 1;
     var bf = _friendsList[b] ? 0 : 1;
     if (af !== bf) return af - bf;
     return (_onlinePlayers[a].displayName || '').localeCompare(_onlinePlayers[b].displayName || '');
   });
-  var html = '';
-  uids.forEach(function(uid) {
-    var p = _onlinePlayers[uid];
-    var isFriend = !!_friendsList[uid];
-    var inGame = !!p.inGame;
-    var inLobby = !!p.currentRoom && !p.inGame;
-    html += '<div class="social-player-row">';
-    html += '<div>';
-    html += '<span class="social-player-name" style="color:' + (isFriend ? '#4f4' : '#ccc') + '">';
-    html += (isFriend ? '⭐ ' : '') + _escHtml(p.displayName);
-    if (p.isGuest) html += ' <span style="color:#999;font-size:0.85em">(ospite)</span>';
-    html += '</span>';
-    if (inGame) html += ' <span class="social-player-status" style="color:#e84">(in partita)</span>';
-    else if (inLobby) html += ' <span class="social-player-status" style="color:#888">(in lobby)</span>';
-    html += '</div>';
-    html += '<button class="lobby-btn primary" style="font-size:10px;padding:3px 10px;min-height:26px" onclick="_sendInvitation(\'' + uid + '\')">📨 Invita</button>';
-    html += '</div>';
+
+  // Sort offline friends alphabetically
+  offlineFriendUids.sort(function(a, b) {
+    return (_friendsList[a].displayName || '').localeCompare(_friendsList[b].displayName || '');
   });
+
+  var html = '';
+
+  // Online players section
+  if (onlineUids.length > 0) {
+    html += '<div style="color:#4caf50;font-size:10px;font-weight:bold;margin-bottom:4px;margin-top:2px">🟢 ONLINE</div>';
+    onlineUids.forEach(function(uid) {
+      var p = _onlinePlayers[uid];
+      var isFriend = !!_friendsList[uid];
+      var inGame = !!p.inGame;
+      var inLobby = !!p.currentRoom && !p.inGame;
+      html += '<div class="social-player-row">';
+      html += '<div>';
+      html += '<span class="social-player-name" style="color:' + (isFriend ? '#4f4' : '#ccc') + '">';
+      html += (isFriend ? '⭐ ' : '') + _escHtml(p.displayName);
+      if (p.isGuest) html += ' <span style="color:#999;font-size:0.85em">(ospite)</span>';
+      html += '</span>';
+      if (inGame) html += ' <span class="social-player-status" style="color:#e84">(in partita)</span>';
+      else if (inLobby) html += ' <span class="social-player-status" style="color:#888">(in lobby)</span>';
+      html += '</div>';
+      html += '<button class="lobby-btn primary" style="font-size:10px;padding:3px 10px;min-height:26px" onclick="_sendInvitation(\'' + uid + '\')">📨 Invita</button>';
+      html += '</div>';
+    });
+  }
+
+  // Offline friends section
+  if (offlineFriendUids.length > 0) {
+    html += '<div style="color:#888;font-size:10px;font-weight:bold;margin-bottom:4px;margin-top:8px">⚫ OFFLINE — riceveranno una notifica push</div>';
+    offlineFriendUids.forEach(function(uid) {
+      var f = _friendsList[uid];
+      html += '<div class="social-player-row" style="opacity:0.7">';
+      html += '<div>';
+      html += '<span class="social-player-name" style="color:#888">⭐ ' + _escHtml(f.displayName) + '</span>';
+      html += ' <span class="social-player-status" style="color:#666">offline</span>';
+      html += '</div>';
+      html += '<button class="lobby-btn" style="font-size:10px;padding:3px 10px;min-height:26px;background:rgba(255,170,68,0.15);border-color:rgba(255,170,68,0.3);color:#fa4" onclick="_sendInvitation(\'' + uid + '\')">🔔 Notifica</button>';
+      html += '</div>';
+    });
+  }
+
   listEl.innerHTML = html;
 }
 
@@ -846,3 +913,4 @@ function _cleanupSocialListeners() {
   _knownOnlineFriends = {};
   _socialListenersStarted = false;
 }
+

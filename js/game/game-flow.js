@@ -222,7 +222,8 @@ function showGameOver() {
   // Update player skill profile after every game (all modes, not just adattivo)
   _updateProfileAfterGame(
     _resultStr === 'win',
-    game.scores[localSeat] || 0
+    game.scores[localSeat] || 0,
+    voloActive
   );
 
   // --- Set title: if tournament just ended, reflect tournament result; otherwise hand result ---
