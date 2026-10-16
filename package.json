@@ -1,0 +1,20 @@
+{
+  "name": "tresette",
+  "version": "1.0.0",
+  "description": "Gioco di carte **Tresette** con carte napoletane, giocabile in modalità **singolo giocatore** (vs CPU con 4 livelli di difficoltà) e **multiplayer online** via Firebase.",
+  "main": "firebase-messaging-sw.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://localhost:26831/ripom/tresette"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}
